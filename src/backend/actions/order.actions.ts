@@ -1,11 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { initDatabase } from "../db/database";
 import { getAuthContext } from "../auth/context";
 import { checkPermission } from "../rbac/permissions";
 import { OrderService } from "../services/order.service";
 
 export async function createOrderAction(input: any) {
+  await initDatabase();
   const context = await getAuthContext();
   const role = context.user?.role || "ADMIN";
   if (!checkPermission(role as any, "CREATE_ORDER")) {
@@ -22,6 +24,7 @@ export async function updateOrderStatusAction(
   id: number | string,
   status: string,
 ) {
+  await initDatabase();
   const context = await getAuthContext();
   const role = context.user?.role || "ADMIN";
   if (!checkPermission(role as any, "UPDATE_ORDER")) {
@@ -34,6 +37,7 @@ export async function updateOrderStatusAction(
 }
 
 export async function deleteOrderAction(id: number | string) {
+  await initDatabase();
   const context = await getAuthContext();
   const role = context.user?.role || "ADMIN";
   if (!checkPermission(role as any, "MANAGE_USERS")) {

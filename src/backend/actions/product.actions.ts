@@ -1,12 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { initDatabase } from "../db/database";
 import { getAuthContext } from "../auth/context";
 import { checkPermission } from "../rbac/permissions";
 import { ProductInventorySchema } from "../schemas/zodSchemas";
 import { ProductService } from "../services/product.service";
 
 export async function getProductsAction() {
+  await initDatabase();
   const context = await getAuthContext();
   const role = context.user?.role || "ADMIN";
   if (!checkPermission(role as any, "ADJUST_INVENTORY")) {
@@ -17,6 +19,7 @@ export async function getProductsAction() {
   return result;
 }
 export async function createProductAction(input: any) {
+  await initDatabase();
   const validatedData = ProductInventorySchema.parse(input);
   const context = await getAuthContext();
   const role = context.user?.role || "ADMIN";
@@ -30,6 +33,7 @@ export async function createProductAction(input: any) {
 }
 
 export async function updateProductAction(id: number | string, input: any) {
+  await initDatabase();
   const context = await getAuthContext();
   const role = context.user?.role || "ADMIN";
   if (!checkPermission(role as any, "ADJUST_INVENTORY")) {
@@ -42,6 +46,7 @@ export async function updateProductAction(id: number | string, input: any) {
 }
 
 export async function deleteProductAction(id: number | string) {
+  await initDatabase();
   const context = await getAuthContext();
   const role = context.user?.role || "ADMIN";
   if (!checkPermission(role as any, "ADJUST_INVENTORY")) {
