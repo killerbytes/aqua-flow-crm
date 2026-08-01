@@ -1,4 +1,4 @@
-import { PAGINATION } from "@/lib/definitions";
+import { PAGINATION, PaymentStatus } from "@/lib/definitions";
 import moment from "moment-timezone";
 import { Op } from "sequelize";
 import {
@@ -20,6 +20,7 @@ export interface OrderQueryParams {
     customerId?: number;
     startDate?: string;
     endDate?: string;
+    paymentStatus?: PaymentStatus;
   };
 }
 
@@ -36,6 +37,7 @@ export class OrderService {
 
       if (status) where.status = status;
       if (customerId) where.customerId = customerId;
+      if (paymentStatus) where.paymentStatus = paymentStatus;
       if (startDate && endDate) {
         const timezone = "Asia/Manila";
         if (startDate) {
@@ -190,9 +192,7 @@ export class OrderService {
       });
       return createdOrder?.get({ plain: true });
     } catch (error) {
-      if (!transaction.finished) {
-        await transaction.rollback();
-      }
+      await transaction.rollback();
       throw error;
     }
   }

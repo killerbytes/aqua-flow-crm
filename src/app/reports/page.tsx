@@ -1,9 +1,8 @@
-import React from "react";
 import { initDatabase } from "@/backend/db/database";
-import { Order, Customer } from "@/backend/models";
-import { UI_DEFAULTS } from "@/lib/definitions";
+import { Customer, Order } from "@/backend/models";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, TrendingUp, AlertTriangle, Users } from "lucide-react";
+import { UI_DEFAULTS } from "@/lib/definitions";
+import { AlertTriangle, BarChart3, TrendingUp, Users } from "lucide-react";
 import { Op } from "sequelize";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +24,7 @@ export default async function ReportsPage() {
     });
 
     orderCountToday = todayOrders.length;
-    todaySales = todayOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+    todaySales = todayOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
 
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const recentOrders = await Order.findAll({
@@ -34,9 +33,11 @@ export default async function ReportsPage() {
       group: ["customer_id"],
     });
 
-    const activeCustomerIds = new Set(recentOrders.map((o) => o.customer_id));
+    const activeCustomerIds = new Set(recentOrders.map((o) => o.customerId));
     const allCustomers = await Customer.findAll();
-    churnRiskCustomers = allCustomers.filter((c) => !activeCustomerIds.has(c.customer_id));
+    churnRiskCustomers = allCustomers.filter(
+      (c) => !activeCustomerIds.has(c.customerId),
+    );
   } catch (err) {
     // Fallback
   }
@@ -50,7 +51,8 @@ export default async function ReportsPage() {
             CRM Reports & Analytics
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            Revenue metrics, daily sales reports, and customer churn retention analysis.
+            Revenue metrics, daily sales reports, and customer churn retention
+            analysis.
           </p>
         </div>
       </div>
@@ -63,13 +65,18 @@ export default async function ReportsPage() {
               <TrendingUp className="w-5 h-5 text-cyan-400" />
               Daily Sales Revenue Report
             </h3>
-            <Badge variant="success">Active Today</Badge>
+            <Badge>Active Today</Badge>
           </div>
           <div className="text-3xl font-extrabold font-mono text-cyan-300">
-            {UI_DEFAULTS.CURRENCY_SYMBOL}{todaySales.toFixed(2)}
+            {UI_DEFAULTS.CURRENCY_SYMBOL}
+            {todaySales.toFixed(2)}
           </div>
           <p className="text-xs text-slate-400">
-            Total of <span className="font-semibold text-slate-200">{orderCountToday}</span> refill orders processed today.
+            Total of{" "}
+            <span className="font-semibold text-slate-200">
+              {orderCountToday}
+            </span>{" "}
+            refill orders processed today.
           </p>
         </div>
 
@@ -80,10 +87,11 @@ export default async function ReportsPage() {
               <AlertTriangle className="w-5 h-5 text-rose-400" />
               Weekly Churn Risk (&gt;7 Days)
             </h3>
-            <Badge variant="danger">{churnRiskCustomers.length} At-Risk Accounts</Badge>
+            <Badge>{churnRiskCustomers.length} At-Risk Accounts</Badge>
           </div>
           <p className="text-xs text-slate-400">
-            Customers with no recorded orders in the last 7 days requiring proactive station outreach.
+            Customers with no recorded orders in the last 7 days requiring
+            proactive station outreach.
           </p>
         </div>
       </div>
@@ -115,14 +123,19 @@ export default async function ReportsPage() {
                 </tr>
               ) : (
                 churnRiskCustomers.map((cust) => (
-                  <tr key={cust.customer_id} className="hover:bg-slate-900/40 transition-colors">
-                    <td className="p-4 font-semibold text-slate-100">{cust.name}</td>
+                  <tr
+                    key={cust.customer_id}
+                    className="hover:bg-slate-900/40 transition-colors"
+                  >
+                    <td className="p-4 font-semibold text-slate-100">
+                      {cust.name}
+                    </td>
                     <td className="p-4 text-slate-300">{cust.address}</td>
-                    <td className="p-4 text-slate-300 font-mono">{cust.phone}</td>
+                    <td className="p-4 text-slate-300 font-mono">
+                      {cust.phone}
+                    </td>
                     <td className="p-4">
-                      <Badge variant={cust.customer_type === "COMMERCIAL" ? "info" : "default"}>
-                        {cust.customer_type}
-                      </Badge>
+                      <Badge>{cust.customer_type}</Badge>
                     </td>
                   </tr>
                 ))

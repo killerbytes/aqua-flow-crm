@@ -13,11 +13,7 @@ export default function CustomerDetailsActions({
   customer: Customer;
   products: ProductInventory[];
 }) {
-  const {
-    isCustomerFormModalOpen,
-    setEquipmentLogModalOpen,
-    setCustomerFormModalOpen,
-  } = useUIStore();
+  const { setEquipmentLogModalOpen, setCustomerFormModalOpen } = useUIStore();
 
   return (
     <div className="flex gap-2">
@@ -30,7 +26,7 @@ export default function CustomerDetailsActions({
           Edit Customer
         </Button>
         <Button
-          onClick={() => setEquipmentLogModalOpen(true, customer.id)}
+          onClick={() => setEquipmentLogModalOpen(true, customer.customerId)}
           variant="outline"
         >
           <ArrowRightLeft size={16} /> Log Equipment

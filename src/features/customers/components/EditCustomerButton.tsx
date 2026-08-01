@@ -1,18 +1,21 @@
 "use client";
 
-import React from "react";
-import { useUIStore, CustomerData } from "@/store/uiStore";
+import { Customer } from "@/backend/models";
 import { Button } from "@/components/ui/button";
+import { useUIStore } from "@/store/uiStore";
 import { Pencil } from "lucide-react";
+import React from "react";
 
-export const EditCustomerButton: React.FC<{ customer: CustomerData }> = ({ customer }) => {
-  const { setCustomerModalOpen } = useUIStore();
+export const EditCustomerButton: React.FC<{ customer: Customer }> = ({
+  customer,
+}) => {
+  const { setCustomerFormModalOpen } = useUIStore();
 
   return (
     <Button
       variant="ghost"
       size="sm"
-      onClick={() => setCustomerModalOpen(true, customer)}
+      onClick={() => setCustomerFormModalOpen(true, customer)}
       className="h-8 px-2 text-slate-400 hover:text-cyan-400 hover:bg-cyan-500/10"
       title="Edit Customer Profile"
     >

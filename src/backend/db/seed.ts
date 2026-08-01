@@ -25,6 +25,7 @@ import {
   User,
   sequelize,
 } from "../models";
+import { CustomerFormData, ProductFormData } from "../schemas/zodSchemas";
 
 export interface SeedProductInput {
   name: string;
@@ -60,8 +61,8 @@ export interface SeedOrderInput {
 }
 
 export interface SeedDataResult {
-  products: SeedProductInput[];
-  customers: SeedCustomerInput[];
+  products: ProductFormData[];
+  customers: CustomerFormData[];
   orders: SeedOrderInput[];
 }
 

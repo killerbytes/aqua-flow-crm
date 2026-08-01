@@ -5,7 +5,10 @@ import {
   deleteProductAction,
   updateProductAction,
 } from "@/backend/actions";
-import { ProductInventorySchema } from "@/backend/schemas/zodSchemas";
+import {
+  ProductFormData,
+  ProductInventorySchema,
+} from "@/backend/schemas/zodSchemas";
 import Modal from "@/components/Modal";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,8 +26,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { PackagePlus, Tag, Trash } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
-import z from "zod";
-type ProductFormData = z.infer<typeof ProductInventorySchema>;
 
 export function ProductFormModal() {
   const { isProductModalOpen, setProductModalOpen } = useUIStore();

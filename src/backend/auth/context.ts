@@ -1,9 +1,9 @@
+import { verifyToken } from "@/lib/auth";
 import { UserRole } from "@/lib/definitions";
 import { cookies, headers } from "next/headers";
-import { verifyToken } from "@/lib/auth";
 
 export interface UserSession {
-  user_id: number;
+  userId: number;
   name: string;
   email: string;
   role: UserRole;
@@ -16,7 +16,7 @@ export interface AuthContext {
 
 export function requireAuth(ctx: AuthContext): UserSession {
   const user = ctx?.currentUser || ctx?.user;
-  if (!user?.user_id) {
+  if (!user?.userId) {
     throw new Error("User not authenticated");
   }
   return user;
@@ -32,7 +32,9 @@ export async function getAuthContext(): Promise<AuthContext> {
 
     try {
       const cookieStore = await cookies();
-      token = cookieStore.get("token")?.value || cookieStore.get("aquaflow_token")?.value;
+      token =
+        cookieStore.get("token")?.value ||
+        cookieStore.get("aquaflow_token")?.value;
     } catch {
       // Not in Next.js request context
     }
@@ -58,19 +60,22 @@ export async function getAuthContext(): Promise<AuthContext> {
   } catch (err) {
     console.error("getAuthContext error:", err);
   }
+  if (process.env.NODE_ENV !== "production") {
+    return {
+      currentUser: {
+        userId: 1,
+        name: "Admin User",
+        email: "admin@aquaflow.com",
+        role: UserRole.ADMIN,
+      },
+      user: {
+        userId: 1,
+        name: "Admin User",
+        email: "admin@aquaflow.com",
+        role: UserRole.ADMIN,
+      },
+    };
+  }
 
-  return {
-    currentUser: {
-      user_id: 1,
-      name: "Admin User",
-      email: "admin@aquaflow.com",
-      role: UserRole.ADMIN,
-    },
-    user: {
-      user_id: 1,
-      name: "Admin User",
-      email: "admin@aquaflow.com",
-      role: UserRole.ADMIN,
-    },
-  };
+  return { user: undefined, currentUser: undefined };
 }

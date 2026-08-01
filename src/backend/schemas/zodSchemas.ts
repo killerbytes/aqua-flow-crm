@@ -63,3 +63,6 @@ export const LoginSchema = UserSchema.omit({
   name: true,
   role: true,
 });
+
+export type ProductFormData = z.infer<typeof ProductInventorySchema>;
+export type CustomerFormData = z.infer<typeof CustomerSchema>;

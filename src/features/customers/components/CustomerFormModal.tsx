@@ -5,8 +5,7 @@ import {
   deleteCustomerAction,
   updateCustomerAction,
 } from "@/backend/actions";
-import { Customer } from "@/backend/models";
-import { CustomerSchema } from "@/backend/schemas/zodSchemas";
+import { CustomerFormData, CustomerSchema } from "@/backend/schemas/zodSchemas";
 import { Barangay } from "@/backend/services/commonService";
 import Modal from "@/components/Modal";
 import { Button } from "@/components/ui/button";
@@ -34,17 +33,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Trash, UserCheck, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
-import { z } from "zod";
-
-type CustomerFormData = z.infer<typeof CustomerSchema>;
 
 export function CustomerFormModal({
   barangays,
 }: {
   barangays: readonly Barangay[];
 }) {
-  const { isCustomerFormModalOpen, setCustomerFormModalOpen, editingCustomer } =
-    useUIStore();
+  const { isCustomerFormModalOpen, setCustomerFormModalOpen } = useUIStore();
 
   if (!isCustomerFormModalOpen) return null;
 
@@ -53,22 +48,17 @@ export function CustomerFormModal({
       isOpen={isCustomerFormModalOpen}
       onClose={() => setCustomerFormModalOpen(false, null)}
     >
-      <CustomerFormModalContent
-        editingCustomer={editingCustomer}
-        barangays={barangays}
-      />
+      <CustomerFormModalContent barangays={barangays} />
     </Modal>
   );
 }
 
 function CustomerFormModalContent({
-  editingCustomer,
   barangays,
 }: {
-  editingCustomer?: Customer;
   barangays: readonly Barangay[];
 }) {
-  const { setCustomerFormModalOpen } = useUIStore();
+  const { setCustomerFormModalOpen, editingCustomer } = useUIStore();
 
   const router = useRouter();
   const isEditing = editingCustomer;

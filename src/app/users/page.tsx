@@ -1,10 +1,9 @@
-import React from "react";
 import { initDatabase } from "@/backend/db/database";
 import { User } from "@/backend/models";
+import { Badge } from "@/components/ui/badge";
 import { UserFormModal } from "@/features/users/components/UserFormModal";
 import { UserListActions } from "@/features/users/components/UserListActions";
-import { Badge } from "@/components/ui/badge";
-import { Users, ShieldCheck, Mail, Calendar } from "lucide-react";
+import { Mail, ShieldCheck, Users } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -67,7 +66,10 @@ export default async function UsersPage() {
                 </tr>
               ) : (
                 users.map((u: any) => (
-                  <tr key={u.user_id} className="hover:bg-slate-900/40 transition-colors">
+                  <tr
+                    key={u.user_id}
+                    className="hover:bg-slate-900/40 transition-colors"
+                  >
                     <td className="p-4 font-mono font-semibold text-cyan-400">
                       #USR-{u.user_id}
                     </td>
@@ -80,7 +82,7 @@ export default async function UsersPage() {
                       {u.email}
                     </td>
                     <td className="p-4">
-                      <Badge variant={getRoleVariant(u.role)}>{u.role}</Badge>
+                      <Badge>{u.role}</Badge>
                     </td>
                     <td className="p-4 text-slate-400 font-mono text-[11px]">
                       {new Date(u.createdAt).toLocaleDateString()}

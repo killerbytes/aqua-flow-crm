@@ -211,7 +211,9 @@ export const OrderFormModalContent = () => {
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => append({ productId: -1, quantity: 1 })}
+              onClick={() =>
+                append({ productId: 0, quantity: 1, unitPrice: 0 })
+              }
             >
               <Plus size={14} /> Add Item
             </Button>

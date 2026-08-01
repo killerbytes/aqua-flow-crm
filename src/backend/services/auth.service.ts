@@ -1,5 +1,5 @@
-import { User } from "../models";
 import { comparePassword, signToken } from "@/lib/auth";
+import { User } from "../models";
 
 export function mapUserToDTO(u: any) {
   if (!u) return null;
@@ -30,14 +30,7 @@ export class AuthService {
       throw new Error("Invalid email or password");
     }
 
-    const session = {
-      user_id: user.user_id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    };
-
-    const token = signToken(session);
+    const token = signToken(user);
     return { token, user: mapUserToDTO(user) };
   }
 
@@ -55,7 +48,9 @@ export class AuthService {
    * Get all users excluding password hashes.
    */
   static async getUsers() {
-    const users = await User.findAll({ attributes: { exclude: ["password_hash"] } });
+    const users = await User.findAll({
+      attributes: { exclude: ["password_hash"] },
+    });
     return users.map(mapUserToDTO);
   }
 

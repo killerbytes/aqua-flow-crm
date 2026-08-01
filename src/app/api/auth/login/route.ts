@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const isValid = await comparePassword(password, user.password_hash);
+    const isValid = await comparePassword(password, user.passwordHash);
     if (!isValid) {
       return NextResponse.json(
         { error: "Invalid email or password" },
@@ -32,18 +32,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const session = {
-      user_id: user.user_id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    };
-
-    const token = signToken(session);
+    const token = signToken(user);
 
     const response = NextResponse.json({
       message: "Login successful",
-      user: session,
+      user,
     });
 
     response.cookies.set({

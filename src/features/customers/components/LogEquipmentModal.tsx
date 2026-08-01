@@ -1,6 +1,7 @@
 "use client";
 
 import { logEquipmentAction } from "@/backend/actions";
+import { Customer, ProductInventory } from "@/backend/models";
 import Modal from "@/components/Modal";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
@@ -35,7 +36,7 @@ export interface LogEquipmentFormData {
 interface LogEquipmentModalProps {
   onClose: () => void;
   customer: Customer;
-  products: Product[];
+  products: ProductInventory[];
 }
 
 export function LogEquipmentModal({
@@ -77,7 +78,7 @@ export function LogEquipmentModal({
         if (result.fieldErrors) {
           Object.entries(result.fieldErrors).forEach(([field, messages]) => {
             setError(field as keyof LogEquipmentFormData, {
-              message: messages[0],
+              message: (messages as string[])[0],
             });
           });
         }
@@ -123,13 +124,14 @@ export function LogEquipmentModal({
                     <SelectValue placeholder="Select a product...">
                       {(val) =>
                         products.find(
-                          (p: Product) => String(p.productId) === String(val),
+                          (p: ProductInventory) =>
+                            String(p.productId) === String(val),
                         )?.name ?? val
                       }
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {products.map((p: Product) => (
+                    {products.map((p: ProductInventory) => (
                       <SelectItem key={p.productId} value={String(p.productId)}>
                         {p.name}
                       </SelectItem>
