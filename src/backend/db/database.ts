@@ -82,13 +82,14 @@ export function initDatabase(): Promise<void> {
   return initPromise;
 }
 
-// Auto-trigger initialization on server module load (except during seeding or test runs)
-if (
-  typeof window === "undefined" &&
-  !isSeedingScript &&
-  process.env.NODE_ENV !== "test"
-) {
-  initDatabase().catch((err) => {
-    console.error("Auto database initialization error:", err);
-  });
-}
+// NOTE: Database initialization is intentionally NOT triggered automatically
+// on module load. Importing this module (directly or transitively, e.g. via
+// backend services/models used in Server Components) happens during the
+// Next.js build step (page data collection / static analysis), which runs on
+// developer machines and CI without access to Railway's internal network
+// (postgres.railway.internal only resolves inside Railway infrastructure).
+//
+// Instead, initDatabase() must be called explicitly at runtime, right before
+// the first query is made (e.g. in API routes / server actions / page
+// handlers). It is memoized via `initPromise`, so calling it multiple times
+// is safe and cheap after the first successful call.

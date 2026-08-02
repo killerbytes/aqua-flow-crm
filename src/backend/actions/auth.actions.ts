@@ -1,15 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { initDatabase } from "../db/database";
 import { AuthService } from "../services/auth.service";
 import { checkPermission } from "../rbac/permissions";
 import { getAuthContext } from "../auth/context";
 
 export async function loginAction(email: string, password: string) {
+  await initDatabase();
   return await AuthService.login(email, password);
 }
 
 export async function createUserAction(input: any) {
+  await initDatabase();
   const context = await getAuthContext();
   const role = context.user?.role || "ADMIN";
   if (!checkPermission(role as any, "CREATE_USER")) {
@@ -22,6 +25,7 @@ export async function createUserAction(input: any) {
 }
 
 export async function updateUserAction(id: number | string, input: any) {
+  await initDatabase();
   const context = await getAuthContext();
   const role = context.user?.role || "ADMIN";
   if (!checkPermission(role as any, "MANAGE_USERS")) {
@@ -34,6 +38,7 @@ export async function updateUserAction(id: number | string, input: any) {
 }
 
 export async function deleteUserAction(id: number | string) {
+  await initDatabase();
   const context = await getAuthContext();
   const role = context.user?.role || "ADMIN";
   if (!checkPermission(role as any, "MANAGE_USERS")) {

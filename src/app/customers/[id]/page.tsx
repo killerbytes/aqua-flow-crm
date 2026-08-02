@@ -1,6 +1,7 @@
 import { ArrowLeft, BadgePercent, ClockAlert, Package } from "lucide-react";
 import Link from "next/link";
 
+import { initDatabase } from "@/backend/db/database";
 import {
   CustomerEquipmentBalance,
   CustomerSpecialPricing,
@@ -19,11 +20,14 @@ import EquipmentLogs from "@/features/products/components/EquipmentLogs";
 import { formatCurrency } from "@/lib/utils";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 export default async function CustomerPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await initDatabase();
   const { id } = await params;
   let customer;
 
@@ -35,7 +39,6 @@ export default async function CustomerPage({
     customer = { rows: [], pagination: { total: 0, currentPage: 0 } };
   }
   if (!customer) redirect("/customers");
-  console.log(customer);
 
   const products = await ProductService.getProducts();
   const logsPromise = EquipmentService.getAll({

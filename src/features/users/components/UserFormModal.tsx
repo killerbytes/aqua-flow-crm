@@ -1,5 +1,6 @@
 "use client";
 
+import { createUserAction } from "@/backend/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UserRole } from "@/lib/definitions";
@@ -74,25 +75,7 @@ export const UserFormModal: React.FC<{ onSuccess?: () => void }> = ({
         if (json.errors) throw new Error(json.errors[0].message);
         addToast("success", `User "${data.name}" updated successfully!`);
       } else {
-        const res = await fetch("/api/graphql", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            query: `
-              mutation CreateUser($input: CreateUserInput!) {
-                createUser(input: $input) {
-                  user_id
-                  name
-                  role
-                }
-              }
-            `,
-            variables: { input: data },
-          }),
-        });
-        const json = await res.json();
-        if (json.errors) throw new Error(json.errors[0].message);
-        addToast("success", `Staff account for "${data.name}" created!`);
+        await createUserAction(data);
       }
 
       reset();

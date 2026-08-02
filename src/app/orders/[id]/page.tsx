@@ -1,6 +1,7 @@
 import { ArrowLeft, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 
+import { initDatabase } from "@/backend/db/database";
 import { Order } from "@/backend/models";
 import { OrderService } from "@/backend/services";
 import ColorBadge from "@/components/ColorBadge";
@@ -13,11 +14,14 @@ import {
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 export default async function OrderPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await initDatabase();
   const { id } = await params;
   let order: Order | null = null;
 
@@ -29,7 +33,6 @@ export default async function OrderPage({
     order = null;
   }
   if (!order) redirect("/orders");
-  console.log(order);
 
   return (
     <>

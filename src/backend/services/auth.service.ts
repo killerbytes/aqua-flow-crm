@@ -1,5 +1,6 @@
 import { comparePassword, signToken } from "@/lib/auth";
 import { User } from "../models";
+import { UserSchema } from "../schemas/zodSchemas";
 
 export function mapUserToDTO(u: any) {
   if (!u) return null;
@@ -73,11 +74,10 @@ export class AuthService {
     password?: string;
     role: string;
   }) {
+    const validatedData = UserSchema.parse(input);
     const user = await User.create({
-      name: input.name,
-      email: input.email,
-      password_hash: input.password || "$2a$10$placeholderhash",
-      role: input.role,
+      ...validatedData,
+      passwordHash: input.password,
     } as any);
     return mapUserToDTO(user);
   }

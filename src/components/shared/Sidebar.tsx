@@ -37,14 +37,20 @@ export default function Sidebar() {
   if (pathname === "/login") return null;
 
   const handleLogout = async () => {
-    // try {
-    //   await api.post("/auth/logout");
-    // } catch (error) {
-    //   console.error(error);
-    // } finally {
-    //   logout();
-    //   router.push("/login");
-    // }
+    try {
+      const res = await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) {
+        throw new Error("Logout failed. Please try again.");
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      logout();
+      router.push("/login");
+    }
   };
 
   const navItems = [

@@ -73,7 +73,6 @@ export class CustomerService {
         offset,
         include,
       });
-      console.log(rows);
 
       return {
         rows: rows.map((r) => r.get({ plain: true })),

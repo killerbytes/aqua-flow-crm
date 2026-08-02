@@ -20,7 +20,6 @@ export default async function InventoryPage() {
   } catch (err) {
     products = [];
   }
-  console.log(products);
 
   return (
     <div className="space-y-8">

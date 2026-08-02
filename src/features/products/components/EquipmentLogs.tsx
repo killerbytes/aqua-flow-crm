@@ -17,7 +17,6 @@ interface EquipmentLogsProps {
 
 export default function EquipmentLogs({ logsPromise }: EquipmentLogsProps) {
   const data = use(logsPromise);
-  console.log(data.rows[0]);
 
   const columnHelper = createColumnHelper<EquipmentLog>();
   const columns = [

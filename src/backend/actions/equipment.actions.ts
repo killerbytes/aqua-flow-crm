@@ -1,11 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { initDatabase } from "../db/database";
 import { getAuthContext } from "../auth/context";
 import { checkPermission } from "../rbac/permissions";
 import { EquipmentService } from "../services/equipment.service";
 
 export async function logEquipmentAction(input: any) {
+  await initDatabase();
   const context = await getAuthContext();
   const role = context.user?.role || "ADMIN";
   if (!checkPermission(role as any, "LOG_EQUIPMENT")) {

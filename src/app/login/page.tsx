@@ -13,7 +13,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight, Droplets, ShieldCheck, UserCheck } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -29,6 +29,32 @@ import { Input } from "@/components/ui/input";
 type LoginFormData = z.infer<typeof LoginSchema>;
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginPageFallback />}>
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+function LoginPageFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-950 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(14,165,233,0.15),rgba(255,255,255,0))] p-4">
+      <div className="w-full max-w-md space-y-6">
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 mb-2">
+            <Droplets className="w-10 h-10 text-cyan-400 animate-pulse" />
+          </div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-100">
+            AquaFlow <span className="text-cyan-400">CRM</span>
+          </h1>
+          <p className="text-sm text-slate-400">Loading...</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectPath = searchParams.get("redirect") || "/";
@@ -55,6 +81,7 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     setLoading(true);
     setError(null);
+    console.log(data);
 
     try {
       const res = await fetch("/api/auth/login", {

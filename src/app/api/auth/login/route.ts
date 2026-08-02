@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const token = signToken(user);
+    const token = signToken(user.get({ plain: true }));
 
     const response = NextResponse.json({
       message: "Login successful",
