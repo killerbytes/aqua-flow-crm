@@ -43,7 +43,7 @@ export function UserFormModal() {
 
 export const OrderFormModalContent = () => {
   const router = useRouter();
-  const { isUserModalOpen, editingUser, setUserModalOpen, addToast } =
+  const { isUserModalOpen, editingUser, setUserModalOpen } =
     useUIStore();
   const isEditing = Boolean(editingUser?.userId);
   const [isPending, startTransition] = useTransition();
