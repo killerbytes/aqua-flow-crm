@@ -1,7 +1,11 @@
 "use client";
 
 import { logEquipmentAction } from "@/backend/actions";
-import { Customer, ProductInventory } from "@/backend/models";
+import { ProductInventory } from "@/backend/models";
+import {
+  EquipmentLogFormData,
+  EquipmentLogSchema,
+} from "@/backend/schemas/zodSchemas";
 import Modal from "@/components/Modal";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
@@ -22,36 +26,34 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import { EquipmentActionType } from "@/lib/definitions";
+import { useUIStore } from "@/store/uiStore";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
-export interface LogEquipmentFormData {
-  customer_id: string;
-  product_id: string;
-  action_type: string;
-  quantity: number;
-  notes?: string;
-}
 
 interface LogEquipmentModalProps {
   onClose: () => void;
-  customer: Customer;
   products: ProductInventory[];
 }
 
-export function LogEquipmentModal({
+function LogEquipmentModalContent({
   onClose,
-  customer,
   products,
 }: LogEquipmentModalProps) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const { selectedCustomerId, selectedProductId, setEquipmentLogModalOpen } =
+    useUIStore();
 
-  const form = useForm<LogEquipmentFormData>({
+  const form = useForm<EquipmentLogFormData>({
+    resolver: zodResolver(EquipmentLogSchema),
     defaultValues: {
-      customer_id: String(customer.customerId),
-      product_id: "",
-      action_type: EquipmentActionType.TEMPORARY,
+      customerId: Number(selectedCustomerId),
+      productId: Number(selectedProductId || 0),
+      actionType: selectedProductId
+        ? EquipmentActionType.TEMPORARY_RETURNED
+        : EquipmentActionType.TEMPORARY,
       quantity: 1,
       notes: "",
     },
@@ -64,37 +66,25 @@ export function LogEquipmentModal({
     formState: { errors },
   } = form;
 
-  const handleSave = (data: LogEquipmentFormData) => {
-    startTransition(async () => {
-      const result = await logEquipmentAction({
-        customer_id: data.customer_id,
-        product_id: data.product_id,
-        action_type: data.action_type,
-        quantity: Number(data.quantity),
-        notes: data.notes,
-      });
+  const handleSave = (data: EquipmentLogFormData) => {
+    console.log(data);
 
-      if (!result.success) {
-        if (result.fieldErrors) {
-          Object.entries(result.fieldErrors).forEach(([field, messages]) => {
-            setError(field as keyof LogEquipmentFormData, {
-              message: (messages as string[])[0],
-            });
-          });
-        }
+    startTransition(async () => {
+      try {
+        await logEquipmentAction(data);
+
+        toast.add({
+          type: "success",
+          description: "Equipment transaction logged",
+        });
+        onClose();
+        router.refresh();
+      } catch (error: any) {
         toast.add({
           type: "error",
-          description: result.message,
+          description: error.message || "Failed to log equipment",
         });
-        return;
       }
-
-      toast.add({
-        type: "success",
-        description: "Equipment transaction logged",
-      });
-      onClose();
-      router.refresh();
     });
   };
 
@@ -109,7 +99,7 @@ export function LogEquipmentModal({
       <form onSubmit={handleSubmit(handleSave)} className="space-y-4">
         <FieldGroup>
           <Controller
-            name="product_id"
+            name="productId"
             control={control}
             rules={{ required: "Product is required" }}
             render={({ field }) => (
@@ -126,19 +116,19 @@ export function LogEquipmentModal({
                         products.find(
                           (p: ProductInventory) =>
                             String(p.productId) === String(val),
-                        )?.name ?? val
+                        )?.name
                       }
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {products.map((p: ProductInventory) => (
-                      <SelectItem key={p.productId} value={String(p.productId)}>
+                      <SelectItem key={p.productId} value={Number(p.productId)}>
                         {p.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <FieldError>{errors.product_id?.message}</FieldError>
+                <FieldError>{errors.productId?.message}</FieldError>
               </Field>
             )}
           />
@@ -147,7 +137,7 @@ export function LogEquipmentModal({
         <div className="grid grid-cols-2 gap-4">
           <FieldGroup>
             <Controller
-              name="action_type"
+              name="actionType"
               control={control}
               render={({ field }) => (
                 <Field>
@@ -228,4 +218,24 @@ export function LogEquipmentModal({
   );
 }
 
-export default LogEquipmentModal;
+export function LogEquipmentModal({
+  products,
+}: {
+  products: ProductInventory[];
+}) {
+  const { isEquipmentLogModalOpen, setEquipmentLogModalOpen } = useUIStore();
+
+  if (!isEquipmentLogModalOpen) return null;
+
+  return (
+    <Modal
+      isOpen={isEquipmentLogModalOpen}
+      onClose={() => setEquipmentLogModalOpen(false, null)}
+    >
+      <LogEquipmentModalContent
+        onClose={() => setEquipmentLogModalOpen(false, null)}
+        products={products}
+      />
+    </Modal>
+  );
+}

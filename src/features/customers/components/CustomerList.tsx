@@ -2,59 +2,69 @@
 import { Customer } from "@/backend/models";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import DataTable from "@/components/DataTable";
+import MonoText from "@/components/MonoText";
 import { Button } from "@/components/ui/button";
-import useToggle from "@/hooks/use-toggle";
+import { CustomerStatus, UserRole } from "@/lib/definitions";
+import { useUIStore } from "@/store/uiStore";
 import { Paginated } from "@/types";
 import { createColumnHelper } from "@tanstack/react-table";
+import { cx } from "class-variance-authority";
 import { motion } from "framer-motion";
-import { Tag } from "lucide-react";
+import { Edit, Tag } from "lucide-react";
 import Link from "next/link";
 import React from "react";
-// import CustomerFormModal from "./CustomerFormModal";
-// import SpecialPricingModal from "./SpecialPricingModal";
 
 interface CustomerListProps {
   customers: Paginated<Customer>;
 }
 
 export default function CustomerList({ customers }: CustomerListProps) {
-  const [selectedCustomer, setSelectedCustomer] =
-    React.useState<Customer | null>(null);
-  const { toggle, handleToggle } = useToggle({
-    isPricingModalOpen: false,
-    isFormOpen: false,
-  });
+  const { isCustomerFormModalOpen, setCustomerFormModalOpen } = useUIStore();
 
   const columnHelper = createColumnHelper<Customer>();
   const columns = React.useMemo(
     () => [
       columnHelper.accessor("customerId", {
-        header: "Customer ID",
+        header: "ID",
         cell: (info) => (
-          <span className="font-mono font-semibold ">#{info.getValue()}</span>
+          <MonoText className="font-semibold">#{info.getValue()}</MonoText>
         ),
       }),
       columnHelper.accessor("name", {
         header: "Name",
         cell: (info) => {
           const customer = info.row.original;
+          const hasSpecialPricing = (customer.specialPricings?.length ?? 0) > 0;
+
           return (
-            <Link
-              onClick={(e) => e.stopPropagation()}
-              href={`/customers/${customer.customerId}`}
-              className="font-medium text-cyan-600 hover:text-cyan-700 hover:underline"
+            <div
+              className={cx(
+                "flex items-center gap-2",
+                customer.status === CustomerStatus.INACTIVE
+                  ? "opacity-60"
+                  : "opacity-100 text-primary",
+              )}
             >
-              {info.getValue()}
-            </Link>
+              <Link
+                onClick={(e) => e.stopPropagation()}
+                href={`/customers/${customer.customerId}`}
+                className="font-medium hover:underline text-primary"
+              >
+                {info.getValue()}
+              </Link>
+              {hasSpecialPricing && <Tag className="w-4 h-4 text-orange-500" />}
+            </div>
           );
         },
       }),
 
       columnHelper.accessor("phone", {
         header: "Phone",
+        cell: (info) => <MonoText>{info.getValue()}</MonoText>,
       }),
       columnHelper.accessor("barangay", {
         header: "Barangay",
+        cell: (info) => <span className="text-xs">{info.getValue()}</span>,
       }),
 
       columnHelper.display({
@@ -65,22 +75,20 @@ export default function CustomerList({ customers }: CustomerListProps) {
         },
         cell: (info) => {
           const customer = info.row.original;
-          const hasSpecialPricing = (customer.specialPricings?.length ?? 0) > 0;
           return (
             <div
               className="flex items-center gap-2 justify-end"
               onClick={(e) => e.stopPropagation()}
             >
-              <RoleGuard allowedRoles={["Admin"]}>
+              <RoleGuard allowedRoles={[UserRole.ADMIN, UserRole.CASHIER]}>
                 <Button
                   size="icon"
-                  variant={hasSpecialPricing ? "default" : "outline"}
+                  variant="outline"
                   onClick={() => {
-                    setSelectedCustomer(customer);
-                    handleToggle({ isPricingModalOpen: true });
+                    setCustomerFormModalOpen(true, customer);
                   }}
                 >
-                  <Tag />
+                  <Edit />
                 </Button>
               </RoleGuard>
             </div>
@@ -93,7 +101,6 @@ export default function CustomerList({ customers }: CustomerListProps) {
 
   return (
     <>
-      {/* <CustomerFilter barangayPromise={barangayPromise} /> */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -103,32 +110,8 @@ export default function CustomerList({ customers }: CustomerListProps) {
           columns={columns}
           data={customers.rows}
           emptyMessage="No customers found."
-          onRowClick={(row) => setSelectedCustomer(row)}
         />
       </motion.div>
-      {/* {(customers.pagination?.totalPages ?? 0) > 1 && (
-        <Pager initial={customers.pagination} />
-      )} */}
-      {/* <Suspense fallback={null}>
-        {toggle.isPricingModalOpen && (
-          <SpecialPricingModal
-            customer={selectedCustomer}
-            onClose={() => {
-              handleToggle({
-                isPricingModalOpen: false,
-              });
-              setSelectedCustomer(null);
-            }}
-          />
-        )}
-        {toggle.isFormOpen && (
-          <CustomerFormModal
-            barangayPromise={barangayPromise}
-            customer={null}
-            onClose={() => handleToggle({ isFormOpen: false })}
-          />
-        )}
-      </Suspense> */}
     </>
   );
 }

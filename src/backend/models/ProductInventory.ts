@@ -7,6 +7,7 @@ export class ProductInventory extends Model {
   declare stockInStation: number;
   declare stockWithCustomers: number;
   declare stockDamaged: number;
+  declare stockLost: number;
   declare unitPrice: number;
   declare isLendOnly: boolean;
   declare isDefault: boolean;
@@ -22,6 +23,7 @@ ProductInventory.init(
     stockInStation: { type: DataTypes.INTEGER, defaultValue: 0 },
     stockWithCustomers: { type: DataTypes.INTEGER, defaultValue: 0 },
     stockDamaged: { type: DataTypes.INTEGER, defaultValue: 0 },
+    stockLost: { type: DataTypes.INTEGER, defaultValue: 0 },
     unitPrice: { type: DataTypes.FLOAT, defaultValue: 0 },
     isLendOnly: { type: DataTypes.BOOLEAN, defaultValue: false },
     isDefault: { type: DataTypes.BOOLEAN, defaultValue: false },

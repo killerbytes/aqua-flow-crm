@@ -7,7 +7,7 @@ dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
 dotenv.config();
 
 import {
-  CustomerType,
+  CustomerStatus,
   EquipmentActionType,
   OrderStatus,
   PaymentStatus,
@@ -26,6 +26,7 @@ import {
   sequelize,
 } from "../models";
 import { CustomerFormData, ProductFormData } from "../schemas/zodSchemas";
+import { markDbInitialized } from "./database";
 
 export interface SeedProductInput {
   name: string;
@@ -33,14 +34,6 @@ export interface SeedProductInput {
   stockInStation: number;
   stockWithCustomers: number;
   stockDamaged?: number;
-}
-
-export interface SeedCustomerInput {
-  name: string;
-  address: string;
-  phone: string;
-  customerType: CustomerType;
-  barangayId: string;
 }
 
 export interface SeedOrderDetailInput {
@@ -94,76 +87,78 @@ export function generateSeedData(refDate: Date = new Date()): SeedDataResult {
     },
   ];
 
-  const customers: SeedCustomerInput[] = [
+  const customers: CustomerFormData[] = [
     {
       name: "Maria Santos",
       address: "123 Sampaguita St, Quezon City",
-      phone: "+63 917 123 4567",
-      customerType: CustomerType.RESIDENTIAL,
+      phone: "+639171234567",
       barangayId: "034903002",
+      status: CustomerStatus.ACTIVE,
+      notes: "09184000368",
     },
     {
       name: "Juan Dela Cruz",
       address: "456 Mayon Ave, Quezon City",
-      phone: "+63 918 234 5678",
-      customerType: CustomerType.RESIDENTIAL,
+      phone: "09182345678",
       barangayId: "034903002",
+      status: CustomerStatus.ACTIVE,
+      notes: "test",
     },
     {
       name: "Apex Tech Solutions Inc.",
       address: "Suite 801, Eastwood City, Libis",
-      phone: "+63 2 8888 1234",
-      customerType: CustomerType.COMMERCIAL,
+      phone: "+63288881234",
       barangayId: "034903020",
+      status: CustomerStatus.ACTIVE,
     },
     {
       name: "Elena Rostova",
       address: "789 Katipunan Ave, Loyola Heights",
-      phone: "+63 919 345 6789",
-      customerType: CustomerType.RESIDENTIAL,
+      phone: "9193456789",
       barangayId: "034903020",
+      status: CustomerStatus.ACTIVE,
     },
     {
       name: "Golden Bay Restaurant",
       address: "12 Roxas Blvd, Pasay City",
-      phone: "+63 2 8555 9876",
-      customerType: CustomerType.COMMERCIAL,
+      phone: "044285559876",
       barangayId: "034903020",
+      status: CustomerStatus.ACTIVE,
     },
     {
       name: "Roberto Garcia",
       address: "32 Commonwealth Ave, Fairview",
-      phone: "+63 920 456 7890",
-      customerType: CustomerType.RESIDENTIAL,
+      phone: "9204567890",
       barangayId: "034903002",
+      status: CustomerStatus.ACTIVE,
     },
     {
       name: "Bright Minds Academy",
       address: "15 Teachers Village, Diliman",
-      phone: "+63 2 8777 4321",
-      customerType: CustomerType.COMMERCIAL,
+      phone: "287774321",
       barangayId: "034903002",
+      status: CustomerStatus.ACTIVE,
     },
     {
       name: "Ana Lim",
       address: "88 Timog Ave, South Triangle",
-      phone: "+63 921 567 8901",
-      customerType: CustomerType.RESIDENTIAL,
+      phone: "09215678901",
       barangayId: "034903002",
+      status: CustomerStatus.ACTIVE,
     },
     {
       name: "St. Jude Clinic",
       address: "54 Banawe St, Sta. Mesa Heights",
-      phone: "+63 2 8444 3322",
-      customerType: CustomerType.COMMERCIAL,
+      phone: "84443322",
       barangayId: "034903002",
+      status: CustomerStatus.ACTIVE,
     },
     {
       name: "Carlos Reyes",
       address: "21 E. Rodriguez Sr. Ave, New Manila",
-      phone: "+63 922 678 9012",
-      customerType: CustomerType.RESIDENTIAL,
+      phone: "09226789012",
       barangayId: "034903002",
+      status: CustomerStatus.ACTIVE,
     },
   ];
 
@@ -240,7 +235,6 @@ export async function seedDatabase(options?: {
   refDate?: Date;
 }) {
   process.env.IS_SEEDING = "true";
-  const seedData = generateSeedData(options?.refDate);
   const shouldForce = options?.force ?? true;
   const isTest =
     options?.isTest ||
@@ -264,38 +258,47 @@ export async function seedDatabase(options?: {
   }
 
   const adminPasswordHash = await hashPassword("pass");
-  const authPasswordHash = await hashPassword("Password123!");
 
   // Ensure default admin user exists
   await User.findOrCreate({
-    where: { email: "admin@aquaflow.com" },
+    where: { username: "admin" },
     defaults: {
-      name: "Admin User",
-      email: "admin@aquaflow.com",
-      passwordHash: authPasswordHash,
-      role: UserRole.ADMIN,
-    },
-  });
-
-  await User.findOrCreate({
-    where: { email: "admin@test.com" },
-    defaults: {
-      name: "Admin User",
-      email: "admin@test.com",
+      name: "Admin",
       passwordHash: adminPasswordHash,
       role: UserRole.ADMIN,
     },
   });
 
-  await User.findOrCreate({
-    where: { email: "manager@test.com" },
-    defaults: {
-      name: "Manager User",
-      email: "manager@test.com",
-      passwordHash: adminPasswordHash,
-      role: UserRole.MANAGER,
-    },
-  });
+  // await User.findOrCreate({
+  //   where: { username: "cashier" },
+  //   defaults: {
+  //     name: "Cashier",
+  //     passwordHash: adminPasswordHash,
+  //     role: UserRole.CASHIER,
+  //   },
+  // });
+
+  // await User.findOrCreate({
+  //   where: { username: "manager" },
+  //   defaults: {
+  //     name: "Manager",
+  //     passwordHash: adminPasswordHash,
+  //     role: UserRole.MANAGER,
+  //   },
+  // });
+
+  if (isTest) {
+    await seedForTest(options);
+  }
+
+  console.log(
+    "Database seeded successfully with 3 products, 10 customers, and 50 orders!",
+  );
+  markDbInitialized();
+}
+
+async function seedForTest(options: any) {
+  const seedData = generateSeedData(options?.refDate);
 
   // Seed Products
   for (const prod of seedData.products) {
@@ -389,12 +392,7 @@ export async function seedDatabase(options?: {
       });
     }
   }
-
-  console.log(
-    "Database seeded successfully with 3 products, 10 customers, and 50 orders!",
-  );
 }
-
 // Execution block when invoked directly via CLI (e.g. `npx tsx src/backend/db/seed.ts`)
 if (require.main === module) {
   seedDatabase()

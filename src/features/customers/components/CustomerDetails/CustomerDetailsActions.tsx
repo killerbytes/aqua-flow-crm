@@ -1,24 +1,24 @@
 "use client";
 
-import { Customer, ProductInventory } from "@/backend/models";
+import { Customer } from "@/backend/models";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { Button } from "@/components/ui/button";
+import { UserRole } from "@/lib/definitions";
 import { useUIStore } from "@/store/uiStore";
 import { ArrowRightLeft, Edit } from "lucide-react";
 
 export default function CustomerDetailsActions({
   customer,
-  products,
 }: {
   customer: Customer;
-  products: ProductInventory[];
 }) {
   const { setEquipmentLogModalOpen, setCustomerFormModalOpen } = useUIStore();
 
   return (
     <div className="flex gap-2">
-      <RoleGuard allowedRoles={["Admin", "Cashier"]}>
+      <RoleGuard allowedRoles={[UserRole.ADMIN, UserRole.CASHIER]}>
         <Button
+          variant="outline"
           onClick={() => setCustomerFormModalOpen(true, customer)}
           className="gap-2"
         >
@@ -32,11 +32,6 @@ export default function CustomerDetailsActions({
           <ArrowRightLeft size={16} /> Log Equipment
         </Button>
       </RoleGuard>
-      {/* <LogEquipmentModal
-        onClose={() => handleToggle({ isLogEquipmentModalOpen: false })}
-        customer={customer}
-        products={products}
-      /> */}
     </div>
   );
 }

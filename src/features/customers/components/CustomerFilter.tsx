@@ -33,6 +33,7 @@ export default function CustomerFilter({
   const searchParams = useSearchParams();
   const router = useRouter();
   const specialPricing = searchParams.get("specialPricing");
+  const tempBalance = searchParams.get("tempBalance");
   const [term, setTerm] = React.useState(searchParams.get("term") || "");
   const barangayQuery = searchParams.get("barangays") || "";
   const selectedBarangays = React.useMemo(() => {
@@ -53,7 +54,9 @@ export default function CustomerFilter({
     if (debouncedTerm) {
       updateURL("term", debouncedTerm);
     } else {
-      updateURL("term", "");
+      const params = new URLSearchParams(searchParams);
+      params.delete("term");
+      router.push(`?${params.toString()}`);
     }
   }, [debouncedTerm]);
 
@@ -111,15 +114,28 @@ export default function CustomerFilter({
         </ComboboxContent>
       </Combobox>
 
-      <div className="flex items-center space-x-2">
-        <Switch
-          id="withSpecialPricing"
-          checked={specialPricing === "true"}
-          onCheckedChange={(checked) =>
-            updateURL("specialPricing", checked.toString())
-          }
-        />
-        <Label htmlFor="withSpecialPricing">Special Pricing Only</Label>
+      <div className="flex items-center space-x-4 col-span-3 sm:col-span-1">
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="withSpecialPricing"
+            checked={specialPricing === "true"}
+            onCheckedChange={(checked) =>
+              updateURL("specialPricing", checked.toString())
+            }
+          />
+          <Label htmlFor="withSpecialPricing">Special Pricing</Label>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="withTempBalance"
+            checked={tempBalance === "true"}
+            onCheckedChange={(checked) =>
+              updateURL("tempBalance", checked.toString())
+            }
+          />
+          <Label htmlFor="withTempBalance">Temporary Equipment Only</Label>
+        </div>
       </div>
     </div>
   );

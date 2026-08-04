@@ -1,21 +1,23 @@
 "use client";
 
+import { UserRole } from "@/lib/definitions";
 import { useAuthStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import React, { useEffect } from "react";
 
-export type Role = "Admin" | "Cashier" | "Rider";
-
 /**
  * Checks if the current user's role is within allowed roles.
  */
-export function hasRole(userRole: string | undefined, allowedRoles: Role[]): boolean {
+export function hasRole(
+  userRole: string | undefined,
+  allowedRoles: UserRole[],
+): boolean {
   if (!userRole) return false;
-  return allowedRoles.includes(userRole as Role);
+  return allowedRoles.includes(userRole as UserRole);
 }
 
 interface RoleGuardProps {
-  allowedRoles: Role[];
+  allowedRoles: UserRole[];
   children: React.ReactNode;
   fallback?: React.ReactNode;
 }
@@ -23,7 +25,11 @@ interface RoleGuardProps {
 /**
  * Component to conditionally render children based on the authenticated user's role.
  */
-export function RoleGuard({ allowedRoles, children, fallback = null }: RoleGuardProps) {
+export function RoleGuard({
+  allowedRoles,
+  children,
+  fallback = null,
+}: RoleGuardProps) {
   const user = useAuthStore((state) => state.user);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
@@ -35,7 +41,7 @@ export function RoleGuard({ allowedRoles, children, fallback = null }: RoleGuard
 }
 
 interface ProtectedPageProps {
-  allowedRoles: Role[];
+  allowedRoles: UserRole[];
   children: React.ReactNode;
 }
 
@@ -57,9 +63,15 @@ export function ProtectedPage({ allowedRoles, children }: ProtectedPageProps) {
     return (
       <div className="flex h-[70vh] flex-col items-center justify-center space-y-4">
         <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-6 text-center shadow-lg backdrop-blur-md">
-          <h2 className="text-xl font-bold text-destructive">Access Restricted</h2>
+          <h2 className="text-xl font-bold text-destructive">
+            Access Restricted
+          </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Your role (<span className="font-semibold text-foreground">{user?.role || "Guest"}</span>) does not have permission to view this page.
+            Your role (
+            <span className="font-semibold text-foreground">
+              {user?.role || "Guest"}
+            </span>
+            ) does not have permission to view this page.
           </p>
         </div>
       </div>

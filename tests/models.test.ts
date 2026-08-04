@@ -1,6 +1,9 @@
-import { describe, it, expect } from "vitest";
-import { CustomerType, EquipmentActionType } from "../src/lib/definitions";
-import { CustomerSchema, EquipmentLogSchema } from "../src/backend/schemas/zodSchemas";
+import { describe, expect, it } from "vitest";
+import {
+  CustomerSchema,
+  EquipmentLogSchema,
+} from "../src/backend/schemas/zodSchemas";
+import { CustomerStatus, EquipmentActionType } from "../src/lib/definitions";
 
 describe("CRM Domain Logic & Validation Schemas", () => {
   it("should validate valid customer creation schema", () => {
@@ -8,7 +11,7 @@ describe("CRM Domain Logic & Validation Schemas", () => {
       name: "Water Supply Co",
       address: "100 Industrial Parkway",
       phone: "+63 917 111 2222",
-      customerType: CustomerType.COMMERCIAL,
+      status: CustomerStatus.ACTIVE,
     };
     const parsed = CustomerSchema.parse(validCustomer);
     expect(parsed.name).toBe("Water Supply Co");

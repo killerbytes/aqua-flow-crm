@@ -1,5 +1,5 @@
 import { CommonService } from "@/backend/services/commonService";
-import { CustomerStatus, CustomerType } from "@/lib/definitions";
+import { CustomerStatus } from "@/lib/definitions";
 import {
   CreationOptional,
   DataTypes,
@@ -16,11 +16,11 @@ export class Customer extends Model {
   declare name: string;
   declare address: string;
   declare phone: string;
-  declare customerType: CustomerType;
   declare status: CustomerStatus;
   declare notes: string;
   declare barangayId: string;
   declare barangay?: string;
+  declare searchText?: string;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
 
@@ -28,6 +28,21 @@ export class Customer extends Model {
   declare specialPricings?: NonAttribute<CustomerSpecialPricing>[];
   declare orders?: NonAttribute<Order>[];
 }
+
+export function generateCustomerSearchText(customer: any): string {
+  const barangayId = customer.barangayId || customer.getDataValue?.("barangayId");
+  const barangayName = barangayId
+    ? CommonService.getBarangayNameByCode(barangayId) || ""
+    : "";
+  const name = customer.name || customer.getDataValue?.("name") || "";
+  const phone = customer.phone || customer.getDataValue?.("phone") || "";
+  const address = customer.address || customer.getDataValue?.("address") || "";
+  const notes = customer.notes || customer.getDataValue?.("notes") || "";
+
+  const parts = [name, phone, address, barangayName, notes].filter(Boolean);
+  return parts.join(" ");
+}
+
 Customer.init(
   {
     customerId: {
@@ -39,10 +54,6 @@ Customer.init(
     address: { type: DataTypes.STRING, allowNull: false },
     phone: { type: DataTypes.STRING, allowNull: false },
     notes: { type: DataTypes.TEXT, allowNull: true },
-    customerType: {
-      type: DataTypes.ENUM(...Object.values(CustomerType)),
-      defaultValue: CustomerType.RESIDENTIAL,
-    },
     status: {
       type: DataTypes.ENUM(...Object.values(CustomerStatus)),
       defaultValue: CustomerStatus.ACTIVE,
@@ -59,11 +70,24 @@ Customer.init(
         return CommonService.getBarangayNameByCode(id);
       },
     },
+    searchText: {
+      type: DataTypes.TEXT,
+    },
   },
   {
     sequelize,
     modelName: "Customer",
     tableName: "customers",
     timestamps: true,
+    hooks: {
+      beforeSave: (customer: Customer) => {
+        customer.searchText = generateCustomerSearchText(customer);
+      },
+      beforeBulkCreate: (customers: Customer[]) => {
+        for (const customer of customers) {
+          customer.searchText = generateCustomerSearchText(customer);
+        }
+      },
+    },
   },
 );

@@ -29,6 +29,9 @@ export default function InventoryList({
     columnHelper.accessor("stockDamaged", {
       header: "Damaged Stock",
     }),
+    columnHelper.accessor("stockLost", {
+      header: "Lost Stock",
+    }),
     columnHelper.accessor("unitPrice", {
       header: "Price",
       cell: (info) => info.getValue() || "N/A",

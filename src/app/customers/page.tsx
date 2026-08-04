@@ -2,10 +2,10 @@ import { initDatabase } from "@/backend/db/database";
 import { CommonService } from "@/backend/services/commonService";
 import { CustomerService } from "@/backend/services/customer.service";
 import Pager from "@/components/Pager";
-import CustomerFilter from "@/features/customers/components/CustomerFilter";
 import { CustomerFormModal } from "@/features/customers/components/CustomerFormModal";
 import CustomerList from "@/features/customers/components/CustomerList";
 import { CustomerListActions } from "@/features/customers/components/CustomerListActions";
+import { PAGINATION } from "@/lib/definitions";
 import { Users } from "lucide-react";
 import { Suspense } from "react";
 
@@ -15,9 +15,6 @@ interface CustomersPageProps {
   searchParams?: Promise<{
     page?: string;
     limit?: string;
-    term?: string;
-    specialPricing?: string;
-    barangays?: string;
   }>;
 }
 
@@ -27,14 +24,8 @@ export default async function CustomersPage({
   await initDatabase();
   const params = await searchParams;
 
-  const page = Number(params?.page) || 1;
-  const limit = Number(params?.limit) || 5;
-  const term = params?.term || "";
-  const specialPricing = params?.specialPricing === "true";
-  const barangayParam =
-    params?.barangays && params?.barangays.length > 0
-      ? params.barangays?.split(",")
-      : [];
+  const page = Number(params?.page) || PAGINATION.PAGE;
+  const limit = Number(params?.limit) || PAGINATION.PAGE_SIZE;
 
   const barangays = CommonService.getBarangays();
   let customers: { rows: any[]; pagination: any } = {
@@ -45,11 +36,6 @@ export default async function CustomersPage({
     const res = await CustomerService.getAll({
       limit,
       page,
-      query: {
-        term,
-        withSpecialPricing: specialPricing,
-        selectedBarangays: barangayParam,
-      },
     });
     if (res) {
       customers = res;
@@ -77,7 +63,6 @@ export default async function CustomersPage({
 
         <CustomerListActions />
       </div>
-      <CustomerFilter barangays={barangays} />
 
       {!customers?.rows || customers.rows.length === 0 ? (
         <div className="glass-card p-12 text-center text-slate-400">

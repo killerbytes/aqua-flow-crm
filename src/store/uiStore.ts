@@ -19,23 +19,30 @@ interface UIState {
   isUserModalOpen: boolean;
   editingUser?: User | null;
   isInventoryAdjustmentModalOpen: boolean;
-  selectedCustomerId?: number;
+  selectedCustomerId?: number | null;
+  selectedProductId?: number | null;
   products: ProductInventory[];
-  toasts: ToastNotification[];
+  isCustomerLookupModalOpen: boolean;
 
   setRole: (role: UserRole) => void;
   setProducts: (products: ProductInventory[]) => void;
   setCustomerFormModalOpen: (open: boolean, customer?: Customer | null) => void;
-  setEquipmentLogModalOpen: (open: boolean, customerId?: number) => void;
+  setEquipmentLogModalOpen: (
+    open: boolean,
+    customerId?: number | null,
+    productId?: number | null,
+  ) => void;
   setOrderModalOpen: (open: boolean) => void;
   setProductModalOpen: (
     open: boolean,
     product?: ProductInventory | null,
   ) => void;
   setUserModalOpen: (open: boolean, user?: User | null) => void;
-  setInventoryAdjustmentModalOpen: (open: boolean) => void;
-  addToast: (type: "success" | "error" | "info", message: string) => void;
-  removeToast: (id: string) => void;
+  setInventoryAdjustmentModalOpen: (
+    open: boolean,
+    product?: ProductInventory | null,
+  ) => void;
+  setCustomerLookupModalOpen: (open: boolean) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -49,31 +56,28 @@ export const useUIStore = create<UIState>((set) => ({
   isUserModalOpen: false,
   editingUser: null,
   isInventoryAdjustmentModalOpen: false,
+  selectedCustomerId: null,
+  selectedProductId: null,
   products: [],
-  toasts: [],
+  isCustomerLookupModalOpen: false,
 
   setRole: (role) => set({ currentRole: role }),
   setProducts: (products) => set({ products }),
   setCustomerFormModalOpen: (open, customer = null) =>
     set({ isCustomerFormModalOpen: open, editingCustomer: customer }),
-  setEquipmentLogModalOpen: (open, customerId) =>
-    set({ isEquipmentLogModalOpen: open, selectedCustomerId: customerId }),
+  setEquipmentLogModalOpen: (open, customerId, productId) =>
+    set({
+      isEquipmentLogModalOpen: open,
+      selectedCustomerId: customerId,
+      selectedProductId: productId,
+    }),
   setOrderModalOpen: (open) => set({ isOrderModalOpen: open }),
   setProductModalOpen: (open, product = null) =>
     set({ isProductModalOpen: open, editingProduct: product }),
   setUserModalOpen: (open, user = null) =>
     set({ isUserModalOpen: open, editingUser: user }),
-  setInventoryAdjustmentModalOpen: (open) =>
-    set({ isInventoryAdjustmentModalOpen: open }),
-  addToast: (type, message) =>
-    set((state) => ({
-      toasts: [
-        ...state.toasts,
-        { id: Math.random().toString(), type, message },
-      ],
-    })),
-  removeToast: (id) =>
-    set((state) => ({
-      toasts: state.toasts.filter((t) => t.id !== id),
-    })),
+  setInventoryAdjustmentModalOpen: (open, product = null) =>
+    set({ isInventoryAdjustmentModalOpen: open, editingProduct: product }),
+  setCustomerLookupModalOpen: (open) =>
+    set({ isCustomerLookupModalOpen: open }),
 }));

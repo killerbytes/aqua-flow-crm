@@ -1,5 +1,6 @@
-import { PAGINATION } from "@/lib/definitions";
+import { CustomerStatus, PAGINATION } from "@/lib/definitions";
 import { Op } from "sequelize";
+import { sequelize } from "../db/database";
 import {
   Customer,
   CustomerEquipmentBalance,
@@ -14,6 +15,7 @@ export interface CustomerQueryParams {
   query?: {
     withSpecialPricing?: boolean;
     withBalance?: boolean;
+    withTemporaryBalanceOnly?: boolean;
     selectedBarangays?: string[];
     term?: string;
   };
@@ -28,6 +30,7 @@ export class CustomerService {
         query = {
           withSpecialPricing: false,
           withBalance: false,
+          withTemporaryBalanceOnly: false,
           selectedBarangays: [],
           term: "",
         },
@@ -35,6 +38,7 @@ export class CustomerService {
       const {
         withSpecialPricing = false,
         withBalance = false,
+        withTemporaryBalanceOnly = false,
         selectedBarangays,
         term,
       } = query || {};
@@ -44,17 +48,20 @@ export class CustomerService {
         where.barangayId = { [Op.in]: selectedBarangays };
       }
       if (term) {
-        where[Op.or] = [
-          { name: { [Op.iLike]: `%${term}%` } },
-          { phone: { [Op.iLike]: `%${term}%` } },
-          { address: { [Op.iLike]: `%${term}%` } },
-        ];
+        const searchOp =
+          sequelize.getDialect() === "postgres" ? Op.iLike : Op.like;
+        where.searchText = { [searchOp]: `%${term}%` };
       }
+
+      const equipmentBalanceWhere: any = withTemporaryBalanceOnly
+        ? { quantityTemporaryOwed: { [Op.gt]: 0 } }
+        : undefined;
 
       const include: any[] = [
         {
           model: CustomerEquipmentBalance,
-          required: Boolean(withBalance),
+          required: Boolean(withTemporaryBalanceOnly || withBalance),
+          where: equipmentBalanceWhere,
           include: [{ model: ProductInventory, as: "product" }],
           as: "equipmentBalances",
         },
@@ -72,6 +79,7 @@ export class CustomerService {
         limit,
         offset,
         include,
+        order: [["customerId", "ASC"]],
       });
 
       return {
@@ -109,32 +117,18 @@ export class CustomerService {
 
   static async getCustomerBalances(customerId: number | string) {
     const balances = await CustomerEquipmentBalance.findAll({
-      where: { customer_id: Number(customerId) },
-      include: [{ model: ProductInventory }],
+      where: { customerId: Number(customerId) },
+      include: [{ model: ProductInventory, as: "product" }],
     });
     return balances.map((b: any) => {
       const raw = b.get ? b.get({ plain: true }) : b;
       return {
-        balanceId: raw.balance_id ?? raw.balanceId,
-        customerId: raw.customer_id ?? raw.customerId,
-        productId: raw.product_id ?? raw.productId,
-        quantityOwed: raw.quantity_owed ?? raw.quantityOwed ?? 0,
-        quantityTemporaryOwed:
-          raw.quantity_temporary_owed ?? raw.quantityTemporaryOwed ?? 0,
-        product: raw.ProductInventory
-          ? {
-              productId:
-                raw.ProductInventory.product_id ??
-                raw.ProductInventory.productId,
-              name: raw.ProductInventory.name,
-              unitPrice:
-                raw.ProductInventory.unit_price ??
-                raw.ProductInventory.unitPrice,
-              stockInStation:
-                raw.ProductInventory.stock_in_station ??
-                raw.ProductInventory.stockInStation,
-            }
-          : raw.product,
+        balanceId: raw.balanceId,
+        customerId: raw.customerId,
+        productId: raw.productId,
+        quantityOwed: raw.quantityOwed ?? 0,
+        quantityTemporaryOwed: raw.quantityTemporaryOwed ?? 0,
+        product: raw.product,
       };
     });
   }
@@ -146,7 +140,7 @@ export class CustomerService {
   }
 
   static async update(id: number | string, input: any) {
-    const validatedData = CustomerSchema.partial().parse(input);
+    const validatedData = CustomerSchema.parse(input);
 
     const customer = await Customer.findByPk(Number(id));
     if (!customer) throw new Error("Customer not found");
@@ -165,10 +159,48 @@ export class CustomerService {
     return count > 0;
   }
 
-  // Aliases for compatibility
-  static getCustomers = CustomerService.getAll;
-  static getCustomerById = CustomerService.get;
-  static createCustomer = CustomerService.create;
-  static updateCustomer = CustomerService.update;
-  static deleteCustomer = CustomerService.delete;
+  static async lookup(term: string, isActiveOnly: boolean) {
+    try {
+      const query = term.toLowerCase();
+      const where: any = {};
+      if (isActiveOnly) {
+        where.status = CustomerStatus.ACTIVE;
+      }
+      if (query) {
+        const searchOp =
+          sequelize.getDialect() === "postgres" ? Op.iLike : Op.like;
+        where.searchText = { [searchOp]: `%${query}%` };
+      }
+
+      const customers = await Customer.findAll({
+        where,
+        limit: 50,
+        order: [["name", "ASC"]],
+        raw: true,
+      });
+
+      return customers; // .map((c) => c.get({ plain: true }));
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  static async getWithTemporaryBalance() {
+    const customers = await Customer.findAll({
+      include: [
+        {
+          model: CustomerEquipmentBalance,
+          as: "equipmentBalances",
+          required: true,
+          where: {
+            quantityTemporaryOwed: { [Op.gt]: 0 },
+          },
+          include: [{ model: ProductInventory, as: "product" }],
+        },
+      ],
+      order: [["name", "ASC"]],
+    });
+
+    return customers.map((c) => c.get({ plain: true }));
+  }
 }

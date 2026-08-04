@@ -3,22 +3,34 @@
 import { ProductInventory } from "@/backend/models";
 import { Button } from "@/components/ui/button";
 import { useUIStore } from "@/store/uiStore";
-import { Edit } from "lucide-react";
+import { CogIcon, Edit } from "lucide-react";
 import React from "react";
 
 export const CardListActions: React.FC<{ product: ProductInventory }> = ({
   product,
 }) => {
-  const { setProductModalOpen } = useUIStore();
+  const { setProductModalOpen, setInventoryAdjustmentModalOpen } = useUIStore();
 
   return (
-    <Button
-      onClick={() => {
-        setProductModalOpen(true, product);
-      }}
-      className="gap-2"
-    >
-      <Edit />
-    </Button>
+    <div className="flex gap-2">
+      <Button
+        variant="outline"
+        onClick={() => {
+          setProductModalOpen(true, product);
+        }}
+        className="gap-2"
+      >
+        <Edit />
+      </Button>
+      <Button
+        variant="outline"
+        onClick={() => {
+          setInventoryAdjustmentModalOpen(true, product);
+        }}
+        className="gap-2"
+      >
+        <CogIcon />
+      </Button>
+    </div>
   );
 };

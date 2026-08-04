@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { verifyOrRefreshToken } from "@/lib/auth";
 import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow static files, api routes, and login page
@@ -15,7 +16,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = request.cookies.get("token")?.value || request.cookies.get("aquaflow_token")?.value;
+  const token = request.cookies.get("token")?.value;
 
   if (!token) {
     const loginUrl = new URL("/login", request.url);
@@ -23,7 +24,28 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.next();
+  const result = await verifyOrRefreshToken(token);
+
+  if (!result) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("redirect", pathname);
+    const response = NextResponse.redirect(loginUrl);
+    response.cookies.delete("token");
+    return response;
+  }
+
+  const response = NextResponse.next();
+  if (result.newToken) {
+    response.cookies.set("token", result.newToken, {
+      httpOnly: true,
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 7,
+      sameSite: "lax",
+    });
+  }
+
+  return response;
 }
 
 export const config = {

@@ -13,10 +13,22 @@ import {
   ProductService,
 } from "@/backend/services";
 import { CommonService } from "@/backend/services/commonService";
+import ColorBadge from "@/components/ColorBadge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CustomerDetailsActions from "@/features/customers/components/CustomerDetails/CustomerDetailsActions";
+import TemporaryEquipmentReturn from "@/features/customers/components/CustomerDetails/TemporaryEquipmentReturn";
 import { CustomerFormModal } from "@/features/customers/components/CustomerFormModal";
+import { LogEquipmentModal } from "@/features/customers/components/LogEquipmentModal";
 import OrderList from "@/features/orders/components/OrderList";
 import EquipmentLogs from "@/features/products/components/EquipmentLogs";
+import { CUSTOMER_STATUS_BADGE_COLOR } from "@/lib/definitions";
 import { formatCurrency } from "@/lib/utils";
 import { redirect } from "next/navigation";
 
@@ -35,12 +47,11 @@ export default async function CustomerPage({
     customer = await CustomerService.get(id);
   } catch (err) {
     console.log(err);
-
-    customer = { rows: [], pagination: { total: 0, currentPage: 0 } };
+    customer = null;
   }
-  if (!customer) redirect("/customers");
+  if (!customer || !customer.customerId) redirect("/customers");
 
-  const products = await ProductService.getProducts();
+  const products = await ProductService.getAll();
   const logsPromise = EquipmentService.getAll({
     query: {
       customerId: Number(id),
@@ -73,15 +84,22 @@ export default async function CustomerPage({
       </Link>
       {/* <CustomerDetailsActions customer={customer} /> */}
       <div className="bg-card p-6 rounded-2xl border shadow-sm space-y-4">
-        <h1 className="text-2xl font-bold tracking-tight">
-          {customer?.name || "Customer Profile"}
-        </h1>
-        <p className="text-muted-foreground">
-          Viewing profile for Customer ID: #{customer.customerId}
-        </p>
-        <CustomerDetailsActions customer={customer} products={products} />
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className=" flex items-center gap-2">
+              <span className="text-2xl font-bold tracking-tight">
+                {customer?.name || "Customer Profile"}
+              </span>
+              <ColorBadge colorMap={CUSTOMER_STATUS_BADGE_COLOR}>
+                {customer.status}
+              </ColorBadge>
+            </h1>
+          </div>
+
+          <CustomerDetailsActions customer={customer} />
+        </div>
         {customer && (
-          <div className="pt-4 border-t space-y-2 text-sm">
+          <div className="pt-4 border-t space-y-2 text-sm ">
             <p>
               <strong>Address:</strong> {customer.address}
             </p>
@@ -91,12 +109,10 @@ export default async function CustomerPage({
             <p>
               <strong>Phone:</strong> {customer.phone}
             </p>
-            <p>
-              <strong>Status:</strong> {customer.status}
-            </p>
             {customer.notes && (
-              <p>
-                <strong>Notes:</strong> {customer.notes}
+              <p className="flex gap-2">
+                <strong className="font-medium">Notes:</strong>{" "}
+                <span className="whitespace-pre-wrap">{customer.notes}</span>
               </p>
             )}
 
@@ -116,9 +132,15 @@ export default async function CustomerPage({
                         <span className="font-medium text-xs text-amber-900 dark:text-amber-200">
                           {balance.product?.name}
                         </span>
-                        <span className="text-sm font-bold text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-md bg-amber-200/60 dark:bg-amber-900/60">
-                          {balance.quantityTemporaryOwed} temp
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-md bg-amber-200/60 dark:bg-amber-900/60">
+                            {balance.quantityTemporaryOwed} temp
+                          </span>
+                          <TemporaryEquipmentReturn
+                            customer={customer}
+                            productId={balance.productId}
+                          />
+                        </div>
                       </div>
                     ),
                   )}
@@ -128,7 +150,7 @@ export default async function CustomerPage({
             {/* Regular Borrowed Inventory */}
             <div className="pt-4 border-t space-y-3">
               <h2 className="text-sm font-semibold flex items-center gap-2">
-                <Package size={16} /> Regular Borrowed Inventory
+                <Package size={16} /> Equipment
               </h2>
               {activeRegularBalances.length === 0 ? (
                 <p className="text-xs text-muted-foreground italic">
@@ -154,44 +176,70 @@ export default async function CustomerPage({
                 </div>
               )}
             </div>
-            <div className="pt-4 border-t space-y-3">
-              <h2 className="text-sm font-semibold flex items-center gap-2">
-                <BadgePercent size={16} /> Special Pricing
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {customer.specialPricings.map(
-                  (pricing: CustomerSpecialPricing) => (
-                    <div
-                      key={pricing.pricingId}
-                      className="p-3 border rounded-xl bg-muted/30 flex items-center justify-between"
-                    >
-                      <span className="font-medium text-xs">
-                        {pricing.product?.name}
-                      </span>
-                      <span className="text-sm font-bold text-orange-500 px-2 py-0.5 rounded-md bg-orange-500/10">
-                        {formatCurrency(pricing.discountAmount)}
-                      </span>
-                    </div>
-                  ),
-                )}
+            {customer.specialPricings.length > 0 && (
+              <div className="pt-4 border-t space-y-3">
+                <h2 className="text-sm font-semibold flex items-center gap-2">
+                  <BadgePercent size={16} /> Special Discount
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {customer.specialPricings.map(
+                    (pricing: CustomerSpecialPricing) => (
+                      <div
+                        key={pricing.pricingId}
+                        className="p-3 border rounded-xl bg-muted/30 flex items-center justify-between"
+                      >
+                        <span className="font-medium text-xs">
+                          {pricing.product?.name}
+                        </span>
+                        <span className="text-sm font-bold text-orange-500 px-2 py-0.5 rounded-md bg-orange-500/10">
+                          {formatCurrency(pricing.discountAmount)}
+                        </span>
+                      </div>
+                    ),
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>
 
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold tracking-tight">Equipment Logs</h2>
-      </div>
-
-      <EquipmentLogs logsPromise={logsPromise} />
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold tracking-tight">Orders</h2>
-      </div>
-
-      <OrderList orders={orders} />
-
+      <Tabs defaultValue="history">
+        <TabsList>
+          <TabsTrigger value="history">Order History</TabsTrigger>
+          <TabsTrigger value="logs">Equipment Logs</TabsTrigger>
+        </TabsList>
+        <TabsContent value="history">
+          <Card>
+            <CardHeader>
+              <CardTitle>Order History</CardTitle>
+              <CardDescription>
+                View your key metrics and recent project activity. Track
+                progress across all your active projects.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <OrderList orders={orders} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="logs">
+          <Card>
+            <CardHeader>
+              <CardTitle>Equipment Logs</CardTitle>
+              <CardDescription>
+                Track performance and user engagement metrics. Monitor trends
+                and identify growth opportunities.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <EquipmentLogs logsPromise={logsPromise} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
       <CustomerFormModal barangays={barangays} />
+      <LogEquipmentModal products={products} />
     </>
   );
 }

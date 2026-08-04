@@ -1,5 +1,6 @@
-import { DataTypes, Model } from "sequelize";
+import { CreationOptional, DataTypes, Model, NonAttribute } from "sequelize";
 import { sequelize } from "../db/database";
+import { ProductInventory } from "./ProductInventory";
 
 export class InventoryAdjustment extends Model {
   declare adjustmentId: number;
@@ -7,6 +8,10 @@ export class InventoryAdjustment extends Model {
   declare adjustmentType: string;
   declare quantity: number;
   declare reason: string;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
+
+  declare product: NonAttribute<ProductInventory>;
 }
 InventoryAdjustment.init(
   {

@@ -5,10 +5,11 @@ import {
   getCustomersAction,
   getProductsAction,
 } from "@/backend/actions";
-import { Customer, ProductInventory } from "@/backend/models";
+import { ProductInventory } from "@/backend/models";
 import { OrderSchema } from "@/backend/schemas/zodSchemas";
+import CustomerLookup from "@/components/CustomerLookup";
 import Modal from "@/components/Modal";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   DialogDescription,
   DialogHeader,
@@ -34,7 +35,8 @@ import { OrderStatus, PaymentStatus } from "@/lib/definitions";
 import { formatCurrency } from "@/lib/utils";
 import { useUIStore } from "@/store/uiStore";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { cx } from "class-variance-authority";
+import { Plus, Search, ShoppingBag, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
@@ -56,14 +58,20 @@ export function OrderFormModal() {
 
 export const OrderFormModalContent = () => {
   const router = useRouter();
-  const { isOrderModalOpen, setOrderModalOpen, products, setProducts } =
-    useUIStore();
+  const {
+    isOrderModalOpen,
+    setOrderModalOpen,
+    setCustomerLookupModalOpen,
+    products,
+    setProducts,
+  } = useUIStore();
   const [customers, setCustomers] = useState<any[]>([]);
   const [isPending, startTransition] = useTransition();
 
   const form = useForm({
     resolver: zodResolver(OrderSchema),
     defaultValues: {
+      customerId: 0,
       status: OrderStatus.PENDING,
       paymentStatus: PaymentStatus.UNPAID,
       items: [
@@ -125,6 +133,8 @@ export const OrderFormModalContent = () => {
       router.refresh();
     });
   };
+  console.log(errors);
+
   return (
     <>
       <DialogHeader>
@@ -143,29 +153,29 @@ export const OrderFormModalContent = () => {
             render={({ field }) => (
               <Field>
                 <FieldLabel>Customer</FieldLabel>
-                <Select
-                  {...field}
-                  value={field.value}
-                  onValueChange={field.onChange}
+                <CustomerLookup
+                  onSelect={(e) => {
+                    form.setValue("customerId", Number(e));
+                  }}
                 >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a customer...">
-                      {(val) =>
-                        customers?.find(
-                          (c: Customer) => String(c.customerId) === String(val),
-                        )?.name ?? val
-                      }
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {customers?.map((c: Customer) => (
-                      <SelectItem key={c.customerId} value={c.customerId}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FieldError>{errors.customerId?.message}</FieldError>
+                  <FieldLabel
+                    onClick={() => setCustomerLookupModalOpen(true)}
+                    className={buttonVariants({
+                      variant: "outline",
+                      className: "w-full cursor-pointer justify-start",
+                    })}
+                  >
+                    {customers.find((c) => c.customerId === field.value)
+                      ?.name || (
+                      <div
+                        className={cx("flex justify-start gap-2 items-center")}
+                      >
+                        <Search /> Select customer...
+                      </div>
+                    )}
+                  </FieldLabel>
+                  <FieldError>{errors.customerId?.message}</FieldError>
+                </CustomerLookup>
               </Field>
             )}
           />

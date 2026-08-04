@@ -78,7 +78,10 @@ CustomerSpecialPricing.belongsTo(ProductInventory, {
 });
 
 ProductInventory.hasMany(InventoryAdjustment, { foreignKey: "productId" });
-InventoryAdjustment.belongsTo(ProductInventory, { foreignKey: "productId" });
+InventoryAdjustment.belongsTo(ProductInventory, {
+  foreignKey: "productId",
+  as: "product",
+});
 
 EquipmentLog.afterCreate(async (log, options) => {
   const transaction = options.transaction;
@@ -221,6 +224,56 @@ EquipmentLog.afterCreate(async (log, options) => {
       where: { productId: log.productId },
       transaction,
     });
+
+    if (log.actionType === EquipmentActionType.DAMAGED) {
+      await ProductInventory.increment("stockDamaged", {
+        by: log.quantity,
+        where: { productId: log.productId },
+        transaction,
+      });
+    } else if (log.actionType === EquipmentActionType.LOST) {
+      await ProductInventory.increment("stockLost", {
+        by: log.quantity,
+        where: { productId: log.productId },
+        transaction,
+      });
+    }
+  } else if (
+    log.actionType === EquipmentActionType.TEMPORARY_LOST ||
+    log.actionType === EquipmentActionType.TEMPORARY_DAMAGED
+  ) {
+    if (log.customerId) {
+      const balance = await CustomerEquipmentBalance.findOne({
+        where: { customerId: log.customerId, productId: log.productId },
+        transaction,
+      });
+      if (balance) {
+        await balance.decrement("quantityTemporaryOwed", {
+          by: log.quantity,
+          transaction,
+        });
+      }
+    }
+
+    await ProductInventory.decrement("stockWithCustomers", {
+      by: log.quantity,
+      where: { productId: log.productId },
+      transaction,
+    });
+
+    if (log.actionType === EquipmentActionType.TEMPORARY_DAMAGED) {
+      await ProductInventory.increment("stockDamaged", {
+        by: log.quantity,
+        where: { productId: log.productId },
+        transaction,
+      });
+    } else if (log.actionType === EquipmentActionType.TEMPORARY_LOST) {
+      await ProductInventory.increment("stockLost", {
+        by: log.quantity,
+        where: { productId: log.productId },
+        transaction,
+      });
+    }
   }
 });
 
@@ -246,6 +299,11 @@ InventoryAdjustment.afterCreate(async (adj, options) => {
     });
   } else if (adj.adjustmentType === InventoryAdjustmentType.DECLARED_LOST) {
     await ProductInventory.decrement("stockWithCustomers", {
+      by: adj.quantity,
+      where: { productId: adj.productId },
+      transaction,
+    });
+    await ProductInventory.increment("stockLost", {
       by: adj.quantity,
       where: { productId: adj.productId },
       transaction,

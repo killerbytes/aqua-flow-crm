@@ -1,11 +1,6 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-
-interface User {
-  user_id: number;
-  username: string;
-  role: string;
-}
+import { User } from "@/backend/models";
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 interface AuthState {
   user: User | null;
@@ -23,7 +18,7 @@ export const useAuthStore = create<AuthState>()(
       logout: () => set({ user: null, isAuthenticated: false }),
     }),
     {
-      name: 'auth-storage',
-    }
-  )
+      name: "auth-storage",
+    },
+  ),
 );

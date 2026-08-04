@@ -1,26 +1,50 @@
-import { describe, it, expect, beforeAll, vi } from "vitest";
-import { seedDatabase } from "../src/backend/db/seed";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+import { loginAction } from "../src/backend/actions/auth.actions";
 import {
   createCustomerAction,
-  updateCustomerAction,
   deleteCustomerAction,
+  updateCustomerAction,
 } from "../src/backend/actions/customer.actions";
+import { logEquipmentAction } from "../src/backend/actions/equipment.actions";
 import {
   createOrderAction,
-  updateOrderStatusAction,
   deleteOrderAction,
+  updateOrderStatusAction,
 } from "../src/backend/actions/order.actions";
 import {
   createProductAction,
   updateProductAction,
 } from "../src/backend/actions/product.actions";
-import { logEquipmentAction } from "../src/backend/actions/equipment.actions";
-import { loginAction } from "../src/backend/actions/auth.actions";
+import { seedDatabase } from "../src/backend/db/seed";
+import { CustomerStatus } from "../src/lib/definitions";
 
 // Mock next/cache revalidatePath
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
+
+// Mock getAuthContext for server actions testing
+vi.mock("../src/backend/auth/context", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../src/backend/auth/context")>();
+  return {
+    ...actual,
+    getAuthContext: vi.fn().mockResolvedValue({
+      user: {
+        userId: 1,
+        name: "Admin User",
+        username: "admin@aquaflow.com",
+        role: "ADMIN",
+      },
+      currentUser: {
+        userId: 1,
+        name: "Admin User",
+        username: "admin@aquaflow.com",
+        role: "ADMIN",
+      },
+    }),
+  };
+});
 
 describe("Next.js Server Actions Unit Tests", () => {
   const refDate = new Date("2026-07-30T00:00:00Z");
@@ -40,7 +64,7 @@ describe("Next.js Server Actions Unit Tests", () => {
       name: "Server Action Customer",
       address: "456 Action St",
       phone: "09998887777",
-      customerType: "COMMERCIAL",
+      status: CustomerStatus.ACTIVE,
     });
 
     expect(created.customerId).toBeDefined();
@@ -48,8 +72,14 @@ describe("Next.js Server Actions Unit Tests", () => {
 
     const updated = await updateCustomerAction(created.customerId, {
       name: "Updated Action Customer",
+      address: "Updated 456 Action St",
+      phone: "09998887777",
+      status: CustomerStatus.ACTIVE,
     });
     expect(updated.name).toBe("Updated Action Customer");
+    expect(updated.address).toBe("Updated 456 Action St");
+    expect(updated.phone).toBe("09998887777");
+    expect(updated.status).toBe(CustomerStatus.ACTIVE);
 
     const deleted = await deleteCustomerAction(created.customerId);
     expect(deleted).toBe(true);
@@ -64,7 +94,9 @@ describe("Next.js Server Actions Unit Tests", () => {
 
     expect(product.productId).toBeDefined();
 
-    const updated = await updateProductAction(product.productId, { unitPrice: 50.0 });
+    const updated = await updateProductAction(product.productId, {
+      unitPrice: 50.0,
+    });
     expect(updated.unitPrice).toBe(50.0);
   });
 

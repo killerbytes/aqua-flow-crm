@@ -3,7 +3,9 @@
 import { EquipmentLog } from "@/backend/models";
 import ColorBadge from "@/components/ColorBadge";
 import DataTable from "@/components/DataTable";
+import MonoText from "@/components/MonoText";
 import Pager from "@/components/Pager";
+import { Badge } from "@/components/ui/badge";
 import { EQUIPMENT_BADGE_COLOR } from "@/lib/definitions";
 import { formatDateTime } from "@/lib/utils";
 import { Paginated } from "@/types";
@@ -23,12 +25,12 @@ export default function EquipmentLogs({ logsPromise }: EquipmentLogsProps) {
     columnHelper.accessor("logId", {
       header: "Log ID",
       cell: (info) => (
-        <span className="font-mono font-semibold">#{info.getValue()}</span>
+        <MonoText className="font-semibold">#{info.getValue()}</MonoText>
       ),
     }),
     columnHelper.accessor("createdAt", {
       header: "Date",
-      cell: (info) => formatDateTime(info.getValue()),
+      cell: (info) => <MonoText>{formatDateTime(info.getValue())}</MonoText>,
     }),
     columnHelper.accessor("customer.name", {
       header: "Customer Name",
@@ -64,9 +66,9 @@ export default function EquipmentLogs({ logsPromise }: EquipmentLogsProps) {
         align: "right",
       },
       cell: (info) => (
-        <span className="font-semibold text-right block">
-          {info.getValue()}
-        </span>
+        <div className="justify-end flex">
+          <Badge>{info.getValue()}</Badge>
+        </div>
       ),
     }),
   ];

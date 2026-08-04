@@ -7,19 +7,19 @@ export async function POST(request: Request) {
   try {
     await initDatabase();
     const body = await request.json();
-    const { email, password } = body;
+    const { username, password } = body;
 
-    if (!email || !password) {
+    if (!username || !password) {
       return NextResponse.json(
-        { error: "Email and password are required" },
+        { error: "Username and password are required" },
         { status: 400 },
       );
     }
 
-    const user = await User.findOne({ where: { email } });
+    const user = await User.findOne({ where: { username } });
     if (!user) {
       return NextResponse.json(
-        { error: "Invalid email or password" },
+        { error: "Invalid username or password" },
         { status: 401 },
       );
     }
@@ -27,12 +27,12 @@ export async function POST(request: Request) {
     const isValid = await comparePassword(password, user.passwordHash);
     if (!isValid) {
       return NextResponse.json(
-        { error: "Invalid email or password" },
+        { error: "Invalid username or password" },
         { status: 401 },
       );
     }
 
-    const token = signToken(user.get({ plain: true }));
+    const token = await signToken(user.get({ plain: true }));
 
     const response = NextResponse.json({
       message: "Login successful",

@@ -226,11 +226,4 @@ export class OrderService {
     const count = await Order.destroy({ where: { orderId: Number(id) } });
     return count > 0;
   }
-
-  // Aliases for backward compatibility
-  static getOrders = OrderService.getAll;
-  static getOrderById = OrderService.get;
-  static createOrder = OrderService.create;
-  static updateOrderStatus = OrderService.update;
-  static deleteOrder = OrderService.delete;
 }

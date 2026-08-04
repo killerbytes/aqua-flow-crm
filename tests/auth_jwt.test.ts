@@ -17,7 +17,7 @@ describe("JWT & Password Auth Utilities", () => {
     expect(isWrongMatch).toBe(false);
   });
 
-  it("should sign and verify JWT access tokens", () => {
+  it("should sign and verify JWT access tokens", async () => {
     const payload = {
       user_id: 1,
       name: "Admin User",
@@ -25,11 +25,11 @@ describe("JWT & Password Auth Utilities", () => {
       role: UserRole.ADMIN,
     };
 
-    const token = signToken(payload);
+    const token = await signToken(payload);
     expect(token).toBeDefined();
     expect(typeof token).toBe("string");
 
-    const decoded = verifyToken(token);
+    const decoded = await verifyToken(token);
     expect(decoded).toBeDefined();
     expect(decoded?.user_id).toBe(1);
     expect(decoded?.email).toBe("admin@aquaflow.com");

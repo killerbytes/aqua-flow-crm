@@ -1,16 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getAuthContext, requireAuth } from "../auth/context";
 import { initDatabase } from "../db/database";
-import { getAuthContext } from "../auth/context";
 import { checkPermission } from "../rbac/permissions";
 import { CustomerService } from "../services/customer.service";
 
 export async function getCustomersAction() {
   await initDatabase();
   const context = await getAuthContext();
-  const role = context.user?.role || "ADMIN";
-  if (!checkPermission(role as any, "CREATE_ORDER")) {
+  const user = requireAuth(context);
+  if (!checkPermission(user.role, "CREATE_ORDER")) {
     throw new Error("Forbidden: insufficient permissions");
   }
 
@@ -21,8 +21,8 @@ export async function getCustomersAction() {
 export async function createCustomerAction(input: any) {
   await initDatabase();
   const context = await getAuthContext();
-  const role = context.user?.role || "ADMIN";
-  if (!checkPermission(role as any, "CREATE_ORDER")) {
+  const user = requireAuth(context);
+  if (!checkPermission(user.role, "CREATE_ORDER")) {
     throw new Error("Forbidden: insufficient permissions");
   }
 
@@ -34,8 +34,9 @@ export async function createCustomerAction(input: any) {
 export async function updateCustomerAction(id: number | string, input: any) {
   await initDatabase();
   const context = await getAuthContext();
-  const role = context.user?.role || "ADMIN";
-  if (!checkPermission(role as any, "CREATE_ORDER")) {
+
+  const user = requireAuth(context);
+  if (!checkPermission(user.role, "CREATE_ORDER")) {
     throw new Error("Forbidden: insufficient permissions");
   }
 
@@ -47,12 +48,26 @@ export async function updateCustomerAction(id: number | string, input: any) {
 export async function deleteCustomerAction(id: number | string) {
   await initDatabase();
   const context = await getAuthContext();
-  const role = context.user?.role || "ADMIN";
-  if (!checkPermission(role as any, "MANAGE_USERS")) {
+  const user = requireAuth(context);
+  if (!checkPermission(user.role, "MANAGE_USERS")) {
     throw new Error("Forbidden: insufficient permissions");
   }
 
   const result = await CustomerService.delete(id);
   revalidatePath("/customers");
+  return result;
+}
+
+export async function lookupCustomerAction(
+  term: string,
+  isActiveOnly: boolean = false,
+) {
+  await initDatabase();
+  const context = await getAuthContext();
+  const user = requireAuth(context);
+  if (!checkPermission(user.role, "CREATE_ORDER")) {
+    throw new Error("Forbidden: insufficient permissions");
+  }
+  const result = await CustomerService.lookup(term, isActiveOnly);
   return result;
 }

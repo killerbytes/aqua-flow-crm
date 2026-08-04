@@ -9,7 +9,7 @@ export const UserListActions: React.FC = () => {
   const { setUserModalOpen } = useUIStore();
 
   return (
-    <Button size="sm" onClick={() => setUserModalOpen(true)} className="gap-2">
+    <Button onClick={() => setUserModalOpen(true)} className="gap-2">
       <UserPlus className="w-4 h-4" />
       Add User Account
     </Button>

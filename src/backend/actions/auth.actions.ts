@@ -1,21 +1,37 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
+import { getAuthContext, requireAuth } from "../auth/context";
 import { initDatabase } from "../db/database";
-import { AuthService } from "../services/auth.service";
 import { checkPermission } from "../rbac/permissions";
-import { getAuthContext } from "../auth/context";
+import { AuthService } from "../services/auth.service";
 
-export async function loginAction(email: string, password: string) {
+export async function loginAction(username: string, password: string) {
   await initDatabase();
-  return await AuthService.login(email, password);
+  const { token, user } = await AuthService.login(username, password);
+
+  try {
+    const cookieStore = await cookies();
+    cookieStore.set("token", token, {
+      httpOnly: true,
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      sameSite: "lax",
+    });
+  } catch (err) {
+    console.warn("Cookie set error (outside request context):", err);
+  }
+
+  return { token, user };
 }
 
 export async function createUserAction(input: any) {
   await initDatabase();
   const context = await getAuthContext();
-  const role = context.user?.role || "ADMIN";
-  if (!checkPermission(role as any, "CREATE_USER")) {
+  const user = requireAuth(context);
+  if (!checkPermission(user.role, "CREATE_USER")) {
     throw new Error("Forbidden: insufficient permissions");
   }
 
@@ -27,8 +43,8 @@ export async function createUserAction(input: any) {
 export async function updateUserAction(id: number | string, input: any) {
   await initDatabase();
   const context = await getAuthContext();
-  const role = context.user?.role || "ADMIN";
-  if (!checkPermission(role as any, "MANAGE_USERS")) {
+  const user = requireAuth(context);
+  if (!checkPermission(user.role, "MANAGE_USERS")) {
     throw new Error("Forbidden: insufficient permissions");
   }
 
@@ -40,8 +56,8 @@ export async function updateUserAction(id: number | string, input: any) {
 export async function deleteUserAction(id: number | string) {
   await initDatabase();
   const context = await getAuthContext();
-  const role = context.user?.role || "ADMIN";
-  if (!checkPermission(role as any, "MANAGE_USERS")) {
+  const user = requireAuth(context);
+  if (!checkPermission(user.role, "MANAGE_USERS")) {
     throw new Error("Forbidden: insufficient permissions");
   }
 

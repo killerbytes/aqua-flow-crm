@@ -38,11 +38,4 @@ export class ProductService {
     });
     return count > 0;
   }
-
-  // Aliases for compatibility
-  static getProducts = ProductService.getAll;
-  static getProductById = ProductService.get;
-  static createProduct = ProductService.create;
-  static updateProduct = ProductService.update;
-  static deleteProduct = ProductService.delete;
 }

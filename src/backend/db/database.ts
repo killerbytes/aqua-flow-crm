@@ -43,6 +43,10 @@ export const sequelize = isTest
 let isDbInitialized = false;
 let initPromise: Promise<void> | null = null;
 
+export function markDbInitialized() {
+  isDbInitialized = true;
+}
+
 const isSeedingScript =
   process.env.IS_SEEDING === "true" ||
   (typeof process !== "undefined" &&

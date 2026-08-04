@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeAll } from "vitest";
-import { useUIStore } from "../src/store/uiStore";
-import { CustomerService } from "../src/backend/services/customer.service";
+import { beforeAll, describe, expect, it } from "vitest";
 import { seedDatabase } from "../src/backend/db/seed";
-import { CustomerType } from "../src/lib/definitions";
+import { CustomerService } from "../src/backend/services/customer.service";
+import { CustomerStatus } from "../src/lib/definitions";
+import { useUIStore } from "../src/store/uiStore";
 
 describe("Edit Customer UI State & Service Mutation", () => {
   const refDate = new Date("2026-07-30T00:00:00Z");
@@ -17,7 +17,7 @@ describe("Edit Customer UI State & Service Mutation", () => {
       name: "Maria Santos",
       address: "123 Sampaguita St",
       phone: "+63 917 123 4567",
-      customerType: CustomerType.RESIDENTIAL,
+      status: CustomerStatus.ACTIVE,
     };
 
     useUIStore.getState().setCustomerFormModalOpen(true, customerData as any);
@@ -32,10 +32,10 @@ describe("Edit Customer UI State & Service Mutation", () => {
       name: "Maria Santos Updated",
       address: "456 Sampaguita St Ext",
       phone: "+63 917 999 8888",
-      customerType: CustomerType.COMMERCIAL,
+      status: CustomerStatus.ACTIVE,
     };
 
-    const updated = await CustomerService.updateCustomer("1", updateInput);
+    const updated = await CustomerService.update("1", updateInput);
 
     expect(updated).toBeDefined();
     expect(updated.name).toBe("Maria Santos Updated");

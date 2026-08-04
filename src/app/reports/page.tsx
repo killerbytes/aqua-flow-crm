@@ -1,7 +1,6 @@
 import { initDatabase } from "@/backend/db/database";
 import { Customer, Order } from "@/backend/models";
 import { Badge } from "@/components/ui/badge";
-import { UI_DEFAULTS } from "@/lib/definitions";
 import { AlertTriangle, BarChart3, TrendingUp, Users } from "lucide-react";
 import { Op } from "sequelize";
 
@@ -68,7 +67,6 @@ export default async function ReportsPage() {
             <Badge>Active Today</Badge>
           </div>
           <div className="text-3xl font-extrabold font-mono text-cyan-300">
-            {UI_DEFAULTS.CURRENCY_SYMBOL}
             {todaySales.toFixed(2)}
           </div>
           <p className="text-xs text-slate-400">

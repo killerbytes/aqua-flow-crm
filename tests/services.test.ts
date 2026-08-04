@@ -1,11 +1,12 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { seedDatabase } from "../src/backend/db/seed";
 import { AuthService } from "../src/backend/services/auth.service";
 import { CustomerService } from "../src/backend/services/customer.service";
+import { EquipmentService } from "../src/backend/services/equipment.service";
 import { OrderService } from "../src/backend/services/order.service";
 import { ProductService } from "../src/backend/services/product.service";
-import { EquipmentService } from "../src/backend/services/equipment.service";
 import { ReportService } from "../src/backend/services/report.service";
+import { CustomerStatus } from "../src/lib/definitions";
 
 describe("Domain Services Unit & Integration Tests", () => {
   const refDate = new Date("2026-07-30T00:00:00Z");
@@ -23,7 +24,9 @@ describe("Domain Services Unit & Integration Tests", () => {
     });
 
     it("should throw error on invalid login", async () => {
-      await expect(AuthService.login("admin@test.com", "wrongpass")).rejects.toThrow("Invalid email or password");
+      await expect(
+        AuthService.login("admin@test.com", "wrongpass"),
+      ).rejects.toThrow("Invalid email or password");
     });
 
     it("should fetch me user by ID", async () => {
@@ -41,89 +44,111 @@ describe("Domain Services Unit & Integration Tests", () => {
 
   describe("CustomerService", () => {
     it("should list customers with pagination and query filter returning camelCase POJOs", async () => {
-      const result = await CustomerService.getCustomers({ limit: 5, page: 1, query: { term: "" } });
+      const result = await CustomerService.getAll({
+        limit: 5,
+        page: 1,
+        query: { term: "" },
+      });
       expect(result.rows).toBeDefined();
       expect(result.pagination.currentPage).toBe(1);
       expect(result.rows[0].customerId).toBeDefined();
-      expect(result.rows[0].customerType).toBeDefined();
+      expect(result.rows[0].status).toBeDefined();
       expect(() => JSON.stringify(result)).not.toThrow();
     });
 
     it("should get single customer by ID", async () => {
-      const customer = await CustomerService.getCustomerById(1);
+      const customer = await CustomerService.get(1);
       expect(customer).toBeDefined();
       expect(customer?.customerId).toBe(1);
     });
 
     it("should create, update, and delete customer", async () => {
-      const created = await CustomerService.createCustomer({
+      const created = await CustomerService.create({
         name: "Test Customer",
         address: "123 Test St",
         phone: "09123456789",
-        customerType: "RESIDENTIAL",
+        status: CustomerStatus.ACTIVE,
       });
       expect(created.customerId).toBeDefined();
 
-      const updated = await CustomerService.updateCustomer(created.customerId, { name: "Updated Customer" });
+      const updated = await CustomerService.update(created.customerId, {
+        name: "Updated Customer",
+        address: "123 Test St",
+        phone: "09123456789",
+        status: CustomerStatus.ACTIVE,
+      });
       expect(updated.name).toBe("Updated Customer");
+      expect(updated.address).toBe("123 Test St");
+      expect(updated.phone).toBe("09123456789");
+      expect(updated.status).toBe(CustomerStatus.ACTIVE);
 
-      const deleted = await CustomerService.deleteCustomer(created.customerId);
+      const deleted = await CustomerService.delete(created.customerId);
       expect(deleted).toBe(true);
     });
   });
 
   describe("ProductService", () => {
     it("should list products and fetch single product with camelCase DTOs", async () => {
-      const products = await ProductService.getProducts();
+      const products = await ProductService.getAll();
       expect(products.length).toBeGreaterThan(0);
       expect(products[0].productId).toBeDefined();
 
-      const product = await ProductService.getProductById(products[0].productId);
+      const product = await ProductService.get(products[0].productId);
       expect(product).toBeDefined();
       expect(product?.productId).toBe(products[0].productId);
     });
 
     it("should create and update a product", async () => {
-      const created = await ProductService.createProduct({
+      const created = await ProductService.create({
         name: "New Product Gallon",
         stockInStation: 50,
         unitPrice: 35.0,
       });
       expect(created.productId).toBeDefined();
 
-      const updated = await ProductService.updateProduct(created.productId, { unitPrice: 40.0 });
+      const updated = await ProductService.update(created.productId, {
+        unitPrice: 40.0,
+      });
       expect(updated.unitPrice).toBe(40.0);
     });
   });
 
   describe("OrderService", () => {
     it("should list orders with and without customerId filter returning camelCase DTOs", async () => {
-      const allOrdersResult = await OrderService.getOrders({ limit: 10, page: 1, query: {} });
+      const allOrdersResult = await OrderService.getAll({
+        limit: 10,
+        page: 1,
+        query: {},
+      });
       expect(allOrdersResult.rows.length).toBeGreaterThan(0);
       expect(allOrdersResult.rows[0].orderId).toBeDefined();
 
-      const customerOrdersResult = await OrderService.getOrders({ query: { customerId: 1 } });
+      const customerOrdersResult = await OrderService.getAll({
+        query: { customerId: 1 },
+      });
       expect(customerOrdersResult.rows.length).toBeGreaterThan(0);
-      expect(customerOrdersResult.rows.every((o) => o.customerId === 1)).toBe(true);
+      expect(customerOrdersResult.rows.every((o) => o.customerId === 1)).toBe(
+        true,
+      );
 
-      const created = await OrderService.createOrder(
+      const created = await OrderService.create(
         {
           customerId: 1,
           status: "PENDING",
           paymentStatus: "UNPAID",
           items: [{ productId: 1, quantity: 2, unitPrice: 50.0 }],
         },
-        1
+        1,
       );
 
       expect(created.orderId).toBeDefined();
       expect(created.orderDetails[0].discount).toBe(5.0);
       expect(created.totalAmount).toBe(90.0);
 
-      const updated = await OrderService.updateOrderStatus(created.orderId, "COMPLETED");
+      const updated = await OrderService.update(created.orderId, "COMPLETED");
       expect(updated.status).toBe("COMPLETED");
 
-      const deleted = await OrderService.deleteOrder(created.orderId);
+      const deleted = await OrderService.delete(created.orderId);
       expect(deleted).toBe(true);
     });
   });
@@ -138,12 +163,14 @@ describe("Domain Services Unit & Integration Tests", () => {
           quantity: 2,
           notes: "Issued 2 slim containers",
         },
-        1
+        1,
       );
 
       expect(log.logId).toBeDefined();
 
-      const logs = await EquipmentService.getEquipmentLogs({ query: { customerId: 1 } });
+      const logs = await EquipmentService.getAll({
+        query: { customerId: 1 },
+      });
       expect(logs.rows.length).toBeGreaterThan(0);
       expect(logs.rows[0].logId).toBeDefined();
     });

@@ -88,9 +88,6 @@ export default async function OrderPage({
           </div>
           <div>
             <p>
-              <strong>Customer Type:</strong> {order.customer?.customerType}
-            </p>
-            <p>
               <strong>Order Date:</strong> {formatDateTime(order.createdAt)}
             </p>
             <p>

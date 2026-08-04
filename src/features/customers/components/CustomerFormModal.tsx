@@ -25,33 +25,22 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldError, FieldLabel, FieldSet } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
-import { CustomerType } from "@/lib/definitions";
+import { CustomerStatus } from "@/lib/definitions";
 import { useUIStore } from "@/store/uiStore";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Trash, UserCheck, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
-
-export function CustomerFormModal({
-  barangays,
-}: {
-  barangays: readonly Barangay[];
-}) {
-  const { isCustomerFormModalOpen, setCustomerFormModalOpen } = useUIStore();
-
-  if (!isCustomerFormModalOpen) return null;
-
-  return (
-    <Modal
-      isOpen={isCustomerFormModalOpen}
-      onClose={() => setCustomerFormModalOpen(false, null)}
-    >
-      <CustomerFormModalContent barangays={barangays} />
-    </Modal>
-  );
-}
 
 function CustomerFormModalContent({
   barangays,
@@ -59,48 +48,50 @@ function CustomerFormModalContent({
   barangays: readonly Barangay[];
 }) {
   const { setCustomerFormModalOpen, editingCustomer } = useUIStore();
+  const [isPending, startTransition] = useTransition();
 
   const router = useRouter();
   const isEditing = editingCustomer;
   const form = useForm<CustomerFormData>({
     resolver: zodResolver(CustomerSchema),
-    defaultValues: {
+    values: {
       name: editingCustomer?.name || "",
       address: editingCustomer?.address || "",
       phone: editingCustomer?.phone || "",
       notes: editingCustomer?.notes || "",
-      customerType: editingCustomer?.customerType || CustomerType.RESIDENTIAL,
       barangayId: editingCustomer?.barangayId || "",
+      status: editingCustomer?.status || CustomerStatus.ACTIVE,
     },
   });
 
   const {
-    register,
     handleSubmit,
     reset,
     control,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = form;
 
   const onSubmit = async (data: CustomerFormData) => {
     try {
       const targetId = editingCustomer?.customerId;
+      startTransition(async () => {
+        if (isEditing && targetId) {
+          await updateCustomerAction(targetId, data);
+          toast.add({
+            title: "Customer Updated",
+          });
+        } else {
+          const customer = await createCustomerAction(data);
+          toast.add({
+            title: "Customer Created",
+          });
+          router.push("/customers/" + customer.customerId);
+        }
 
-      if (isEditing && targetId) {
-        await updateCustomerAction(targetId, data);
-        toast.add({
-          title: "Customer Updated",
-        });
-      } else {
-        await createCustomerAction(data);
-        toast.add({
-          title: "Customer Created",
-        });
-      }
-
-      reset();
-      setCustomerFormModalOpen(false, null);
-      router.refresh();
+        reset();
+        setCustomerFormModalOpen(false, null);
+        router.refresh();
+      });
     } catch (err: any) {
       toast.add({
         title: "Error",
@@ -249,32 +240,46 @@ function CustomerFormModalContent({
             )}
           />
         </FieldSet>
+        <FieldSet>
+          <Controller
+            name="status"
+            control={control}
+            render={({ field }) => (
+              <Field>
+                <FieldLabel>Status</FieldLabel>
+                <Select
+                  {...field}
+                  value={field.value}
+                  onValueChange={field.onChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
 
-        {/* <div className="space-y-1">
-          <label className="block text-xs font-medium text-slate-300">
-            Customer Category
-          </label>
-          <Select
-            {...register("customerType")}
-            className="w-full px-3 py-2 bg-slate-900 border border-slate-700/60 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-cyan-500"
-          >
-            {CUSTOMER_TYPE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div> */}
-
+                  <SelectContent>
+                    {Object.values(CustomerStatus).map((pst) => (
+                      <SelectItem key={pst} value={pst}>
+                        {pst}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FieldError>{errors.status?.message}</FieldError>
+              </Field>
+            )}
+          />
+        </FieldSet>
         <DialogFooter>
-          <Button
-            variant="destructive"
-            size="icon"
-            className="mr-auto"
-            onClick={onDelete}
-          >
-            <Trash />
-          </Button>
+          {isEditing && (
+            <Button
+              variant="destructive"
+              size="icon"
+              className="mr-auto"
+              onClick={onDelete}
+            >
+              <Trash />
+            </Button>
+          )}
           <Button
             type="button"
             variant="ghost"
@@ -282,8 +287,8 @@ function CustomerFormModalContent({
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting
+          <Button type="submit" disabled={isPending}>
+            {isPending
               ? isEditing
                 ? "Updating..."
                 : "Saving..."
@@ -294,5 +299,24 @@ function CustomerFormModalContent({
         </DialogFooter>
       </form>
     </>
+  );
+}
+
+export function CustomerFormModal({
+  barangays,
+}: {
+  barangays: readonly Barangay[];
+}) {
+  const { isCustomerFormModalOpen, setCustomerFormModalOpen } = useUIStore();
+
+  if (!isCustomerFormModalOpen) return null;
+
+  return (
+    <Modal
+      isOpen={isCustomerFormModalOpen}
+      onClose={() => setCustomerFormModalOpen(false, null)}
+    >
+      <CustomerFormModalContent barangays={barangays} />
+    </Modal>
   );
 }

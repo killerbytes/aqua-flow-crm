@@ -8,7 +8,7 @@ export const PAGINATION = {
 export enum UserRole {
   ADMIN = "ADMIN",
   MANAGER = "MANAGER",
-  STAFF = "STAFF",
+  CASHIER = "CASHIER",
   DELIVERY = "DELIVERY",
 }
 
@@ -24,8 +24,8 @@ export const USER_ROLE_OPTIONS = [
     description: "Inventory adjustments & customer overrides",
   },
   {
-    value: UserRole.STAFF,
-    label: "Staff",
+    value: UserRole.CASHIER,
+    label: "Cashier",
     description: "Standard order creation & customer management",
   },
   {
@@ -38,7 +38,7 @@ export const USER_ROLE_OPTIONS = [
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
   [UserRole.ADMIN]: "Administrator",
   [UserRole.MANAGER]: "Manager",
-  [UserRole.STAFF]: "Staff",
+  [UserRole.CASHIER]: "Cashier",
   [UserRole.DELIVERY]: "Delivery Personnel",
 };
 
@@ -49,7 +49,9 @@ export enum EquipmentActionType {
   TEMPORARY = "TEMPORARY",
   TEMPORARY_RETURNED = "TEMPORARY_RETURNED",
   LOST = "LOST",
+  TEMPORARY_LOST = "TEMPORARY_LOST",
   DAMAGED = "DAMAGED",
+  TEMPORARY_DAMAGED = "TEMPORARY_DAMAGED",
 }
 
 export const EQUIPMENT_ACTION_OPTIONS = [
@@ -79,9 +81,19 @@ export const EQUIPMENT_ACTION_OPTIONS = [
     badgeColor: "bg-rose-500/20 text-rose-300",
   },
   {
+    value: EquipmentActionType.TEMPORARY_LOST,
+    label: "Declared Lost (Temporary)",
+    badgeColor: "bg-rose-600/20 text-rose-400",
+  },
+  {
     value: EquipmentActionType.DAMAGED,
     label: "Declared Damaged",
     badgeColor: "bg-purple-500/20 text-purple-300",
+  },
+  {
+    value: EquipmentActionType.TEMPORARY_DAMAGED,
+    label: "Declared Damaged (Temporary)",
+    badgeColor: "bg-purple-600/20 text-purple-400",
   },
 ];
 
@@ -91,7 +103,9 @@ export const EQUIPMENT_ACTION_LABELS: Record<EquipmentActionType, string> = {
   [EquipmentActionType.TEMPORARY]: "Issued Temporary",
   [EquipmentActionType.TEMPORARY_RETURNED]: "Returned Temporary",
   [EquipmentActionType.LOST]: "Declared Lost",
+  [EquipmentActionType.TEMPORARY_LOST]: "Declared Lost (Temporary)",
   [EquipmentActionType.DAMAGED]: "Declared Damaged",
+  [EquipmentActionType.TEMPORARY_DAMAGED]: "Declared Damaged (Temporary)",
 };
 
 // Inventory Adjustment Types
@@ -159,40 +173,22 @@ export const PAYMENT_STATUS_OPTIONS = [
   { value: PaymentStatus.PARTIAL, label: "Partial Payment" },
 ];
 
-// Customer Types & Status
-export enum CustomerType {
-  RESIDENTIAL = "RESIDENTIAL",
-  COMMERCIAL = "COMMERCIAL",
-}
-
 export enum CustomerStatus {
   ACTIVE = "ACTIVE",
   INACTIVE = "INACTIVE",
 }
 
-export const CUSTOMER_TYPE_OPTIONS = [
-  { value: CustomerType.RESIDENTIAL, label: "Residential" },
-  { value: CustomerType.COMMERCIAL, label: "Commercial / Corporate" },
-];
-
-// UI Default Values
-export const UI_DEFAULTS = {
-  PAGINATION_LIMIT: 10,
-  DEFAULT_CUSTOMER_TYPE: CustomerType.RESIDENTIAL,
-  DEFAULT_EQUIPMENT_ACTION: EquipmentActionType.ISSUE,
-  DEFAULT_ORDER_STATUS: OrderStatus.PENDING,
-  DEFAULT_PAYMENT_STATUS: PaymentStatus.UNPAID,
-  CURRENCY_SYMBOL: "₱",
-  CURRENCY_CODE: "PHP",
-};
-
 export const EQUIPMENT_BADGE_COLOR: Record<EquipmentActionType, string> = {
   [EquipmentActionType.ISSUE]: "bg-green-100 text-black border-green-500",
   [EquipmentActionType.RETURNED]: "bg-white text-black border-black",
-  [EquipmentActionType.TEMPORARY]: "bg-blue-100 text-black border-blue-500",
-  [EquipmentActionType.TEMPORARY_RETURNED]: "bg-white text-black border-black",
+  [EquipmentActionType.TEMPORARY]: "bg-yellow-100 text-black border-yellow-500",
+  [EquipmentActionType.TEMPORARY_RETURNED]:
+    "bg-yellow-500 text-white border-yellow-100",
   [EquipmentActionType.LOST]: "bg-red-100 text-black border-red-500",
+  [EquipmentActionType.TEMPORARY_LOST]: "bg-red-200 text-black border-red-600",
   [EquipmentActionType.DAMAGED]: "bg-orange-100 text-black border-orange-500",
+  [EquipmentActionType.TEMPORARY_DAMAGED]:
+    "bg-orange-200 text-black border-orange-600",
 };
 
 export const PAYMENT_STATUS_BADGE_COLOR: Record<PaymentStatus, string> = {
@@ -207,4 +203,16 @@ export const ORDER_STATUS_BADGE_COLOR: Record<OrderStatus, string> = {
   [OrderStatus.OUT_FOR_DELIVERY]: "bg-purple-100 text-black border-purple-500",
   [OrderStatus.DELIVERED]: "bg-green-100 text-black border-green-500",
   [OrderStatus.CANCELLED]: "bg-red-100 text-black border-red-500",
+};
+
+export const USER_ROLE_BADGE_COLOR: Record<UserRole, string> = {
+  [UserRole.ADMIN]: "bg-red-100 text-black border-red-500",
+  [UserRole.MANAGER]: "bg-blue-100 text-black border-blue-500",
+  [UserRole.CASHIER]: "bg-yellow-100 text-black border-yellow-500",
+  [UserRole.DELIVERY]: "bg-green-100 text-black border-green-500",
+};
+
+export const CUSTOMER_STATUS_BADGE_COLOR: Record<CustomerStatus, string> = {
+  [CustomerStatus.ACTIVE]: "bg-green-100 text-black border-green-500",
+  [CustomerStatus.INACTIVE]: "bg-red-100 text-black border-red-500",
 };

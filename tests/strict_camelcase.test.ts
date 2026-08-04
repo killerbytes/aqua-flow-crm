@@ -1,6 +1,16 @@
-import { describe, it, expect } from "vitest";
-import { CustomerSchema, ProductInventorySchema, EquipmentLogSchema, OrderSchema } from "../src/backend/schemas/zodSchemas";
-import { CustomerType, EquipmentActionType, OrderStatus, PaymentStatus } from "../src/lib/definitions";
+import { describe, expect, it } from "vitest";
+import {
+  CustomerSchema,
+  EquipmentLogSchema,
+  OrderSchema,
+  ProductInventorySchema,
+} from "../src/backend/schemas/zodSchemas";
+import {
+  CustomerStatus,
+  EquipmentActionType,
+  OrderStatus,
+  PaymentStatus,
+} from "../src/lib/definitions";
 
 describe("Strict CamelCase Zod Validation (No Legacy Fallbacks)", () => {
   it("should validate CustomerSchema strictly with customerType", () => {
@@ -8,15 +18,12 @@ describe("Strict CamelCase Zod Validation (No Legacy Fallbacks)", () => {
       name: "Acme Corp",
       address: "123 Main St",
       phone: "+639171234567",
-      customerType: CustomerType.COMMERCIAL,
+      status: CustomerStatus.ACTIVE,
     });
     expect(valid.success).toBe(true);
 
     const invalid = CustomerSchema.safeParse({
-      name: "Acme Corp",
       address: "123 Main St",
-      phone: "+639171234567",
-      customer_type: CustomerType.COMMERCIAL,
     });
     expect(invalid.success).toBe(false);
   });
