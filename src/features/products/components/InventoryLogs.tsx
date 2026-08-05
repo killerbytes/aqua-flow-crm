@@ -1,10 +1,10 @@
 "use client";
 
 import { InventoryAdjustment } from "@/backend/models";
-import { ColorBadge, MonoText } from "@/components/ui/presentation";
 import DataTable from "@/components/DataTable";
 import Pager from "@/components/Pager";
 import { Badge } from "@/components/ui/badge";
+import { ColorBadge, MonoText } from "@/components/ui/presentation";
 import { EQUIPMENT_BADGE_COLOR } from "@/lib/definitions";
 import { formatDateTime } from "@/lib/utils";
 import { Paginated } from "@/types";
@@ -18,7 +18,10 @@ interface InventoryLogsProps {
 export default function InventoryLogs({
   inventoryAdjustmentPromise,
 }: InventoryLogsProps) {
-  const data = use(inventoryAdjustmentPromise);
+  const data = use(inventoryAdjustmentPromise) || {
+    rows: [],
+    pagination: { total: 0, totalPages: 0, currentPage: 0 },
+  };
 
   const columnHelper = createColumnHelper<InventoryAdjustment>();
   const columns = [
@@ -37,13 +40,12 @@ export default function InventoryLogs({
       cell: (info) => info.getValue() || "N/A",
     }),
     columnHelper.accessor("adjustmentType", {
-      header: "Type",
-      cell: (info) => {
-        const action = info.getValue();
-        return (
-          <ColorBadge colorMap={EQUIPMENT_BADGE_COLOR}>{action}</ColorBadge>
-        );
-      },
+      header: () => "Type",
+      cell: (info) => (
+        <ColorBadge colorMap={EQUIPMENT_BADGE_COLOR}>
+          {info.getValue()}
+        </ColorBadge>
+      ),
     }),
     columnHelper.accessor("quantity", {
       header: "Quantity",
@@ -57,26 +59,25 @@ export default function InventoryLogs({
       ),
     }),
     columnHelper.accessor("reason", {
-      header: "Reason",
-      meta: {
-        align: "right",
-      },
-      cell: (info) => (
-        <span className="font-semibold text-right block">
-          {info.getValue()}
-        </span>
-      ),
+      header: () => "Reason / Notes",
+      cell: (info) => info.getValue() || "N/A",
+    }),
+    columnHelper.accessor("createdAt", {
+      header: () => "Timestamp",
+      cell: (info) => formatDateTime(info.getValue()),
     }),
   ];
+
+  const rows = Array.isArray(data) ? data : data.rows || [];
 
   return (
     <div className="space-y-4">
       <DataTable
         columns={columns}
-        data={data?.rows || []}
+        data={rows}
         emptyMessage="No equipment logs found."
       />
-      {(data.pagination?.totalPages ?? 0) > 1 && (
+      {(data.pagination.totalPages ?? 0) > 1 && (
         <Pager initial={data.pagination} />
       )}
     </div>

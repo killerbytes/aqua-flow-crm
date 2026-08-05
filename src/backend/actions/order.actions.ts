@@ -5,6 +5,7 @@ import { getAuthContext, requireAuth } from "../auth/context";
 import { initDatabase } from "../db/database";
 import { checkPermission } from "../rbac/permissions";
 import { OrderService } from "../services/order.service";
+import { OrderStatus } from "@/lib/definitions";
 
 export async function createOrderAction(input: any) {
   await initDatabase();
@@ -14,14 +15,14 @@ export async function createOrderAction(input: any) {
     throw new Error("Forbidden: insufficient permissions");
   }
 
-  const result = await OrderService.create(input, user.userId);
+  const result = await OrderService.create(input);
   revalidatePath("/orders");
   return result;
 }
 
 export async function updateOrderStatusAction(
   id: number | string,
-  status: string,
+  status: OrderStatus,
 ) {
   await initDatabase();
   const context = await getAuthContext();
@@ -30,7 +31,7 @@ export async function updateOrderStatusAction(
     throw new Error("Forbidden: insufficient permissions");
   }
 
-  const result = await OrderService.update(id, status);
+  const result = await OrderService.updateStatus(id, status);
   revalidatePath("/orders");
   return result;
 }

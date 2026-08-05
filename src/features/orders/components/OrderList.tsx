@@ -1,8 +1,8 @@
 "use client";
 import { Order } from "@/backend/models";
-import { ColorBadge } from "@/components/ui/presentation";
 import DataTable from "@/components/DataTable";
 import Pager from "@/components/Pager";
+import { ColorBadge } from "@/components/ui/presentation";
 import {
   ORDER_STATUS_BADGE_COLOR,
   PAYMENT_STATUS_BADGE_COLOR,
@@ -51,7 +51,7 @@ export default function OrderList({ orders }: OrderListProps) {
         columnHelper.accessor("createdAt", {
           header: "Date Ordered",
           cell: (info) => (
-            <span className="font-mono font-semibold ">
+            <span className="font-mono font-semibold text-xs">
               {formatDateTime(info.getValue())}
             </span>
           ),
@@ -76,7 +76,7 @@ export default function OrderList({ orders }: OrderListProps) {
         columnHelper.accessor("totalAmount", {
           header: "Total Amount",
           cell: (info) => (
-            <span className="font-mono font-semibold ">
+            <span className="font-mono font-semibold text-primary flex justify-end">
               {formatCurrency(info.getValue())}
             </span>
           ),

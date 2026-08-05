@@ -1,16 +1,29 @@
 "use client";
 import DatePicker from "@/components/DatePicker";
 import { Button } from "@/components/ui/button";
+import { Field, FieldLabel } from "@/components/ui/field";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { OrderStatus, PaymentStatus } from "@/lib/definitions";
 import { endOfMonth, startOfMonth } from "date-fns";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function OrderListFilter() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const startDate = searchParams.get("startDate");
-  const endDate = searchParams.get("endDate");
+  const startDate = new Date(
+    Number(searchParams.get("startDate") ?? startOfMonth(new Date())),
+  );
+  const endDate = new Date(
+    Number(searchParams.get("endDate") ?? endOfMonth(new Date())),
+  );
 
-  const isToday = startDate === endDate;
+  const isToday = startDate.toDateString() === endDate.toDateString();
 
   const toggleDateHandler = () => {
     const today = new Date();
@@ -26,21 +39,86 @@ export default function OrderListFilter() {
     router.push(`?${params.toString()}`);
   };
 
-  return (
-    <div className="flex gap-2">
-      <DatePicker
-        onSelect={(range) => {
-          router.push(
-            `?startDate=${range?.from?.getTime()}&endDate=${range?.to?.getTime()}`,
-          );
-        }}
-        from={new Date(Number(startDate ?? startOfMonth(new Date())))}
-        to={new Date(Number(endDate ?? endOfMonth(new Date())))}
-      />
+  const handleStatusChange = (value: string) => {
+    const params = new URLSearchParams(searchParams);
+    if (value === "ALL") {
+      params.delete("status");
+    } else {
+      params.set("status", value ?? OrderStatus.PENDING);
+    }
+    router.push(`?${params.toString()}`);
+  };
 
-      <Button onClick={toggleDateHandler}>
-        {isToday ? "This Month" : "Today"}
-      </Button>
+  const handlePaymentStatusChange = (value: string) => {
+    const params = new URLSearchParams(searchParams);
+    if (value === "ALL") {
+      params.delete("paymentStatus");
+    } else {
+      params.set("paymentStatus", value ?? PaymentStatus.UNPAID);
+    }
+    router.push(`?${params.toString()}`);
+  };
+  return (
+    <div className="flex gap-4">
+      <div className="flex items-center gap-2">
+        <DatePicker
+          onSelect={(range) => {
+            router.push(
+              `?startDate=${range?.from?.getTime()}&endDate=${range?.to?.getTime()}`,
+            );
+          }}
+          from={new Date(Number(startDate ?? startOfMonth(new Date())))}
+          to={new Date(Number(endDate ?? endOfMonth(new Date())))}
+        />
+
+        <Button onClick={toggleDateHandler} size="xs">
+          {isToday ? "This Month" : "Today"}
+        </Button>
+      </div>
+
+      <Field orientation="horizontal" className="w-fit">
+        <FieldLabel>Status</FieldLabel>
+        <Select
+          defaultValue={searchParams.get("status") ?? "ALL"}
+          onValueChange={(value) => handleStatusChange(value ?? "ALL")}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select order status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem key="all" value="ALL">
+              ALL
+            </SelectItem>
+            {Object.values(OrderStatus).map((status) => (
+              <SelectItem key={status} value={status}>
+                {status}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
+
+      <Field orientation="horizontal" className="w-fit">
+        <FieldLabel>Payment Status</FieldLabel>
+        <Select
+          defaultValue={searchParams.get("paymentStatus") ?? "ALL"}
+          onValueChange={(value) => handlePaymentStatusChange(value ?? "ALL")}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select payment status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem key="all" value="ALL">
+              ALL
+            </SelectItem>
+            {Object.values(PaymentStatus).map((status) => (
+              <SelectItem key={status} value={status}>
+                {status}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
     </div>
   );
 }

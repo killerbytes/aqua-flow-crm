@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  serverExternalPackages: ["sequelize", "pg", "pg-hstore", "sqlite3"],
   async rewrites() {
     return [
       {

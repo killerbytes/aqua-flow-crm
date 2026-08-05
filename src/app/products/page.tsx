@@ -7,6 +7,11 @@ import {
 import { EquipmentService, ProductService } from "@/backend/services";
 import { InventoryService } from "@/backend/services/inventory.service";
 import {
+  InventoryAdjustmentModalButton,
+  ProductFormModalButton,
+} from "@/components/ActionButtons";
+import { RoleGuard } from "@/components/auth/RoleGuard";
+import {
   Card,
   CardAction,
   CardContent,
@@ -15,15 +20,23 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CardListActions } from "@/features/products/components/CardListActions";
 import EquipmentLogs from "@/features/products/components/EquipmentLogs";
 import { InventoryAdjustmentModal } from "@/features/products/components/InventoryAdjustmentModal";
 import InventoryLogs from "@/features/products/components/InventoryLogs";
 import { ProductFormModal } from "@/features/products/components/ProductFormModal";
-import { ProductListActions } from "@/features/products/components/ProductListActions";
+import { UserRole } from "@/lib/definitions";
 import { formatCurrency } from "@/lib/utils";
 import { Paginated } from "@/types";
-import { Package, ShieldAlert, Store, User, WarehouseIcon } from "lucide-react";
+import {
+  CogIcon,
+  Edit,
+  Package,
+  Plus,
+  ShieldAlert,
+  Store,
+  User,
+  WarehouseIcon,
+} from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -55,7 +68,12 @@ export default async function ProductsPage() {
             special pricing.
           </p>
         </div>
-        <ProductListActions />
+        <RoleGuard allowedRoles={[UserRole.ADMIN, UserRole.CASHIER]}>
+          <ProductFormModalButton>
+            <Plus className="w-4 h-4" />
+            Add Product
+          </ProductFormModalButton>
+        </RoleGuard>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -75,7 +93,19 @@ export default async function ProductsPage() {
                   {formatCurrency(prod.unitPrice)}
                 </CardTitle>
                 <CardAction>
-                  <CardListActions product={prod} />
+                  <RoleGuard allowedRoles={[UserRole.ADMIN, UserRole.CASHIER]}>
+                    <div className="flex gap-2">
+                      <ProductFormModalButton product={prod} variant="outline">
+                        <Edit />
+                      </ProductFormModalButton>
+                      <InventoryAdjustmentModalButton
+                        product={prod}
+                        variant="outline"
+                      >
+                        <CogIcon />
+                      </InventoryAdjustmentModalButton>
+                    </div>
+                  </RoleGuard>
                 </CardAction>
               </CardHeader>
 

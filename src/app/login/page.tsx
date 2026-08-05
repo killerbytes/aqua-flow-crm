@@ -60,7 +60,6 @@ function LoginPageContent() {
   const searchParams = useSearchParams();
   const redirectPath = searchParams.get("redirect") || "/";
 
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -71,8 +70,8 @@ function LoginPageContent() {
   } = useForm<LoginFormData>({
     resolver: zodResolver(LoginSchema),
     defaultValues: {
-      username: "admin",
-      password: "pass",
+      username: "",
+      password: "",
     },
   });
 

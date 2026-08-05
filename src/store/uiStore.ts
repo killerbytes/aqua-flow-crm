@@ -32,8 +32,8 @@ interface UIState {
     customerId?: number | null,
     productId?: number | null,
   ) => void;
-  setOrderModalOpen: (open: boolean) => void;
-  setProductModalOpen: (
+  setOrderFormModalOpen: (open: boolean) => void;
+  setProductFormModalOpen: (
     open: boolean,
     product?: ProductInventory | null,
   ) => void;
@@ -71,8 +71,8 @@ export const useUIStore = create<UIState>((set) => ({
       selectedCustomerId: customerId,
       selectedProductId: productId,
     }),
-  setOrderModalOpen: (open) => set({ isOrderModalOpen: open }),
-  setProductModalOpen: (open, product = null) =>
+  setOrderFormModalOpen: (open) => set({ isOrderModalOpen: open }),
+  setProductFormModalOpen: (open, product = null) =>
     set({ isProductModalOpen: open, editingProduct: product }),
   setUserModalOpen: (open, user = null) =>
     set({ isUserModalOpen: open, editingUser: user }),

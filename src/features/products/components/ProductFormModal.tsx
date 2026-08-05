@@ -28,12 +28,12 @@ import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 
 export function ProductFormModal() {
-  const { isProductModalOpen, setProductModalOpen } = useUIStore();
+  const { isProductModalOpen, setProductFormModalOpen } = useUIStore();
 
   if (!isProductModalOpen) return null;
 
   return (
-    <Modal isOpen onClose={() => setProductModalOpen(false, null)}>
+    <Modal isOpen onClose={() => setProductFormModalOpen(false, null)}>
       <ProductFormModalContent />
     </Modal>
   );
@@ -41,7 +41,7 @@ export function ProductFormModal() {
 
 export const ProductFormModalContent = ({}) => {
   const router = useRouter();
-  const { isProductModalOpen, setProductModalOpen, editingProduct } =
+  const { isProductModalOpen, setProductFormModalOpen, editingProduct } =
     useUIStore();
   const isEditing = Boolean(editingProduct?.productId);
 
@@ -60,22 +60,6 @@ export const ProductFormModalContent = ({}) => {
     reset,
     formState: { errors, isSubmitting },
   } = form;
-
-  // useEffect(() => {
-  //   if (product) {
-  //     reset({
-  //       name: product.name || "",
-  //       stockInStation: product.stockInStation || 0,
-  //       unitPrice: product.unitPrice || 0,
-  //     });
-  //   } else {
-  //     reset({
-  //       name: "",
-  //       stockInStation: 100,
-  //       unitPrice: 50.0,
-  //     });
-  //   }
-  // }, [product, isProductModalOpen, reset]);
 
   if (!isProductModalOpen) return null;
 
@@ -104,7 +88,7 @@ export const ProductFormModalContent = ({}) => {
       }
 
       reset();
-      setProductModalOpen(false, null);
+      setProductFormModalOpen(false, null);
       router.refresh();
     } catch (err: any) {
       toast.add({
@@ -124,7 +108,7 @@ export const ProductFormModalContent = ({}) => {
           title: "Product deleted successfully!",
         });
         reset();
-        setProductModalOpen(false, null);
+        setProductFormModalOpen(false, null);
         router.refresh();
       }
     } catch (err: any) {
@@ -167,19 +151,7 @@ export const ProductFormModalContent = ({}) => {
             )}
           />
         </FieldSet>
-        {/* <FieldSet>
-          <Controller
-            control={control}
-            name="stockInStation"
-            render={({ field }) => (
-              <Field>
-                <FieldLabel>Product Name</FieldLabel>
-                <Input placeholder="e.g. 5-Gallon Alkaline Water" {...field} />
-                <FieldError>{errors.name?.message}</FieldError>
-              </Field>
-            )}
-          />
-        </FieldSet> */}
+
         <FieldSet>
           <Controller
             control={control}
@@ -244,7 +216,7 @@ export const ProductFormModalContent = ({}) => {
           <Button
             type="button"
             variant="ghost"
-            onClick={() => setProductModalOpen(false, null)}
+            onClick={() => setProductFormModalOpen(false, null)}
           >
             Cancel
           </Button>

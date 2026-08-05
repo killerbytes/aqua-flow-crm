@@ -7,4 +7,5 @@ export interface Pagination {
 export interface Paginated<T> {
   rows: T[];
   pagination: Pagination;
+  summary?: any;
 }

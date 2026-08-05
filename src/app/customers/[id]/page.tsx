@@ -1,4 +1,11 @@
-import { ArrowLeft, BadgePercent, ClockAlert, Package } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRightLeft,
+  BadgePercent,
+  ClockAlert,
+  Edit,
+  Package,
+} from "lucide-react";
 import Link from "next/link";
 
 import { initDatabase } from "@/backend/db/database";
@@ -13,7 +20,11 @@ import {
   ProductService,
 } from "@/backend/services";
 import { CommonService } from "@/backend/services/commonService";
-import { ColorBadge } from "@/components/ui/presentation";
+import {
+  CustomerFormModalButton,
+  LogEquipmentButton,
+} from "@/components/ActionButtons";
+import { RoleGuard } from "@/components/auth/RoleGuard";
 import {
   Card,
   CardContent,
@@ -21,14 +32,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ColorBadge } from "@/components/ui/presentation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import CustomerDetailsActions from "@/features/customers/components/CustomerDetails/CustomerDetailsActions";
-import TemporaryEquipmentReturn from "@/features/customers/components/CustomerDetails/TemporaryEquipmentReturn";
 import { CustomerFormModal } from "@/features/customers/components/CustomerFormModal";
 import { LogEquipmentModal } from "@/features/customers/components/LogEquipmentModal";
 import OrderList from "@/features/orders/components/OrderList";
 import EquipmentLogs from "@/features/products/components/EquipmentLogs";
-import { CUSTOMER_STATUS_BADGE_COLOR } from "@/lib/definitions";
+import { CUSTOMER_STATUS_BADGE_COLOR, UserRole } from "@/lib/definitions";
 import { formatCurrency } from "@/lib/utils";
 import { redirect } from "next/navigation";
 
@@ -96,7 +106,17 @@ export default async function CustomerPage({
             </h1>
           </div>
 
-          <CustomerDetailsActions customer={customer} />
+          <RoleGuard allowedRoles={[UserRole.ADMIN, UserRole.CASHIER]}>
+            <div className="flex gap-2">
+              <CustomerFormModalButton customer={customer} variant="outline">
+                <Edit className="w-4 h-4" />
+                Edit Customer
+              </CustomerFormModalButton>
+              <LogEquipmentButton customer={customer} variant="secondary">
+                <ArrowRightLeft size={16} /> Log Equipment
+              </LogEquipmentButton>
+            </div>
+          </RoleGuard>
         </div>
         {customer && (
           <div className="pt-4 border-t space-y-2 text-sm ">
@@ -136,10 +156,17 @@ export default async function CustomerPage({
                           <span className="text-sm font-bold text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-md bg-amber-200/60 dark:bg-amber-900/60">
                             {balance.quantityTemporaryOwed} temp
                           </span>
-                          <TemporaryEquipmentReturn
-                            customer={customer}
-                            productId={balance.productId}
-                          />
+                          <RoleGuard
+                            allowedRoles={[UserRole.ADMIN, UserRole.CASHIER]}
+                          >
+                            <LogEquipmentButton
+                              customer={customer}
+                              productId={balance.productId}
+                              variant="secondary"
+                            >
+                              <ArrowRightLeft size={16} />
+                            </LogEquipmentButton>
+                          </RoleGuard>
                         </div>
                       </div>
                     ),

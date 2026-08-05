@@ -9,7 +9,8 @@ import {
   ProductFormData,
   ProductInventorySchema,
 } from "../schemas/zodSchemas";
-import { InventoryService, ProductService } from "../services/product.service";
+import { InventoryService } from "../services/inventory.service";
+import { ProductService } from "../services/product.service";
 
 export async function getProductsAction() {
   await initDatabase();

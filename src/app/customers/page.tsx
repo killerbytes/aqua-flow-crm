@@ -1,12 +1,16 @@
 import { initDatabase } from "@/backend/db/database";
 import { CommonService } from "@/backend/services/commonService";
 import { CustomerService } from "@/backend/services/customer.service";
+import {
+  CustomerFormModalButton,
+  CustomerLookupButton,
+} from "@/components/ActionButtons";
+import { RoleGuard } from "@/components/auth/RoleGuard";
 import Pager from "@/components/Pager";
 import { CustomerFormModal } from "@/features/customers/components/CustomerFormModal";
 import CustomerList from "@/features/customers/components/CustomerList";
-import { CustomerListActions } from "@/features/customers/components/CustomerListActions";
-import { PAGINATION } from "@/lib/definitions";
-import { Users } from "lucide-react";
+import { PAGINATION, UserRole } from "@/lib/definitions";
+import { Search, UserPlus, Users } from "lucide-react";
 import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
@@ -60,8 +64,17 @@ export default async function CustomersPage({
             temporary loan status.
           </p>
         </div>
-
-        <CustomerListActions />
+        <div className="flex items-center gap-1">
+          <CustomerLookupButton>
+            <Search className="w-4 h-4" />
+          </CustomerLookupButton>
+          <RoleGuard allowedRoles={[UserRole.ADMIN, UserRole.CASHIER]}>
+            <CustomerFormModalButton>
+              <UserPlus className="w-4 h-4" />
+              Add Customer
+            </CustomerFormModalButton>
+          </RoleGuard>
+        </div>
       </div>
 
       {!customers?.rows || customers.rows.length === 0 ? (

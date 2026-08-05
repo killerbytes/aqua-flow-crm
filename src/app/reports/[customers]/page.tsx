@@ -4,9 +4,10 @@ import { CustomerService } from "@/backend/services/customer.service";
 import Pager from "@/components/Pager";
 import CustomerFilter from "@/features/customers/components/CustomerFilter";
 import CustomerList from "@/features/customers/components/CustomerList";
-import { CustomerListActions } from "@/features/customers/components/CustomerListActions";
-import { PAGINATION } from "@/lib/definitions";
-import { Users } from "lucide-react";
+import { CustomerFormModalButton } from "@/components/ActionButtons";
+import { RoleGuard } from "@/components/auth/RoleGuard";
+import { PAGINATION, UserRole } from "@/lib/definitions";
+import { Plus, Users } from "lucide-react";
 
 interface CustomersPageProps {
   searchParams?: Promise<{
@@ -19,63 +20,65 @@ interface CustomersPageProps {
   }>;
 }
 
-export default async function CustomerReportsPage({
-  searchParams,
-}: CustomersPageProps) {
+export default async function CustomersPage({ searchParams }: CustomersPageProps) {
   await initDatabase();
-  const params = await searchParams;
 
+  const params = await searchParams;
   const page = Number(params?.page) || PAGINATION.PAGE;
   const limit = Number(params?.limit) || PAGINATION.PAGE_SIZE;
   const term = params?.term || "";
   const specialPricing = params?.specialPricing === "true";
   const tempBalance = params?.tempBalance === "true";
-  const barangayParam =
-    params?.barangays && params?.barangays.length > 0
-      ? params.barangays?.split(",")
-      : [];
+  const barangays = params?.barangays ? params.barangays.split(",") : [];
 
-  const barangays = CommonService.getBarangays();
-  let customers: { rows: any[]; pagination: any } = {
-    rows: [],
-    pagination: { total: 0, currentPage: 1, totalPages: 1 },
-  };
+  let customers: { rows: any[]; pagination: any };
+
   try {
-    const res = await CustomerService.getAll({
-      limit,
+    customers = await CustomerService.getAll({
       page,
+      limit,
       query: {
         term,
         withSpecialPricing: specialPricing,
         withTemporaryBalanceOnly: tempBalance,
-        selectedBarangays: barangayParam,
+        selectedBarangays: barangays,
       },
     });
-    if (res) {
-      customers = res;
-    }
   } catch (err) {
     customers = {
       rows: [],
-      pagination: { total: 0, currentPage: 1, totalPages: 1 },
+      pagination: { total: 0, totalPages: 0, currentPage: 0 },
     };
   }
+
+  const barangayList = await CommonService.getBarangays();
+
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between border-b pb-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Users />
-            Customers
+            <Users className="w-8 h-8 text-primary" />
+            Customer Management
           </h1>
-          <p className="text-muted-foreground">Customers Report</p>
+          <p className="text-muted-foreground">
+            Manage your client base, view balance histories, and monitor
+            temporary loan status.
+          </p>
         </div>
 
-        <CustomerListActions />
+        <RoleGuard allowedRoles={[UserRole.ADMIN, UserRole.CASHIER]}>
+          <CustomerFormModalButton>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Customer
+          </CustomerFormModalButton>
+        </RoleGuard>
       </div>
-      <CustomerFilter barangays={barangays} />
+
+      <CustomerFilter barangays={barangayList} />
 
       <CustomerList customers={customers} />
+
       <Pager initial={customers.pagination} />
     </div>
   );

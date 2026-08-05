@@ -1,11 +1,19 @@
 import { initDatabase } from "@/backend/db/database";
 import { OrderService } from "@/backend/services";
+import { OrderFormModalButton } from "@/components/ActionButtons";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { OrderFormModal } from "@/features/orders/components/OrderFormModal";
 import OrderList from "@/features/orders/components/OrderList";
-import { OrderListActions } from "@/features/orders/components/OrderListActions";
 import OrderListFilter from "@/features/orders/components/OrderListFilter";
-import { OrderStatus, PAGINATION } from "@/lib/definitions";
-import { CheckCircle2, Clock, ShoppingBag } from "lucide-react";
+import { PAGINATION, PaymentStatus } from "@/lib/definitions";
+import { formatCurrency } from "@/lib/utils";
+import { Paginated } from "@/types";
+import { Plus, ShoppingBag } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +23,9 @@ interface OrdersPageProps {
     limit?: string;
     startDate?: string;
     endDate?: string;
+    status?: string;
+    customerId?: number;
+    paymentStatus?: PaymentStatus;
   }>;
 }
 
@@ -26,26 +37,26 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const limit = Number(params?.limit) || PAGINATION.PAGE_SIZE;
   const startDate = params?.startDate || "";
   const endDate = params?.endDate || "";
-  let orders: { rows: any[]; pagination: any };
+  let orders: Paginated<any>;
 
   try {
     orders = await OrderService.getAll({
       limit,
       page,
       query: {
+        status: params?.status,
+        customerId: params?.customerId,
         startDate,
         endDate,
+        paymentStatus: params?.paymentStatus,
       },
     });
   } catch (err) {
-    orders = { rows: [], pagination: { total: 0, currentPage: 0 } };
+    orders = {
+      rows: [],
+      pagination: { total: 0, totalPages: 0, currentPage: 0 },
+    };
   }
-  const deliveredCount = orders.rows.filter(
-    (o) => o.status === OrderStatus.DELIVERED,
-  ).length;
-  const pendingCount = orders.rows.filter(
-    (o) => o.status === OrderStatus.PENDING,
-  ).length;
 
   return (
     <div className="space-y-6">
@@ -60,24 +71,51 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
             items.
           </p>
         </div>
-        <OrderListActions />
+        <OrderFormModalButton>
+          <Plus />
+          Create Order
+        </OrderFormModalButton>
       </div>
-
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-3 text-xs">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Delivered: {deliveredCount}</span>
-          </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400">
-            <Clock className="w-3.5 h-3.5" />
-            <span>Pending: {pendingCount}</span>
-          </div>
-        </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <Card>
+          <CardHeader>
+            <CardDescription>
+              {orders.summary.totalAmount?.label}
+            </CardDescription>
+            <CardTitle>
+              {formatCurrency(Number(orders.summary.totalAmount?.value || 0))}
+            </CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardDescription>
+              {orders.summary.unpaidOrders?.label}
+            </CardDescription>
+            <CardTitle>{orders.summary.unpaidOrders?.value}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardDescription>
+              {orders.summary.pendingOrders?.label}
+            </CardDescription>
+            <CardTitle>{orders.summary.pendingOrders?.value}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardDescription>
+              {orders.summary.cancelledOrders?.label}
+            </CardDescription>
+            <CardTitle>{orders.summary.cancelledOrders?.value}</CardTitle>
+          </CardHeader>
+        </Card>
       </div>
-
-      <OrderListFilter />
-      <OrderList orders={orders} />
+      <div className="space-y-2">
+        <OrderListFilter />
+        <OrderList orders={orders} />
+      </div>
 
       <OrderFormModal />
     </div>

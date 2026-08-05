@@ -24,11 +24,6 @@ export const CustomerSchema = z.object({
 
 export const ProductInventorySchema = z.object({
   name: z.string().min(2, "Product name required"),
-  stockInStation: z
-    .number()
-    .int()
-    .min(0, "Stock cannot be negative")
-    .optional(),
   unitPrice: z.coerce.number().nonnegative(),
   isLendOnly: z.boolean().optional(),
   isDefault: z.boolean().optional(),
@@ -86,7 +81,7 @@ export const AdjustmentSchema = z.object({
     .number()
     .int("Quantity must be a whole number")
     .positive("Quantity must be greater than 0"),
-  notes: z.string().optional(),
+  reason: z.string().optional(),
 });
 
 export type AdjustmentFormData = z.infer<typeof AdjustmentSchema>;

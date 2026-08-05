@@ -1,4 +1,4 @@
-import { PAGINATION, PaymentStatus } from "@/lib/definitions";
+import { OrderStatus, PAGINATION, PaymentStatus } from "@/lib/definitions";
 import moment from "moment-timezone";
 import { Op } from "sequelize";
 import {
@@ -7,10 +7,10 @@ import {
   Order,
   OrderDetail,
   ProductInventory,
-  sequelize,
   User,
 } from "../models";
-import { OrderSchema } from "../schemas/zodSchemas";
+import { CustomerService } from "./customer.service";
+import { ProductService } from "./product.service";
 
 export interface OrderQueryParams {
   limit?: number;
@@ -22,6 +22,8 @@ export interface OrderQueryParams {
     endDate?: string;
     paymentStatus?: PaymentStatus;
   };
+  sort?: string;
+  order?: "ASC" | "DESC";
 }
 
 export class OrderService {
@@ -30,6 +32,8 @@ export class OrderService {
       limit = PAGINATION.PAGE_SIZE,
       page = PAGINATION.PAGE,
       query = {},
+      sort = "id",
+      order: sortOrder = "DESC",
     } = params;
     try {
       const where: any = {};
@@ -38,38 +42,41 @@ export class OrderService {
       if (status) where.status = status;
       if (customerId) where.customerId = customerId;
       if (paymentStatus) where.paymentStatus = paymentStatus;
-      if (startDate && endDate) {
+
+      if (startDate || endDate) {
         const timezone = "Asia/Manila";
+        const createdAtFilter: any = {};
         if (startDate) {
-          where.createdAt = where.createdAt || {};
-          where.createdAt[Op.gte] = moment
+          createdAtFilter[Op.gte] = moment
             .tz(new Date(Number(startDate)), timezone)
             .startOf("day")
             .utc()
             .toDate();
         }
         if (endDate) {
-          where.createdAt = where.createdAt || {};
-          where.createdAt[Op.lte] = moment
+          createdAtFilter[Op.lte] = moment
             .tz(new Date(Number(endDate)), timezone)
             .endOf("day")
             .utc()
             .toDate();
         }
+        where.createdAt = createdAtFilter;
       }
+      const orderByMap = {
+        "customer.name": [{ model: Customer, as: "customer" }, "name"],
+      };
+      const orderBy = orderByMap[sort]
+        ? [...orderByMap[sort], sortOrder]
+        : [sort, sortOrder];
 
       const offset = (page - 1) * limit;
-
+      clg
       const { rows, count } = await Order.findAndCountAll({
         offset,
         limit,
+        order: orderBy,
         where,
         include: [
-          // {
-          //   model: OrderDetail,
-          //   as: "orderDetails",
-          //   include: [ProductInventory],
-          // },
           {
             model: Customer,
             as: "customer",
@@ -88,6 +95,7 @@ export class OrderService {
           totalPages: Math.ceil(count / limit),
           currentPage: Number(offset / limit) + 1,
         },
+        summary: await getSummary(where),
       };
     } catch (error) {
       console.log(error);
@@ -105,119 +113,99 @@ export class OrderService {
   static async get(id: number | string) {
     const order = await Order.findByPk(Number(id), {
       include: [
+        { model: Customer, as: "customer" },
+        { model: User, as: "user" },
         {
           model: OrderDetail,
           as: "orderDetails",
           include: [{ model: ProductInventory, as: "product" }],
         },
-        {
-          model: Customer,
-          as: "customer",
-          include: [
-            {
-              model: CustomerSpecialPricing,
-              include: [{ model: ProductInventory, as: "product" }],
-              as: "specialPricings",
-            },
-          ],
-        },
-        { model: User, as: "user" },
       ],
     });
-    return order?.get({ plain: true });
+    return order ? order.get({ plain: true }) : null;
   }
 
-  static async create(input: any, createdByUserId: number) {
-    const validated = OrderSchema.parse(input);
+  static async create(input: {
+    customerId: number;
+    createdBy?: number;
+    status: OrderStatus;
+    paymentStatus: PaymentStatus;
+    items: {
+      productId: number;
+      quantity: number;
+      unitPrice: number;
+      discount?: number;
+    }[];
+  }) {
+    const { customerId, status, paymentStatus, items } = input;
 
-    const specialPricings = await CustomerSpecialPricing.findAll({
-      where: { customerId: validated.customerId },
-    });
+    const customer = await CustomerService.get(customerId);
+    if (!customer) {
+      throw new Error(`Customer with ID ${customerId} not found`);
+    }
 
-    const preparedItems = validated.items.map((item) => {
-      const sp = specialPricings.find(
-        (s) => Number(s.productId) === Number(item.productId),
-      );
-      const discount = sp ? sp.discountAmount : item.discount || 0;
-      const netUnitPrice = Math.max(0, item.unitPrice - discount);
-      return {
-        ...item,
-        discount,
-        netUnitPrice,
-        subtotal: netUnitPrice * item.quantity,
-      };
-    });
+    let calculatedTotal = 0;
+    const validatedItems = [];
 
-    const calculatedTotal = preparedItems.reduce(
-      (acc, item) => acc + item.subtotal,
-      0,
-    );
-
-    const transaction = await sequelize.transaction();
-    try {
-      const order = await Order.create(
-        {
-          customerId: validated.customerId,
-          status: validated.status,
-          paymentStatus: validated.paymentStatus,
-          totalAmount: calculatedTotal,
-          createdBy: createdByUserId || 1,
-        },
-        { transaction },
-      );
-
-      for (const item of preparedItems) {
-        await OrderDetail.create(
-          {
-            orderId: order.orderId,
-            productId: item.productId,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            discount: item.discount,
-          },
-          { transaction },
-        );
+    for (const item of items) {
+      const product = await ProductService.get(item.productId);
+      if (!product) {
+        throw new Error(`Product with ID ${item.productId} not found`);
       }
 
-      await transaction.commit();
-      const createdOrder = await Order.findByPk(order.orderId, {
-        include: [
-          {
-            model: OrderDetail,
-            as: "orderDetails",
-            include: [{ model: ProductInventory, as: "product" }],
-          },
-          { model: Customer, as: "customer" },
-        ],
+      const specialPricing = await CustomerSpecialPricing.findOne({
+        where: { customerId, productId: item.productId },
       });
-      return createdOrder?.get({ plain: true });
-    } catch (error) {
-      await transaction.rollback();
-      throw error;
+
+      const effectiveUnitPrice = Number(item.unitPrice || product.unitPrice);
+      const itemDiscount = specialPricing
+        ? Number(specialPricing.discountAmount)
+        : item.discount || 0;
+      const netUnitPrice = Math.max(0, effectiveUnitPrice - itemDiscount);
+
+      calculatedTotal += netUnitPrice * item.quantity;
+      validatedItems.push({
+        ...item,
+        unitPrice: effectiveUnitPrice,
+        discount: itemDiscount,
+      });
     }
+
+    const order = await Order.create({
+      customerId,
+      totalAmount: calculatedTotal,
+      status,
+      paymentStatus,
+    });
+
+    const plainOrder = order.get({ plain: true });
+
+    for (const item of validatedItems) {
+      await OrderDetail.create({
+        orderId: plainOrder.orderId,
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        discount: item.discount,
+      });
+
+      const product = await ProductService.get(item.productId);
+      if (product) {
+        const newStock = Math.max(0, product.stockInStation - item.quantity);
+        await ProductService.update(item.productId, {
+          stockInStation: newStock,
+        });
+      }
+    }
+
+    return await this.get(plainOrder.orderId);
   }
 
-  // static async settleOrder(
-  //   orderId: number,
-  //   payment_method: PaymentMethod,
-  //   updated_by: number,
-  // ) {
-  //   const order = await Order.findByPk(orderId);
-  //   if (!order) throw new Error("Order not found");
-  //   if (order.payment_status === PaymentStatus.Paid)
-  //     throw new Error("Order is already paid");
-
-  //   order.payment_status = PaymentStatus.Paid;
-  //   order.payment_method = payment_method;
-  //   order.updated_by = updated_by;
-
-  //   await order.save();
-  //   return order;
-  // }
-
-  static async update(id: number | string, status: string) {
+  static async updateStatus(id: number | string, status: OrderStatus) {
     const order = await Order.findByPk(Number(id));
-    if (!order) throw new Error("Order not found");
+    if (!order) {
+      throw new Error(`Order with ID ${id} not found`);
+    }
     await order.update({ status });
     return order?.get({ plain: true });
   }
@@ -227,3 +215,60 @@ export class OrderService {
     return count > 0;
   }
 }
+
+const getSummary = async (where: any) => {
+  const totalAmount = await Order.sum("totalAmount", {
+    where: {
+      ...where,
+      ...{
+        status: { [Op.in]: [OrderStatus.DELIVERED] },
+      },
+    },
+  });
+
+  const pendingOrders = await Order.count({
+    where: {
+      ...where,
+      ...{
+        status: { [Op.in]: [OrderStatus.PENDING] },
+      },
+    },
+  });
+
+  const cancelledOrders = await Order.count({
+    where: {
+      ...where,
+      ...{
+        status: { [Op.in]: [OrderStatus.CANCELLED] },
+      },
+    },
+  });
+
+  const unpaidOrders = await Order.count({
+    where: {
+      ...where,
+      ...{
+        paymentStatus: { [Op.in]: [PaymentStatus.UNPAID] },
+      },
+    },
+  });
+
+  return {
+    totalAmount: {
+      label: "Total Amount",
+      value: totalAmount,
+    },
+    pendingOrders: {
+      label: "Pending Orders",
+      value: pendingOrders,
+    },
+    cancelledOrders: {
+      label: "Cancelled Orders",
+      value: cancelledOrders,
+    },
+    unpaidOrders: {
+      label: "Unpaid Orders",
+      value: unpaidOrders,
+    },
+  };
+};

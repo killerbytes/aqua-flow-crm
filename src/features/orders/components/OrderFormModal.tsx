@@ -45,12 +45,15 @@ import z from "zod";
 type OrderFormData = z.infer<typeof OrderSchema>;
 
 export function OrderFormModal() {
-  const { isOrderModalOpen, setOrderModalOpen } = useUIStore();
+  const { isOrderModalOpen, setOrderFormModalOpen } = useUIStore();
 
   if (!isOrderModalOpen) return null;
 
   return (
-    <Modal isOpen={isOrderModalOpen} onClose={() => setOrderModalOpen(false)}>
+    <Modal
+      isOpen={isOrderModalOpen}
+      onClose={() => setOrderFormModalOpen(false)}
+    >
       <OrderFormModalContent />
     </Modal>
   );
@@ -60,7 +63,7 @@ export const OrderFormModalContent = () => {
   const router = useRouter();
   const {
     isOrderModalOpen,
-    setOrderModalOpen,
+    setOrderFormModalOpen,
     setCustomerLookupModalOpen,
     products,
     setProducts,
@@ -129,7 +132,7 @@ export const OrderFormModalContent = () => {
       toast.add({
         title: "Order Created",
       });
-      setOrderModalOpen(false);
+      setOrderFormModalOpen(false);
       router.refresh();
     });
   };
@@ -325,7 +328,7 @@ export const OrderFormModalContent = () => {
           <Button
             type="button"
             variant="outline"
-            onClick={() => setOrderModalOpen(false)}
+            onClick={() => setOrderFormModalOpen(false)}
           >
             Cancel
           </Button>

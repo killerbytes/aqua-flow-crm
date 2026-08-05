@@ -116,22 +116,27 @@ export class CustomerService {
     return customer?.get({ plain: true });
   }
 
+  static async getWithTemporaryBalance() {
+    const result = await CustomerService.getAll({
+      query: { withTemporaryBalanceOnly: true },
+    });
+    return result.rows;
+  }
+
   static async getCustomerBalances(customerId: number | string) {
     const balances = await CustomerEquipmentBalance.findAll({
       where: { customerId: Number(customerId) },
       include: [{ model: ProductInventory, as: "product" }],
     });
-    return balances.map((b: any) => {
-      const raw = b.get ? b.get({ plain: true }) : b;
-      return {
-        balanceId: raw.balanceId,
-        customerId: raw.customerId,
-        productId: raw.productId,
-        quantityOwed: raw.quantityOwed ?? 0,
-        quantityTemporaryOwed: raw.quantityTemporaryOwed ?? 0,
-        product: raw.product,
-      };
+    return balances.map((b) => b.get({ plain: true }));
+  }
+
+  static async getCustomerPricing(customerId: number | string) {
+    const pricing = await CustomerSpecialPricing.findAll({
+      where: { customerId: Number(customerId) },
+      include: [{ model: ProductInventory, as: "product" }],
     });
+    return pricing.map((p) => p.get({ plain: true }));
   }
 
   static async create(input: any) {
@@ -145,8 +150,7 @@ export class CustomerService {
   }
 
   static async update(id: number | string, input: any) {
-    const validatedData = CustomerSchema.parse(input);
-
+    const validatedData = CustomerSchema.partial().parse(input);
     const customer = await Customer.findByPk(Number(id));
     if (!customer) throw new Error("Customer not found");
 
@@ -159,57 +163,24 @@ export class CustomerService {
   }
 
   static async delete(id: number | string) {
-    const customer = await Customer.findByPk(id);
+    const customer = await Customer.findByPk(Number(id));
     if (!customer) throw new Error("Customer not found");
-
-    const count = await Customer.destroy({
-      where: { customerId: Number(id) },
-    });
-    return count > 0;
+    await customer.destroy();
+    return true;
   }
 
-  static async lookup(term: string, isActiveOnly: boolean) {
-    try {
-      const query = term.toLowerCase();
-      const where: any = {};
-      if (isActiveOnly) {
-        where.status = CustomerStatus.ACTIVE;
-      }
-      if (query) {
-        const searchOp =
-          sequelize.getDialect() === "postgres" ? Op.iLike : Op.like;
-        where.searchText = { [searchOp]: `%${query}%` };
-      }
-
-      const customers = await Customer.findAll({
-        where,
-        limit: 50,
-        order: [["name", "ASC"]],
-        raw: true,
-      });
-
-      return customers; // .map((c) => c.get({ plain: true }));
-    } catch (error) {
-      throw error;
+  static async lookup(term: string, isActiveOnly: boolean = false) {
+    const searchOp = sequelize.getDialect() === "postgres" ? Op.iLike : Op.like;
+    const where: any = {
+      searchText: { [searchOp]: `%${term}%` },
+    };
+    if (isActiveOnly) {
+      where.status = CustomerStatus.ACTIVE;
     }
-  }
-
-  static async getWithTemporaryBalance() {
     const customers = await Customer.findAll({
-      include: [
-        {
-          model: CustomerEquipmentBalance,
-          as: "equipmentBalances",
-          required: true,
-          where: {
-            quantityTemporaryOwed: { [Op.gt]: 0 },
-          },
-          include: [{ model: ProductInventory, as: "product" }],
-        },
-      ],
-      order: [["name", "ASC"]],
+      where,
+      limit: 10,
     });
-
     return customers.map((c) => c.get({ plain: true }));
   }
 }

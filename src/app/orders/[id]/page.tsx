@@ -14,9 +14,7 @@ import {
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export default async function OrderPage({
+export default async function OrderDetailsPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -29,7 +27,6 @@ export default async function OrderPage({
     order = await OrderService.get(id);
   } catch (err) {
     console.log(err);
-
     order = null;
   }
   if (!order) redirect("/orders");
@@ -40,13 +37,14 @@ export default async function OrderPage({
         href="/orders"
         className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
-        <ArrowLeft size={16} /> Back to Orders
+        <ArrowLeft className="w-4 h-4" />
+        Back to Orders List
       </Link>
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             <ShoppingBag />
-            Order #{order.orderId}
+            Order Details
           </h1>
           <p className="text-muted-foreground">
             Viewing order details for order ID: #{order.orderId}
@@ -59,19 +57,19 @@ export default async function OrderPage({
           <ColorBadge colorMap={PAYMENT_STATUS_BADGE_COLOR}>
             {order.paymentStatus}
           </ColorBadge>
-          <div className="text-3xl text-primary font-bold">
+          <div className="text-3xl text-primary font-bold ml-4">
             {formatCurrency(order.totalAmount)}
           </div>
         </div>
       </div>
       {order && (
         <div className="grid grid-cols-2 gap-4 pt-4 border-t space-y-2 text-sm">
-          <div>
+          <div className="space-y-2">
             <p>
               <strong>Name:</strong>{" "}
               <Link
+                className="text-primary hover:underline hover:cursor-pointer"
                 href={`/customers/${order.customer?.customerId}`}
-                className="text-primary hover:underline"
               >
                 {order.customer?.name}
               </Link>
@@ -86,7 +84,7 @@ export default async function OrderPage({
               <strong>Phone:</strong> {order.customer?.phone}
             </p>
           </div>
-          <div>
+          <div className="space-y-2">
             <p>
               <strong>Order Date:</strong> {formatDateTime(order.createdAt)}
             </p>
@@ -98,7 +96,9 @@ export default async function OrderPage({
       )}
 
       <OrderDetailList orderDetails={order.orderDetails} />
-      <OrderActions order={order} />
+      <div className="flex justify-end">
+        <OrderActions order={order} />
+      </div>
     </>
   );
 }

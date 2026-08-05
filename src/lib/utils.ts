@@ -29,10 +29,19 @@ export function formatDateTime(
 
 export function formatCurrency(value: number | string | undefined) {
   if (!value) return "N/A";
-  return new Intl.NumberFormat("en-US", {
+  const formatter = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: env.NEXT_PUBLIC_CURRENCY || "PHP",
-  }).format(Number(value));
+  });
+  const parts = formatter.formatToParts(Number(value));
+  return parts
+    .map((part) => {
+      if (part.type === "currency") {
+        return "P"; // Force single capital 'P'
+      }
+      return part.value;
+    })
+    .join("");
 }
 
 export function getErrorMessage(err: unknown): string {

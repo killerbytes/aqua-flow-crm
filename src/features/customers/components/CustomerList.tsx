@@ -1,9 +1,9 @@
 "use client";
 import { Customer } from "@/backend/models";
+import { CustomerFormModalButton } from "@/components/ActionButtons";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import DataTable from "@/components/DataTable";
 import { MonoText } from "@/components/ui/presentation";
-import { Button } from "@/components/ui/button";
 import { CustomerStatus, UserRole } from "@/lib/definitions";
 import { useUIStore } from "@/store/uiStore";
 import { Paginated } from "@/types";
@@ -81,15 +81,9 @@ export default function CustomerList({ customers }: CustomerListProps) {
               onClick={(e) => e.stopPropagation()}
             >
               <RoleGuard allowedRoles={[UserRole.ADMIN, UserRole.CASHIER]}>
-                <Button
-                  size="icon"
-                  variant="outline"
-                  onClick={() => {
-                    setCustomerFormModalOpen(true, customer);
-                  }}
-                >
-                  <Edit />
-                </Button>
+                <CustomerFormModalButton customer={customer} variant="outline">
+                  <Edit size={16} />
+                </CustomerFormModalButton>
               </RoleGuard>
             </div>
           );
