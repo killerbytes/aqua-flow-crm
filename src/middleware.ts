@@ -1,4 +1,4 @@
-import { verifyOrRefreshToken } from "@/lib/auth";
+import { verifyOrRefreshToken } from "@/lib/auth.edge";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
