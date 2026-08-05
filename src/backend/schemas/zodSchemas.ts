@@ -72,9 +72,11 @@ export const LoginSchema = UserSchema.omit({
   isActive: true,
 });
 
-export const UserFormSchema = UserSchema.omit({
-  username: true,
-  password: true,
+export const UserFormSchema = UserSchema.extend({
+  confirmPassword: z.string().min(4, "Password must be at least 4 characters"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
 });
 
 export const AdjustmentSchema = z.object({

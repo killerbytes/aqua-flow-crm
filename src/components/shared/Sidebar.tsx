@@ -7,7 +7,6 @@ import { useUIStore } from "@/store/uiStore";
 import { cx } from "class-variance-authority";
 import {
   Droplet,
-  FileText,
   LayoutDashboard,
   LogOut,
   Search,
@@ -73,26 +72,26 @@ export default function Sidebar() {
     { name: "Products", href: "/products", icon: Tag },
   ];
 
-  if (user?.role === UserRole.CASHIER || user?.role === UserRole.ADMIN) {
-    navItems.push({
-      name: "Reports",
-      href: "/reports",
-      icon: FileText,
-      subMenu: [
-        {
-          name: "Customers",
-          href: "/reports/customers",
-          icon: FileText,
-        },
-        {
-          name: "Monthly Sales",
-          href: "/reports/monthly-sales",
-          icon: FileText,
-        },
-        { name: "Yearly Sales", href: "/reports/yearly-sales", icon: FileText },
-      ],
-    });
-  }
+  // if (user?.role === UserRole.CASHIER || user?.role === UserRole.ADMIN) {
+  //   navItems.push({
+  //     name: "Reports",
+  //     href: "/reports",
+  //     icon: FileText,
+  //     subMenu: [
+  //       {
+  //         name: "Customers",
+  //         href: "/reports/customers",
+  //         icon: FileText,
+  //       },
+  //       {
+  //         name: "Monthly Sales",
+  //         href: "/reports/monthly-sales",
+  //         icon: FileText,
+  //       },
+  //       { name: "Yearly Sales", href: "/reports/yearly-sales", icon: FileText },
+  //     ],
+  //   });
+  // }
   if (user?.role === UserRole.ADMIN) {
     navItems.push({ name: "Users", href: "/users", icon: UserCog });
   }

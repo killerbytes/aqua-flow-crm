@@ -10,7 +10,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -59,8 +64,9 @@ export const OrderFormModalContent = () => {
         name: editingUser?.name || "",
         username: editingUser?.username || "",
         password: "",
+        confirmPassword: "",
         role: editingUser?.role || UserRole.CASHIER,
-        isActive: editingUser?.isActive,
+        isActive: editingUser?.isActive || true,
       }),
       [editingUser],
     ),
@@ -122,10 +128,54 @@ export const OrderFormModalContent = () => {
                 <FieldLabel>Full Name</FieldLabel>
 
                 <Input placeholder="e.g. Alex Morgan" {...field} />
+                <FieldError>{errors.name?.message}</FieldError>
               </Field>
             )}
           ></Controller>
         </FieldGroup>
+        <FieldGroup>
+          <Controller
+            name="username"
+            control={control}
+            render={({ field }) => (
+              <Field>
+                <FieldLabel>Username</FieldLabel>
+
+                <Input placeholder="e.g. alex_morgan" {...field} />
+                <FieldError>{errors.username?.message}</FieldError>
+              </Field>
+            )}
+          ></Controller>
+        </FieldGroup>
+        <FieldGroup>
+          <Controller
+            name="password"
+            control={control}
+            render={({ field }) => (
+              <Field>
+                <FieldLabel>Password</FieldLabel>
+
+                <Input placeholder="e.g. *********" {...field} />
+                <FieldError>{errors.password?.message}</FieldError>
+              </Field>
+            )}
+          ></Controller>
+        </FieldGroup>
+        <FieldGroup>
+          <Controller
+            name="confirmPassword"
+            control={control}
+            render={({ field }) => (
+              <Field>
+                <FieldLabel>Confirm Password</FieldLabel>
+
+                <Input placeholder="e.g. *********" {...field} />
+                <FieldError>{errors.confirmPassword?.message}</FieldError>
+              </Field>
+            )}
+          ></Controller>
+        </FieldGroup>
+
         <FieldGroup>
           <Controller
             name="role"
@@ -150,10 +200,12 @@ export const OrderFormModalContent = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                <FieldError>{errors.role?.message}</FieldError>
               </Field>
             )}
           ></Controller>
         </FieldGroup>
+
         <FieldGroup>
           <Controller
             name="isActive"
@@ -165,6 +217,7 @@ export const OrderFormModalContent = () => {
                   checked={field.value}
                   onCheckedChange={field.onChange}
                 />
+                <FieldError>{errors.isActive?.message}</FieldError>
               </Field>
             )}
           ></Controller>
