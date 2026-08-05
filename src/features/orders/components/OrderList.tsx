@@ -1,6 +1,6 @@
 "use client";
 import { Order } from "@/backend/models";
-import ColorBadge from "@/components/ColorBadge";
+import { ColorBadge } from "@/components/ui/presentation";
 import DataTable from "@/components/DataTable";
 import Pager from "@/components/Pager";
 import {

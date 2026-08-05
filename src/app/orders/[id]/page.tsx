@@ -4,7 +4,7 @@ import Link from "next/link";
 import { initDatabase } from "@/backend/db/database";
 import { Order } from "@/backend/models";
 import { OrderService } from "@/backend/services";
-import ColorBadge from "@/components/ColorBadge";
+import { ColorBadge } from "@/components/ui/presentation";
 import OrderActions from "@/features/orders/components/OrderActions";
 import OrderDetailList from "@/features/orders/components/OrderDetailList";
 import {

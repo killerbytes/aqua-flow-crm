@@ -13,7 +13,7 @@ import {
   ProductService,
 } from "@/backend/services";
 import { CommonService } from "@/backend/services/commonService";
-import ColorBadge from "@/components/ColorBadge";
+import { ColorBadge } from "@/components/ui/presentation";
 import {
   Card,
   CardContent,

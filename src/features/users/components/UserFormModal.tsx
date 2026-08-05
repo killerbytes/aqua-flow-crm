@@ -43,11 +43,9 @@ export function UserFormModal() {
 
 export const OrderFormModalContent = () => {
   const router = useRouter();
-  const { isUserModalOpen, editingUser, setUserModalOpen } =
-    useUIStore();
+  const { isUserModalOpen, editingUser, setUserModalOpen } = useUIStore();
   const isEditing = Boolean(editingUser?.userId);
   const [isPending, startTransition] = useTransition();
-  console.log(editingUser);
 
   const {
     handleSubmit,
@@ -67,13 +65,10 @@ export const OrderFormModalContent = () => {
       [editingUser],
     ),
   });
-  console.log(errors);
 
   if (!isUserModalOpen) return null;
 
   const onSubmit = async (data: UserFormData) => {
-    console.log(123, data);
-
     try {
       startTransition(async () => {
         if (isEditing && editingUser?.userId) {

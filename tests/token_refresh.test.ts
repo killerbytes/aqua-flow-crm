@@ -1,22 +1,36 @@
-import { describe, expect, it } from "vitest";
-import { signToken, verifyToken, verifyOrRefreshToken } from "../src/lib/auth";
+import { beforeAll, describe, expect, it } from "vitest";
+import { initDatabase } from "../src/backend/db/database";
+import { seedDatabase } from "../src/backend/db/seed";
+import { User } from "../src/backend/models";
+import { signToken, verifyOrRefreshToken, verifyToken } from "../src/lib/auth";
 import { UserRole } from "../src/lib/definitions";
 
 describe("JWT Token Automatic Refresh", () => {
-  const userPayload: any = {
-    userId: 1,
-    name: "Admin User",
-    username: "admin@aquaflow.com",
-    role: UserRole.ADMIN,
-  };
+  let userPayload: any;
+
+  beforeAll(async () => {
+    await initDatabase();
+    await seedDatabase({ clean: true, testCount: 5 });
+    const adminUser = await User.findOne({ where: { role: UserRole.ADMIN } });
+    if (adminUser) {
+      userPayload = adminUser.get({ plain: true });
+    } else {
+      userPayload = {
+        userId: 1,
+        name: "Admin User",
+        username: "admin@aquaflow.com",
+        role: UserRole.ADMIN,
+      };
+    }
+  });
 
   it("should verify active non-expired tokens normally", async () => {
     const token = await signToken(userPayload, "15m");
     const verified = await verifyToken(token);
 
     expect(verified).toBeDefined();
-    expect(verified?.userId).toBe(1);
-    expect(verified?.username).toBe("admin@aquaflow.com");
+    expect(verified?.userId).toBe(userPayload.userId);
+    expect(verified?.username).toBe(userPayload.username);
   });
 
   it("should automatically refresh expired tokens within the 7-day refresh window", async () => {
@@ -26,13 +40,13 @@ describe("JWT Token Automatic Refresh", () => {
     // Transparent verifyToken returns user seamlessly on refreshable expired token
     const user = await verifyToken(expiredToken);
     expect(user).toBeDefined();
-    expect(user?.userId).toBe(1);
+    expect(user?.userId).toBe(userPayload.userId);
 
     // Enhanced verifyOrRefreshToken returning user and new token
     const result = await verifyOrRefreshToken(expiredToken);
     expect(result).toBeDefined();
     expect(result?.user).toBeDefined();
-    expect(result?.user.userId).toBe(1);
+    expect(result?.user.userId).toBe(userPayload.userId);
     expect(result?.newToken).toBeDefined();
     expect(typeof result?.newToken).toBe("string");
 
@@ -40,7 +54,7 @@ describe("JWT Token Automatic Refresh", () => {
     if (result?.newToken) {
       const reVerified = await verifyToken(result.newToken);
       expect(reVerified).toBeDefined();
-      expect(reVerified?.userId).toBe(1);
+      expect(reVerified?.userId).toBe(userPayload.userId);
     }
   });
 

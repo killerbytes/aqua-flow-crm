@@ -67,8 +67,6 @@ function LogEquipmentModalContent({
   } = form;
 
   const handleSave = (data: EquipmentLogFormData) => {
-    console.log(data);
-
     startTransition(async () => {
       try {
         await logEquipmentAction(data);

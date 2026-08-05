@@ -2,7 +2,7 @@
 import { Customer } from "@/backend/models";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import DataTable from "@/components/DataTable";
-import MonoText from "@/components/MonoText";
+import { MonoText } from "@/components/ui/presentation";
 import { Button } from "@/components/ui/button";
 import { CustomerStatus, UserRole } from "@/lib/definitions";
 import { useUIStore } from "@/store/uiStore";

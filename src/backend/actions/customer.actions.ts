@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { getAuthContext, requireAuth } from "../auth/context";
 import { initDatabase } from "../db/database";
 import { checkPermission } from "../rbac/permissions";
+import { CustomerFormData, EquipmentLogFormData } from "../schemas/zodSchemas";
 import { CustomerService } from "../services/customer.service";
+import { EquipmentService } from "../services/equipment.service";
 
 export async function getCustomersAction() {
   await initDatabase();
@@ -18,7 +20,7 @@ export async function getCustomersAction() {
   return result;
 }
 
-export async function createCustomerAction(input: any) {
+export async function createCustomerAction(input: CustomerFormData) {
   await initDatabase();
   const context = await getAuthContext();
   const user = requireAuth(context);
@@ -31,7 +33,10 @@ export async function createCustomerAction(input: any) {
   return result;
 }
 
-export async function updateCustomerAction(id: number | string, input: any) {
+export async function updateCustomerAction(
+  id: number | string,
+  input: CustomerFormData,
+) {
   await initDatabase();
   const context = await getAuthContext();
 
@@ -69,5 +74,19 @@ export async function lookupCustomerAction(
     throw new Error("Forbidden: insufficient permissions");
   }
   const result = await CustomerService.lookup(term, isActiveOnly);
+  return result;
+}
+
+export async function logEquipmentAction(input: EquipmentLogFormData) {
+  await initDatabase();
+  const context = await getAuthContext();
+  const user = requireAuth(context);
+  if (!checkPermission(user.role, "LOG_EQUIPMENT")) {
+    throw new Error("Forbidden: insufficient permissions");
+  }
+
+  const result = await EquipmentService.logEquipment(input, user.userId);
+  revalidatePath("/inventory");
+  revalidatePath("/customers");
   return result;
 }

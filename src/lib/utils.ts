@@ -1,3 +1,4 @@
+import { env } from "@/backend/db/env";
 import { clsx, type ClassValue } from "clsx";
 import { format, isValid } from "date-fns";
 import { twMerge } from "tailwind-merge";
@@ -30,7 +31,7 @@ export function formatCurrency(value: number | string | undefined) {
   if (!value) return "N/A";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: process.env.NEXT_PUBLIC_CURRENCY || "PHP",
+    currency: env.NEXT_PUBLIC_CURRENCY || "PHP",
   }).format(Number(value));
 }
 

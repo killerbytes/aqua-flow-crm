@@ -72,9 +72,9 @@ function CustomerFormModalContent({
   } = form;
 
   const onSubmit = async (data: CustomerFormData) => {
-    try {
-      const targetId = editingCustomer?.customerId;
-      startTransition(async () => {
+    const targetId = editingCustomer?.customerId;
+    startTransition(async () => {
+      try {
         if (isEditing && targetId) {
           await updateCustomerAction(targetId, data);
           toast.add({
@@ -91,15 +91,15 @@ function CustomerFormModalContent({
         reset();
         setCustomerFormModalOpen(false, null);
         router.refresh();
-      });
-    } catch (err: any) {
-      toast.add({
-        title: "Error",
-        description:
-          err.message ||
-          `Failed to ${isEditing ? "update" : "create"} customer`,
-      });
-    }
+      } catch (err: any) {
+        toast.add({
+          title: "Error",
+          description:
+            err.message ||
+            `Failed to ${isEditing ? "update" : "create"} customer`,
+        });
+      }
+    });
   };
 
   const onDelete = async () => {

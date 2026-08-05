@@ -16,5 +16,16 @@ describe("Sequelize CLI Configuration Compatibility", () => {
     expect(config).toHaveProperty("development");
     expect(config).toHaveProperty("local");
     expect(config).toHaveProperty("test");
+    expect(config).toHaveProperty("production");
+    expect(config.development.dialect).toBe("postgres");
+    expect(config.production.dialect).toBe("postgres");
+  });
+
+  it("should normalize postgresql:// protocol in DATABASE_URL to postgres://", () => {
+    process.env.DATABASE_URL = "postgresql://user:pass@host:5432/dbname";
+    const configPath = path.resolve(process.cwd(), "src", "backend", "db", "config.js");
+    delete require.cache[require.resolve(configPath)];
+    require(configPath);
+    expect(process.env.DATABASE_URL).toBe("postgres://user:pass@host:5432/dbname");
   });
 });

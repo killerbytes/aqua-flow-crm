@@ -30,7 +30,8 @@ export class Customer extends Model {
 }
 
 export function generateCustomerSearchText(customer: any): string {
-  const barangayId = customer.barangayId || customer.getDataValue?.("barangayId");
+  const barangayId =
+    customer.barangayId || customer.getDataValue?.("barangayId");
   const barangayName = barangayId
     ? CommonService.getBarangayNameByCode(barangayId) || ""
     : "";
@@ -52,7 +53,7 @@ Customer.init(
     },
     name: { type: DataTypes.STRING, allowNull: false },
     address: { type: DataTypes.STRING, allowNull: false },
-    phone: { type: DataTypes.STRING, allowNull: false },
+    phone: { type: DataTypes.STRING, allowNull: false, unique: true },
     notes: { type: DataTypes.TEXT, allowNull: true },
     status: {
       type: DataTypes.ENUM(...Object.values(CustomerStatus)),

@@ -87,7 +87,6 @@ export const ProductFormModalContent = ({}) => {
         isDefault: data.isDefault,
         isLendOnly: data.isLendOnly,
       };
-      console.log(payload);
 
       const targetId = editingProduct?.productId;
       if (isEditing && targetId) {

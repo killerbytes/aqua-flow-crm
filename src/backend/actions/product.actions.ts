@@ -4,8 +4,12 @@ import { revalidatePath } from "next/cache";
 import { getAuthContext, requireAuth } from "../auth/context";
 import { initDatabase } from "../db/database";
 import { checkPermission } from "../rbac/permissions";
-import { ProductInventorySchema } from "../schemas/zodSchemas";
-import { ProductService } from "../services/product.service";
+import {
+  AdjustmentFormData,
+  ProductFormData,
+  ProductInventorySchema,
+} from "../schemas/zodSchemas";
+import { InventoryService, ProductService } from "../services/product.service";
 
 export async function getProductsAction() {
   await initDatabase();
@@ -19,7 +23,7 @@ export async function getProductsAction() {
   return result;
 }
 
-export async function createProductAction(input: any) {
+export async function createProductAction(input: ProductFormData) {
   await initDatabase();
   const validatedData = ProductInventorySchema.parse(input);
   const context = await getAuthContext();
@@ -33,7 +37,10 @@ export async function createProductAction(input: any) {
   return result;
 }
 
-export async function updateProductAction(id: number | string, input: any) {
+export async function updateProductAction(
+  id: number | string,
+  input: Partial<ProductFormData>,
+) {
   await initDatabase();
   const context = await getAuthContext();
   const user = requireAuth(context);
@@ -55,6 +62,31 @@ export async function deleteProductAction(id: number | string) {
   }
 
   const result = await ProductService.delete(id);
+  revalidatePath("/products");
+  return result;
+}
+
+export async function getInventoryAction() {
+  await initDatabase();
+  const context = await getAuthContext();
+  const user = requireAuth(context);
+  if (!checkPermission(user.role, "ADJUST_INVENTORY")) {
+    throw new Error("Forbidden: insufficient permissions");
+  }
+
+  const result = await InventoryService.getAll();
+  return result;
+}
+
+export async function createAdjustmentAction(input: AdjustmentFormData) {
+  await initDatabase();
+  const context = await getAuthContext();
+  const user = requireAuth(context);
+  if (!checkPermission(user.role, "ADJUST_INVENTORY")) {
+    throw new Error("Forbidden: insufficient permissions");
+  }
+
+  const result = await InventoryService.createAdjustment(input);
   revalidatePath("/products");
   return result;
 }

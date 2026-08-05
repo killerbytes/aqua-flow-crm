@@ -8,6 +8,7 @@ import {
   ProductInventory,
 } from "../models";
 import { CustomerSchema } from "../schemas/zodSchemas";
+import { handleServiceError } from "./errorHandler";
 
 export interface CustomerQueryParams {
   limit?: number;
@@ -135,8 +136,12 @@ export class CustomerService {
 
   static async create(input: any) {
     const validatedData = CustomerSchema.parse(input);
-    const customer = await Customer.create(validatedData);
-    return customer.get({ plain: true });
+    try {
+      const customer = await Customer.create(validatedData);
+      return customer.get({ plain: true });
+    } catch (error) {
+      handleServiceError(error);
+    }
   }
 
   static async update(id: number | string, input: any) {
@@ -145,8 +150,12 @@ export class CustomerService {
     const customer = await Customer.findByPk(Number(id));
     if (!customer) throw new Error("Customer not found");
 
-    await customer.update(validatedData);
-    return customer.get({ plain: true });
+    try {
+      await customer.update(validatedData);
+      return customer.get({ plain: true });
+    } catch (error) {
+      handleServiceError(error);
+    }
   }
 
   static async delete(id: number | string) {

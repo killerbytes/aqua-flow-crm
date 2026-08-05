@@ -8,13 +8,67 @@
  *  - restore-and-dev [f]
  */
 
-const env = process.env.NODE_ENV || "local";
-require("dotenv").config({ path: `.env.${env}` });
-
 const { exec } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const zlib = require("zlib");
+const dotenv = require("dotenv");
+
+const nodeEnv = process.env.NODE_ENV || "development";
+
+// Load base .env
+dotenv.config();
+
+// Load .env.local (overrides base .env)
+dotenv.config({ path: path.resolve(process.cwd(), ".env.local"), override: true });
+
+// Load environment-specific file (e.g. .env.production) with top override priority
+if (nodeEnv) {
+  dotenv.config({
+    path: path.resolve(process.cwd(), `.env.${nodeEnv}`),
+    override: true,
+  });
+}
+
+// Normalize DATABASE_URL if present
+if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("postgresql://")) {
+  process.env.DATABASE_URL = process.env.DATABASE_URL.replace(/^postgresql:\/\//, "postgres://");
+}
+
+// Parse DATABASE_URL if provided
+let parsedHost = process.env.DB_HOST || "localhost";
+let parsedUser = process.env.DB_USER || "postgres";
+let parsedPassword = process.env.DB_PASSWORD || "secret";
+let parsedName = process.env.DB_NAME || "crystal_clear_crm";
+let parsedPort = process.env.DB_PORT || 5432;
+
+if (process.env.DATABASE_URL) {
+  try {
+    const url = new URL(process.env.DATABASE_URL);
+    if (url.hostname) parsedHost = url.hostname;
+    if (url.port) parsedPort = url.port;
+    if (url.username) parsedUser = decodeURIComponent(url.username);
+    if (url.password) parsedPassword = decodeURIComponent(url.password);
+    if (url.pathname) parsedName = url.pathname.replace(/^\//, "");
+  } catch (e) {
+    // Ignore invalid URL
+  }
+}
+
+const DB_HOST = parsedHost;
+const DB_USER = parsedUser;
+const DB_PASSWORD = parsedPassword;
+const DB_NAME = parsedName;
+const DB_PORT = parsedPort;
+
+const {
+  B2_BUCKET,
+  AWS_ENDPOINT,
+  AWS_DEFAULT_REGION,
+  AWS_ACCESS_KEY_ID,
+  AWS_SECRET_ACCESS_KEY,
+} = process.env;
+
 const {
   S3Client,
   PutObjectCommand,
@@ -22,18 +76,6 @@ const {
   DeleteObjectCommand,
 } = require("@aws-sdk/client-s3");
 
-const {
-  DB_HOST,
-  DB_USER,
-  DB_PASSWORD,
-  DB_NAME,
-  DB_PORT = 5432,
-  B2_BUCKET,
-  AWS_ENDPOINT,
-  AWS_DEFAULT_REGION,
-  AWS_ACCESS_KEY_ID,
-  AWS_SECRET_ACCESS_KEY,
-} = process.env;
 
 const BACKUP_DIR = process.env.BACKUP_DIR || "./backups";
 if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
@@ -92,7 +134,9 @@ async function backup({ dataOnly = false } = {}) {
     });
   } else {
     // custom dump → write directly
+
     await runCommand(`${dumpCmd} -f "${outFile}"`);
+
     console.log(`Backup saved: ${outFile}`);
     await uploadToBackblaze(outFile);
   }
@@ -124,6 +168,8 @@ async function restore(filePath) {
     restoreCmd = `psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} \
       -d ${DB_NAME} -f "${sqlFilePath}"`;
   }
+  console.log(restoreCmd);
+
   try {
     await runCommand(restoreCmd);
     console.log("Restore complete!");

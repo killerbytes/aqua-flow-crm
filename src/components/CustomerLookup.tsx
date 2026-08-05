@@ -136,8 +136,6 @@ export default function CustomerLookup({
       <CustomerLookupContent
         isOpen={isCustomerLookupModalOpen}
         onClose={() => {
-          console.log("close");
-
           setCustomerLookupModalOpen(false);
         }}
         isActiveOnly={isActiveOnly}

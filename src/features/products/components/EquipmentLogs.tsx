@@ -1,9 +1,8 @@
 "use client";
 
 import { EquipmentLog } from "@/backend/models";
-import ColorBadge from "@/components/ColorBadge";
+import { ColorBadge, MonoText } from "@/components/ui/presentation";
 import DataTable from "@/components/DataTable";
-import MonoText from "@/components/MonoText";
 import Pager from "@/components/Pager";
 import { Badge } from "@/components/ui/badge";
 import { EQUIPMENT_BADGE_COLOR } from "@/lib/definitions";

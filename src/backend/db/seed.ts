@@ -269,27 +269,27 @@ export async function seedDatabase(options?: {
     },
   });
 
-  // await User.findOrCreate({
-  //   where: { username: "cashier" },
-  //   defaults: {
-  //     name: "Cashier",
-  //     passwordHash: adminPasswordHash,
-  //     role: UserRole.CASHIER,
-  //   },
-  // });
+  await User.findOrCreate({
+    where: { username: "cashier" },
+    defaults: {
+      name: "Cashier",
+      passwordHash: adminPasswordHash,
+      role: UserRole.CASHIER,
+    },
+  });
 
-  // await User.findOrCreate({
-  //   where: { username: "manager" },
-  //   defaults: {
-  //     name: "Manager",
-  //     passwordHash: adminPasswordHash,
-  //     role: UserRole.MANAGER,
-  //   },
-  // });
+  await User.findOrCreate({
+    where: { username: "manager" },
+    defaults: {
+      name: "Manager",
+      passwordHash: adminPasswordHash,
+      role: UserRole.MANAGER,
+    },
+  });
 
   if (isTest) {
-    await seedForTest(options);
   }
+  await seedForTest(options);
 
   console.log(
     "Database seeded successfully with 3 products, 10 customers, and 50 orders!",

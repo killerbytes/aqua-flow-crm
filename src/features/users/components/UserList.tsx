@@ -1,6 +1,6 @@
 "use client";
 import { User } from "@/backend/models";
-import ColorBadge from "@/components/ColorBadge";
+import { ColorBadge } from "@/components/ui/presentation";
 import DataTable from "@/components/DataTable";
 import { USER_ROLE_BADGE_COLOR } from "@/lib/definitions";
 import { useUIStore } from "@/store/uiStore";

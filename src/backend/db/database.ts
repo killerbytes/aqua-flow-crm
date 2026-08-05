@@ -1,25 +1,19 @@
-import dotenv from "dotenv";
-import path from "path";
+import { env } from "@/backend/db/env";
 import { Sequelize } from "sequelize";
 
-// Explicitly load .env.local and .env
-dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
-dotenv.config();
-
-/**
- * Builds PostgreSQL connection URL using environment variables.
- */
 export function getDatabaseUrl(
-  env: Record<string, string | undefined> = process.env,
+  overrideEnv: Record<string, string | undefined> = {},
 ): string {
-  if (env.DATABASE_URL) {
-    return env.DATABASE_URL;
+  const dbUrl = overrideEnv.DATABASE_URL || env.DATABASE_URL;
+  if (dbUrl) {
+    return dbUrl;
   }
-  const dbUser = env.DB_USER || "postgres";
-  const dbPassword = env.DB_PASSWORD || "postgres";
-  const dbHost = env.DB_HOST || "localhost";
-  const dbPort = env.DB_PORT || "5432";
-  const dbName = env.DB_NAME || "aquaflow";
+
+  const dbUser = overrideEnv.DB_USER || env.DB_USER || "postgres";
+  const dbPassword = overrideEnv.DB_PASSWORD || env.DB_PASSWORD || "postgres";
+  const dbHost = overrideEnv.DB_HOST || env.DB_HOST || "localhost";
+  const dbPort = overrideEnv.DB_PORT || env.DB_PORT || "5432";
+  const dbName = overrideEnv.DB_NAME || env.DB_NAME || "aquaflow";
 
   return `postgres://${encodeURIComponent(dbUser)}:${encodeURIComponent(dbPassword)}@${dbHost}:${dbPort}/${dbName}`;
 }
