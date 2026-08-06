@@ -48,7 +48,7 @@ function InventoryAdjustmentModalContent() {
       productId: editingProduct?.productId || 0,
       adjustmentType: InventoryAdjustmentType.STOCK_IN,
       quantity: 1,
-      notes: "",
+      reason: "",
     },
   });
 
@@ -134,17 +134,17 @@ function InventoryAdjustmentModalContent() {
         </FieldSet>
         <FieldSet>
           <Controller
-            name="notes"
+            name="reason"
             control={control}
             render={({ field }) => (
               <Field>
-                <FieldLabel>Notes</FieldLabel>
+                <FieldLabel>Reason</FieldLabel>
                 <Textarea
                   {...field}
                   placeholder="Add any notes about this adjustment..."
                   rows={3}
                 />
-                <FieldError>{errors.notes?.message}</FieldError>
+                <FieldError>{errors.reason?.message}</FieldError>
               </Field>
             )}
           />

@@ -60,3 +60,5 @@ export class ProductService {
     }
   }
 }
+
+export { InventoryService } from "./inventory.service";

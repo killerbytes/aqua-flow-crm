@@ -42,20 +42,17 @@ export class InventoryService {
     const product = await ProductInventory.findByPk(productId);
     if (!product) throw new Error("Product not found");
 
-    let newStock = product.stockInStation;
-
-    if (adjustmentType === InventoryAdjustmentType.STOCK_IN) {
-      newStock += quantity;
-    } else if (
-      adjustmentType === InventoryAdjustmentType.DECLARED_DAMAGED ||
-      adjustmentType === InventoryAdjustmentType.DECLARED_LOST
+    if (
+      (adjustmentType === InventoryAdjustmentType.DECLARED_DAMAGED ||
+        adjustmentType === InventoryAdjustmentType.DECLARED_LOST) &&
+      product.stockInStation < quantity
     ) {
-      newStock = Math.max(0, newStock - quantity);
+      throw new Error(
+        `Cannot adjust ${quantity} container(s) as ${adjustmentType}. Only ${product.stockInStation} available in station.`,
+      );
     }
 
     try {
-      await product.update({ stockInStation: newStock });
-
       const adjustment = await InventoryAdjustment.create({
         productId,
         adjustmentType,

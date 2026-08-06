@@ -32,7 +32,7 @@ export class OrderService {
       limit = PAGINATION.PAGE_SIZE,
       page = PAGINATION.PAGE,
       query = {},
-      sort = "id",
+      sort = "createdAt",
       order: sortOrder = "DESC",
     } = params;
     try {
@@ -62,15 +62,14 @@ export class OrderService {
         }
         where.createdAt = createdAtFilter;
       }
-      const orderByMap = {
+      const orderByMap: Record<string, any[]> = {
         "customer.name": [{ model: Customer, as: "customer" }, "name"],
       };
-      const orderBy = orderByMap[sort]
-        ? [...orderByMap[sort], sortOrder]
-        : [sort, sortOrder];
+      const orderBy: any = orderByMap[sort]
+        ? [[...orderByMap[sort], sortOrder]]
+        : [[sort, sortOrder]];
 
       const offset = (page - 1) * limit;
-      clg
       const { rows, count } = await Order.findAndCountAll({
         offset,
         limit,
@@ -85,7 +84,6 @@ export class OrderService {
               : {}),
           },
         ],
-        order: [["createdAt", "DESC"]],
       });
 
       return {
@@ -125,19 +123,23 @@ export class OrderService {
     return order ? order.get({ plain: true }) : null;
   }
 
-  static async create(input: {
-    customerId: number;
-    createdBy?: number;
-    status: OrderStatus;
-    paymentStatus: PaymentStatus;
-    items: {
-      productId: number;
-      quantity: number;
-      unitPrice: number;
-      discount?: number;
-    }[];
-  }) {
-    const { customerId, status, paymentStatus, items } = input;
+  static async create(
+    input: {
+      customerId: number;
+      createdBy?: number;
+      status: OrderStatus;
+      paymentStatus: PaymentStatus;
+      items: {
+        productId: number;
+        quantity: number;
+        unitPrice: number;
+        discount?: number;
+      }[];
+    },
+    createdByUserId: number = 1,
+  ) {
+    const { customerId, status, paymentStatus, items, createdBy: inputCreatedBy } = input;
+    const createdBy = inputCreatedBy || createdByUserId || 1;
 
     const customer = await CustomerService.get(customerId);
     if (!customer) {
@@ -176,6 +178,7 @@ export class OrderService {
       totalAmount: calculatedTotal,
       status,
       paymentStatus,
+      createdBy,
     });
 
     const plainOrder = order.get({ plain: true });
@@ -207,6 +210,18 @@ export class OrderService {
       throw new Error(`Order with ID ${id} not found`);
     }
     await order.update({ status });
+    return order?.get({ plain: true });
+  }
+
+  static async update(id: number | string, input: any) {
+    if (typeof input === "string") {
+      return this.updateStatus(id, input as OrderStatus);
+    }
+    const order = await Order.findByPk(Number(id));
+    if (!order) {
+      throw new Error(`Order with ID ${id} not found`);
+    }
+    await order.update(input);
     return order?.get({ plain: true });
   }
 

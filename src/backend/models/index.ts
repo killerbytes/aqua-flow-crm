@@ -85,195 +85,93 @@ InventoryAdjustment.belongsTo(ProductInventory, {
 
 EquipmentLog.afterCreate(async (log, options) => {
   const transaction = options.transaction;
+  const { actionType, customerId, productId, quantity } = log;
 
-  if (log.actionType === EquipmentActionType.ISSUE) {
-    if (log.customerId) {
-      const balance = await CustomerEquipmentBalance.findOne({
-        where: { customerId: log.customerId, productId: log.productId },
-        transaction,
-      });
+  const isTemporary =
+    actionType === EquipmentActionType.TEMPORARY ||
+    actionType === EquipmentActionType.TEMPORARY_RETURNED ||
+    actionType === EquipmentActionType.TEMPORARY_LOST ||
+    actionType === EquipmentActionType.TEMPORARY_DAMAGED;
+
+  const balanceField = isTemporary ? "quantityTemporaryOwed" : "quantityOwed";
+
+  // 1. Update Customer Equipment Balance if customer is associated
+  if (customerId) {
+    const isIssue =
+      actionType === EquipmentActionType.ISSUE ||
+      actionType === EquipmentActionType.TEMPORARY;
+
+    const balance = await CustomerEquipmentBalance.findOne({
+      where: { customerId, productId },
+      transaction,
+    });
+
+    if (isIssue) {
       if (balance) {
-        await balance.increment("quantityOwed", {
-          by: log.quantity,
-          transaction,
-        });
+        await balance.increment(balanceField, { by: quantity, transaction });
       } else {
         await CustomerEquipmentBalance.create(
           {
-            customerId: log.customerId,
-            productId: log.productId,
-            quantityOwed: log.quantity,
-            quantityTemporaryOwed: 0,
+            customerId,
+            productId,
+            quantityOwed: isTemporary ? 0 : quantity,
+            quantityTemporaryOwed: isTemporary ? quantity : 0,
           },
           { transaction },
         );
       }
+    } else if (balance) {
+      await balance.decrement(balanceField, { by: quantity, transaction });
     }
+  }
 
+  // 2. Update Product Inventory Stock
+  if (
+    actionType === EquipmentActionType.ISSUE ||
+    actionType === EquipmentActionType.TEMPORARY
+  ) {
     await ProductInventory.decrement("stockInStation", {
-      by: log.quantity,
-      where: { productId: log.productId },
+      by: quantity,
+      where: { productId },
       transaction,
     });
     await ProductInventory.increment("stockWithCustomers", {
-      by: log.quantity,
-      where: { productId: log.productId },
-      transaction,
-    });
-  } else if (log.actionType === EquipmentActionType.RETURNED) {
-    if (log.customerId) {
-      const balance = await CustomerEquipmentBalance.findOne({
-        where: { customerId: log.customerId, productId: log.productId },
-        transaction,
-      });
-      if (balance) {
-        await balance.decrement("quantityOwed", {
-          by: log.quantity,
-          transaction,
-        });
-      }
-    }
-
-    await ProductInventory.increment("stockInStation", {
-      by: log.quantity,
-      where: { productId: log.productId },
-      transaction,
-    });
-    await ProductInventory.decrement("stockWithCustomers", {
-      by: log.quantity,
-      where: { productId: log.productId },
-      transaction,
-    });
-  } else if (log.actionType === EquipmentActionType.TEMPORARY) {
-    if (log.customerId) {
-      const balance = await CustomerEquipmentBalance.findOne({
-        where: { customerId: log.customerId, productId: log.productId },
-        transaction,
-      });
-      if (balance) {
-        await balance.increment("quantityTemporaryOwed", {
-          by: log.quantity,
-          transaction,
-        });
-      } else {
-        await CustomerEquipmentBalance.create(
-          {
-            customerId: log.customerId,
-            productId: log.productId,
-            quantityOwed: 0,
-            quantityTemporaryOwed: log.quantity,
-          },
-          { transaction },
-        );
-      }
-    }
-
-    await ProductInventory.decrement("stockInStation", {
-      by: log.quantity,
-      where: { productId: log.productId },
-      transaction,
-    });
-    await ProductInventory.increment("stockWithCustomers", {
-      by: log.quantity,
-      where: { productId: log.productId },
-      transaction,
-    });
-  } else if (log.actionType === EquipmentActionType.TEMPORARY_RETURNED) {
-    if (log.customerId) {
-      const balance = await CustomerEquipmentBalance.findOne({
-        where: { customerId: log.customerId, productId: log.productId },
-        transaction,
-      });
-      if (balance) {
-        await balance.decrement("quantityTemporaryOwed", {
-          by: log.quantity,
-          transaction,
-        });
-      }
-    }
-
-    await ProductInventory.increment("stockInStation", {
-      by: log.quantity,
-      where: { productId: log.productId },
-      transaction,
-    });
-    await ProductInventory.decrement("stockWithCustomers", {
-      by: log.quantity,
-      where: { productId: log.productId },
+      by: quantity,
+      where: { productId },
       transaction,
     });
   } else if (
-    log.actionType === EquipmentActionType.LOST ||
-    log.actionType === EquipmentActionType.DAMAGED
+    actionType === EquipmentActionType.RETURNED ||
+    actionType === EquipmentActionType.TEMPORARY_RETURNED
   ) {
-    if (log.customerId) {
-      const balance = await CustomerEquipmentBalance.findOne({
-        where: { customerId: log.customerId, productId: log.productId },
-        transaction,
-      });
-      if (balance) {
-        await balance.decrement("quantityOwed", {
-          by: log.quantity,
-          transaction,
-        });
-      }
-    }
-
+    await ProductInventory.increment("stockInStation", {
+      by: quantity,
+      where: { productId },
+      transaction,
+    });
     await ProductInventory.decrement("stockWithCustomers", {
-      by: log.quantity,
-      where: { productId: log.productId },
+      by: quantity,
+      where: { productId },
+      transaction,
+    });
+  } else {
+    // LOST / DAMAGED / TEMPORARY_LOST / TEMPORARY_DAMAGED
+    await ProductInventory.decrement("stockWithCustomers", {
+      by: quantity,
+      where: { productId },
       transaction,
     });
 
-    if (log.actionType === EquipmentActionType.DAMAGED) {
-      await ProductInventory.increment("stockDamaged", {
-        by: log.quantity,
-        where: { productId: log.productId },
-        transaction,
-      });
-    } else if (log.actionType === EquipmentActionType.LOST) {
-      await ProductInventory.increment("stockLost", {
-        by: log.quantity,
-        where: { productId: log.productId },
-        transaction,
-      });
-    }
-  } else if (
-    log.actionType === EquipmentActionType.TEMPORARY_LOST ||
-    log.actionType === EquipmentActionType.TEMPORARY_DAMAGED
-  ) {
-    if (log.customerId) {
-      const balance = await CustomerEquipmentBalance.findOne({
-        where: { customerId: log.customerId, productId: log.productId },
-        transaction,
-      });
-      if (balance) {
-        await balance.decrement("quantityTemporaryOwed", {
-          by: log.quantity,
-          transaction,
-        });
-      }
-    }
+    const isDamaged =
+      actionType === EquipmentActionType.DAMAGED ||
+      actionType === EquipmentActionType.TEMPORARY_DAMAGED;
 
-    await ProductInventory.decrement("stockWithCustomers", {
-      by: log.quantity,
-      where: { productId: log.productId },
+    const targetField = isDamaged ? "stockDamaged" : "stockLost";
+    await ProductInventory.increment(targetField, {
+      by: quantity,
+      where: { productId },
       transaction,
     });
-
-    if (log.actionType === EquipmentActionType.TEMPORARY_DAMAGED) {
-      await ProductInventory.increment("stockDamaged", {
-        by: log.quantity,
-        where: { productId: log.productId },
-        transaction,
-      });
-    } else if (log.actionType === EquipmentActionType.TEMPORARY_LOST) {
-      await ProductInventory.increment("stockLost", {
-        by: log.quantity,
-        where: { productId: log.productId },
-        transaction,
-      });
-    }
   }
 });
 
@@ -298,7 +196,7 @@ InventoryAdjustment.afterCreate(async (adj, options) => {
       transaction,
     });
   } else if (adj.adjustmentType === InventoryAdjustmentType.DECLARED_LOST) {
-    await ProductInventory.decrement("stockWithCustomers", {
+    await ProductInventory.decrement("stockInStation", {
       by: adj.quantity,
       where: { productId: adj.productId },
       transaction,
