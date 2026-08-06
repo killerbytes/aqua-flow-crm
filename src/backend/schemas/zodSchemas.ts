@@ -37,6 +37,18 @@ export const EquipmentLogSchema = z.object({
   notes: z.string().optional(),
 });
 
+export const EquipmentLedgerSchema = z.object({
+  productId: z.number().int().positive("Product is required"),
+  fromAccountType: z.string(),
+  fromAccountId: z.number().int().optional().nullable(),
+  toAccountType: z.string(),
+  toAccountId: z.number().int().optional().nullable(),
+  quantity: z.number().int().positive("Quantity must be greater than 0"),
+  referenceType: z.string().optional(),
+  referenceId: z.number().int().optional().nullable(),
+  notes: z.string().optional(),
+});
+
 export const OrderSchema = z.object({
   customerId: z.number().int().positive("Customer is required"),
   status: z.nativeEnum(OrderStatus),

@@ -1,7 +1,22 @@
-import { InventoryAdjustmentType, PAGINATION } from "@/lib/definitions";
-import { handleServiceError, InventoryLogQueryParams } from ".";
-import { InventoryAdjustment, ProductInventory } from "../models";
+import {
+  InventoryAdjustmentType,
+  LedgerAccountType,
+  LedgerReferenceType,
+  PAGINATION,
+} from "@/lib/definitions";
+import { handleServiceError } from ".";
+import { EquipmentLedgerEntry, ProductInventory } from "../models";
 import { AdjustmentFormData, AdjustmentSchema } from "../schemas/zodSchemas";
+
+export interface InventoryLogQueryParams {
+  limit?: number;
+  page?: number;
+  query?: {
+    customerId?: number;
+    productId?: number;
+    actionType?: string;
+  };
+}
 
 export class InventoryService {
   static async getAll(params: InventoryLogQueryParams = {}) {
@@ -12,21 +27,41 @@ export class InventoryService {
     } = params;
 
     const where: any = {};
-    if (query.customerId) where.customerId = query.customerId;
     if (query.productId) where.productId = query.productId;
-    if (query.actionType) where.actionType = query.actionType;
 
     const offset = (page - 1) * limit;
-    const { rows, count } = await InventoryAdjustment.findAndCountAll({
+
+    const { rows, count } = await EquipmentLedgerEntry.findAndCountAll({
       offset,
       limit,
-      where,
+      where: {
+        ...where,
+        referenceType: [
+          LedgerReferenceType.INVENTORY_ADJUSTMENT,
+          LedgerReferenceType.RESTOCK,
+        ],
+      },
       include: [{ model: ProductInventory, as: "product" }],
       order: [["createdAt", "DESC"]],
     });
 
     return {
-      rows: rows.map((r) => r.get({ plain: true })),
+      rows: rows.map((r) => {
+        const plain = r.get({ plain: true });
+        let mappedType = InventoryAdjustmentType.STOCK_IN;
+        if (plain.toAccountType === LedgerAccountType.SCRAP_DAMAGED) {
+          mappedType = InventoryAdjustmentType.DECLARED_DAMAGED;
+        } else if (plain.toAccountType === LedgerAccountType.SCRAP_LOST) {
+          mappedType = InventoryAdjustmentType.DECLARED_LOST;
+        }
+
+        return {
+          ...plain,
+          adjustmentId: plain.entryId,
+          adjustmentType: mappedType,
+          reason: plain.notes || "N/A",
+        };
+      }),
       pagination: {
         total: count,
         totalPages: Math.ceil(count / limit),
@@ -53,14 +88,30 @@ export class InventoryService {
     }
 
     try {
-      const adjustment = await InventoryAdjustment.create({
+      let fromAccountType = LedgerAccountType.SUPPLIER;
+      let toAccountType = LedgerAccountType.STATION;
+
+      if (adjustmentType === InventoryAdjustmentType.DECLARED_DAMAGED) {
+        fromAccountType = LedgerAccountType.STATION;
+        toAccountType = LedgerAccountType.SCRAP_DAMAGED;
+      } else if (adjustmentType === InventoryAdjustmentType.DECLARED_LOST) {
+        fromAccountType = LedgerAccountType.STATION;
+        toAccountType = LedgerAccountType.SCRAP_LOST;
+      }
+
+      const entry = await EquipmentLedgerEntry.create({
         productId,
-        adjustmentType,
+        fromAccountType,
+        toAccountType,
         quantity,
-        reason,
+        referenceType:
+          adjustmentType === InventoryAdjustmentType.STOCK_IN
+            ? LedgerReferenceType.RESTOCK
+            : LedgerReferenceType.INVENTORY_ADJUSTMENT,
+        notes: reason,
       });
 
-      return adjustment.get({ plain: true });
+      return entry.get({ plain: true });
     } catch (error) {
       handleServiceError(error);
     }

@@ -2,16 +2,6 @@ import { ProductInventory } from "../models";
 import { ProductInventorySchema } from "../schemas/zodSchemas";
 import { handleServiceError } from "./errorHandler";
 
-export interface InventoryLogQueryParams {
-  limit?: number;
-  page?: number;
-  query?: {
-    customerId?: number;
-    productId?: number;
-    actionType?: string;
-  };
-}
-
 export class ProductService {
   static async getAll() {
     const products = await ProductInventory.findAll({

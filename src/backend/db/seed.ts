@@ -9,32 +9,18 @@ dotenv.config();
 import {
   CustomerStatus,
   EquipmentActionType,
+  InventoryAdjustmentType,
   OrderStatus,
   PaymentStatus,
   UserRole,
 } from "@/lib/definitions";
 
 import { hashPassword } from "@/lib/auth";
-import {
-  Customer,
-  CustomerSpecialPricing,
-  EquipmentLog,
-  Order,
-  OrderDetail,
-  ProductInventory,
-  User,
-  sequelize,
-} from "../models";
+import { Customer, ProductInventory, User, sequelize } from "../models";
 import { CustomerFormData, ProductFormData } from "../schemas/zodSchemas";
+import { EquipmentService } from "../services";
+import { InventoryService } from "../services/inventory.service";
 import { markDbInitialized } from "./database";
-
-export interface SeedProductInput {
-  name: string;
-  unitPrice: number;
-  stockInStation: number;
-  stockWithCustomers: number;
-  stockDamaged?: number;
-}
 
 export interface SeedOrderDetailInput {
   productId: number;
@@ -63,28 +49,20 @@ export interface SeedDataResult {
  * Helper to generate deterministically distributed seed data.
  */
 export function generateSeedData(refDate: Date = new Date()): SeedDataResult {
-  const products: SeedProductInput[] = [
+  const products: ProductFormData[] = [
     {
       name: "5-Gallon Container (Slim)",
       unitPrice: 35.0,
-      stockInStation: 15,
-      stockWithCustomers: 0,
-      stockDamaged: 0,
     },
-    {
-      name: "5-Gallon Container (Round)",
-      unitPrice: 40.0,
-      stockInStation: 15,
-      stockWithCustomers: 0,
-      stockDamaged: 0,
-    },
-    {
-      name: "Water Dispenser",
-      unitPrice: 240.0,
-      stockInStation: 5,
-      stockWithCustomers: 0,
-      stockDamaged: 0,
-    },
+    // {
+    //   name: "5-Gallon Container (Round)",
+    //   unitPrice: 40.0,
+    // },
+    // {
+    //   name: "Water Dispenser",
+    //   unitPrice: 240.0,
+    //   isLendOnly: true,
+    // },
   ];
 
   const customers: CustomerFormData[] = [
@@ -269,27 +247,27 @@ export async function seedDatabase(options?: {
     },
   });
 
-  // await User.findOrCreate({
-  //   where: { username: "cashier" },
-  //   defaults: {
-  //     name: "Cashier",
-  //     passwordHash: adminPasswordHash,
-  //     role: UserRole.CASHIER,
-  //   },
-  // });
+  await User.findOrCreate({
+    where: { username: "cashier" },
+    defaults: {
+      name: "Cashier",
+      passwordHash: adminPasswordHash,
+      role: UserRole.CASHIER,
+    },
+  });
 
-  // await User.findOrCreate({
-  //   where: { username: "manager" },
-  //   defaults: {
-  //     name: "Manager",
-  //     passwordHash: adminPasswordHash,
-  //     role: UserRole.MANAGER,
-  //   },
-  // });
+  await User.findOrCreate({
+    where: { username: "manager" },
+    defaults: {
+      name: "Manager",
+      passwordHash: adminPasswordHash,
+      role: UserRole.MANAGER,
+    },
+  });
 
   if (isTest) {
-    await seedForTest(options);
   }
+  await seedForTest(options);
 
   console.log(
     "Database seeded successfully with 3 products, 10 customers, and 50 orders!",
@@ -316,82 +294,150 @@ async function seedForTest(options: any) {
     });
   }
 
-  await CustomerSpecialPricing.create({
-    customerId: 1,
+  await InventoryService.createAdjustment({
     productId: 1,
-    discountAmount: 5.0,
+    adjustmentType: InventoryAdjustmentType.STOCK_IN,
+    quantity: 10,
+    reason: "Initial stock",
   });
-  await CustomerSpecialPricing.create({
-    customerId: 1,
-    productId: 2,
-    discountAmount: 1.5,
+  // await InventoryService.createAdjustment({
+  //   productId: 2,
+  //   adjustmentType: InventoryAdjustmentType.STOCK_IN,
+  //   quantity: 10,
+  //   reason: "Initial stock",
+  // });
+  // await InventoryService.createAdjustment({
+  //   productId: 2,
+  //   adjustmentType: InventoryAdjustmentType.DECLARED_DAMAGED,
+  //   quantity: 2,
+  //   reason: "Damaged bottle",
+  // });
+  // await InventoryService.createAdjustment({
+  //   productId: 1,
+  //   adjustmentType: InventoryAdjustmentType.STOCK_IN,
+  //   quantity: 3,
+  //   reason: "Initial stock",
+  // });
+  // await InventoryService.createAdjustment({
+  //   productId: 3,
+  //   adjustmentType: InventoryAdjustmentType.STOCK_IN,
+  //   quantity: 10,
+  //   reason: "Initial stock",
+  // });
+
+  // await CustomerSpecialPricing.create({
+  //   customerId: 1,
+  //   productId: 1,
+  //   discountAmount: 5.0,
+  // });
+  // await CustomerSpecialPricing.create({
+  //   customerId: 1,
+  //   productId: 2,
+  //   discountAmount: 1.5,
+  // });
+
+  await EquipmentService.logEquipment(
+    {
+      customerId: 1,
+      productId: 1,
+      actionType: EquipmentActionType.ISSUE,
+      quantity: 1,
+    },
+    1,
+  );
+
+  await EquipmentService.logEquipment(
+    {
+      customerId: 1,
+      productId: 1,
+      actionType: EquipmentActionType.TEMPORARY,
+      quantity: 1,
+    },
+    1,
+  );
+
+  await InventoryService.createAdjustment({
+    productId: 1,
+    adjustmentType: InventoryAdjustmentType.DECLARED_LOST,
+    quantity: 1,
+    reason: "lost in space",
   });
 
-  await EquipmentLog.create({
-    customerId: 1,
-    productId: 1,
-    actionType: EquipmentActionType.ISSUE,
-    loggedBy: 1,
-    quantity: 2,
-  } as any);
+  await EquipmentService.logEquipment(
+    {
+      customerId: 1,
+      productId: 1,
+      actionType: EquipmentActionType.TEMPORARY_RETURNED,
+      quantity: 1,
+    },
+    1,
+  );
 
-  await EquipmentLog.create({
-    customerId: 1,
-    productId: 2,
-    actionType: EquipmentActionType.ISSUE,
-    loggedBy: 1,
-    quantity: 1,
-  } as any);
+  await EquipmentService.logEquipment(
+    {
+      customerId: 1,
+      productId: 1,
+      actionType: EquipmentActionType.DAMAGED,
+      quantity: 1,
+    },
+    1,
+  );
 
-  await EquipmentLog.create({
-    customerId: 1,
-    productId: 1,
-    actionType: EquipmentActionType.TEMPORARY,
-    loggedBy: 1,
-    quantity: 1,
-  } as any);
+  // await EquipmentService.logEquipment(
+  //   {
+  //     customerId: 1,
+  //     productId: 1,
+  //     actionType: EquipmentActionType.TEMPORARY,
+  //     quantity: 1,
+  //   },
+  //   1,
+  // );
 
-  await EquipmentLog.create({
-    customerId: 2,
-    productId: 1,
-    actionType: EquipmentActionType.TEMPORARY,
-    loggedBy: 1,
-    quantity: 1,
-  } as any);
+  // await EquipmentService.logEquipment(
+  //   {
+  //     customerId: 2,
+  //     productId: 1,
+  //     actionType: EquipmentActionType.TEMPORARY,
+  //     quantity: 1,
+  //   },
+  //   1,
+  // );
 
-  await EquipmentLog.create({
-    customerId: 3,
-    productId: 1,
-    actionType: EquipmentActionType.TEMPORARY,
-    loggedBy: 1,
-    quantity: 1,
-  } as any);
+  // await EquipmentService.logEquipment(
+  //   {
+  //     customerId: 3,
+  //     productId: 1,
+  //     actionType: EquipmentActionType.TEMPORARY,
+  //     quantity: 1,
+  //   },
+  //   1,
+  // );
 
   // Seed Orders and Details
-  for (const ord of seedData.orders) {
-    const createdOrder = await Order.create(
-      {
-        customerId: ord.customerId,
-        totalAmount: ord.totalAmount,
-        status: ord.status,
-        paymentStatus: ord.paymentStatus,
-        createdBy: ord.createdBy,
-        createdAt: ord.createdAt,
-        updatedAt: ord.createdAt,
-      },
-      { silent: true }, // Preserves explicit timestamps
-    );
+  // for (const ord of seedData.orders) {
+  //   const createdOrder = await Order.create(
+  //     {
+  //       customerId: ord.customerId,
+  //       totalAmount: ord.totalAmount,
+  //       status: ord.status,
+  //       paymentStatus: ord.paymentStatus,
+  //       createdBy: ord.createdBy,
+  //       createdAt: ord.createdAt,
+  //       updatedAt: ord.createdAt,
+  //     },
+  //     { silent: true }, // Preserves explicit timestamps
+  //   );
 
-    for (const detail of ord.details) {
-      await OrderDetail.create({
-        orderId: createdOrder.orderId,
-        productId: detail.productId,
-        quantity: detail.quantity,
-        unitPrice: detail.unitPrice,
-        discount: detail.discount || 0,
-      });
-    }
-  }
+  //   for (const detail of ord.details) {
+  //     await OrderDetail.create({
+  //       orderId: createdOrder.orderId,
+  //       productId: detail.productId,
+  //       quantity: detail.quantity,
+  //       unitPrice: detail.unitPrice,
+  //       discount: detail.discount || 0,
+  //     });
+  //   }
+  // }
 }
 // Execution block when invoked directly via CLI (e.g. `npx tsx src/backend/db/seed.ts`)
 if (require.main === module) {

@@ -1,13 +1,9 @@
-import {
-  EquipmentActionType,
-  InventoryAdjustmentType,
-} from "@/lib/definitions";
+import { LedgerAccountType } from "@/lib/definitions";
 import { sequelize } from "../db/database";
 import { Customer } from "./Customer";
 import { CustomerEquipmentBalance } from "./CustomerEquipmentBalance";
 import { CustomerSpecialPricing } from "./CustomerSpecialPricing";
-import { EquipmentLog } from "./EquipmentLog";
-import { InventoryAdjustment } from "./InventoryAdjustment";
+import { EquipmentLedgerEntry } from "./EquipmentLedgerEntry";
 import { Order } from "./Order";
 import { OrderDetail } from "./OrderDetail";
 import { ProductInventory } from "./ProductInventory";
@@ -22,18 +18,27 @@ CustomerEquipmentBalance.belongsTo(Customer, {
   as: "customer",
 });
 
-Customer.hasMany(EquipmentLog, {
-  foreignKey: "customerId",
-  as: "equipmentLogs",
+Customer.hasMany(EquipmentLedgerEntry, {
+  foreignKey: "fromAccountId",
+  as: "outgoingLedgerEntries",
 });
-EquipmentLog.belongsTo(Customer, {
-  foreignKey: "customerId",
+Customer.hasMany(EquipmentLedgerEntry, {
+  foreignKey: "toAccountId",
+  as: "incomingLedgerEntries",
+});
+EquipmentLedgerEntry.belongsTo(Customer, {
+  foreignKey: "toAccountId",
   as: "customer",
 });
 
-EquipmentLog.belongsTo(ProductInventory, {
+EquipmentLedgerEntry.belongsTo(ProductInventory, {
   foreignKey: "productId",
   as: "product",
+});
+
+EquipmentLedgerEntry.belongsTo(User, {
+  foreignKey: "loggedBy",
+  as: "user",
 });
 
 ProductInventory.hasMany(CustomerEquipmentBalance, {
@@ -77,133 +82,136 @@ CustomerSpecialPricing.belongsTo(ProductInventory, {
   as: "product",
 });
 
-ProductInventory.hasMany(InventoryAdjustment, { foreignKey: "productId" });
-InventoryAdjustment.belongsTo(ProductInventory, {
-  foreignKey: "productId",
-  as: "product",
-});
+ProductInventory.hasMany(EquipmentLedgerEntry, { foreignKey: "productId" });
 
-EquipmentLog.afterCreate(async (log, options) => {
+// Pattern 1 Unified Double-Entry Equipment Ledger Hook
+EquipmentLedgerEntry.afterCreate(async (entry, options) => {
   const transaction = options.transaction;
-  const { actionType, customerId, productId, quantity } = log;
+  const {
+    productId,
+    fromAccountType,
+    fromAccountId,
+    toAccountType,
+    toAccountId,
+    quantity,
+  } = entry;
 
-  const isTemporary =
-    actionType === EquipmentActionType.TEMPORARY ||
-    actionType === EquipmentActionType.TEMPORARY_RETURNED ||
-    actionType === EquipmentActionType.TEMPORARY_LOST ||
-    actionType === EquipmentActionType.TEMPORARY_DAMAGED;
-
-  const balanceField = isTemporary ? "quantityTemporaryOwed" : "quantityOwed";
-
-  // 1. Update Customer Equipment Balance if customer is associated
-  if (customerId) {
-    const isIssue =
-      actionType === EquipmentActionType.ISSUE ||
-      actionType === EquipmentActionType.TEMPORARY;
-
+  // 1. Update Customer Equipment Balance (Regular Owed)
+  if (toAccountType === LedgerAccountType.CUSTOMER && toAccountId) {
     const balance = await CustomerEquipmentBalance.findOne({
-      where: { customerId, productId },
+      where: { customerId: toAccountId, productId },
       transaction,
     });
-
-    if (isIssue) {
-      if (balance) {
-        await balance.increment(balanceField, { by: quantity, transaction });
-      } else {
-        await CustomerEquipmentBalance.create(
-          {
-            customerId,
-            productId,
-            quantityOwed: isTemporary ? 0 : quantity,
-            quantityTemporaryOwed: isTemporary ? quantity : 0,
-          },
-          { transaction },
-        );
-      }
-    } else if (balance) {
-      await balance.decrement(balanceField, { by: quantity, transaction });
+    if (balance) {
+      await balance.increment("quantityOwed", { by: quantity, transaction });
+    } else {
+      await CustomerEquipmentBalance.create(
+        {
+          customerId: toAccountId,
+          productId,
+          quantityOwed: quantity,
+          quantityTemporaryOwed: 0,
+        },
+        { transaction },
+      );
+    }
+  }
+  if (fromAccountType === LedgerAccountType.CUSTOMER && fromAccountId) {
+    const balance = await CustomerEquipmentBalance.findOne({
+      where: { customerId: fromAccountId, productId },
+      transaction,
+    });
+    if (balance) {
+      await balance.decrement("quantityOwed", { by: quantity, transaction });
     }
   }
 
-  // 2. Update Product Inventory Stock
-  if (
-    actionType === EquipmentActionType.ISSUE ||
-    actionType === EquipmentActionType.TEMPORARY
-  ) {
+  // 2. Update Customer Equipment Balance (Temporary Owed)
+  if (toAccountType === LedgerAccountType.CUSTOMER_TEMP && toAccountId) {
+    const balance = await CustomerEquipmentBalance.findOne({
+      where: { customerId: toAccountId, productId },
+      transaction,
+    });
+    if (balance) {
+      await balance.increment("quantityTemporaryOwed", {
+        by: quantity,
+        transaction,
+      });
+    } else {
+      await CustomerEquipmentBalance.create(
+        {
+          customerId: toAccountId,
+          productId,
+          quantityOwed: 0,
+          quantityTemporaryOwed: quantity,
+        },
+        { transaction },
+      );
+    }
+  }
+  if (fromAccountType === LedgerAccountType.CUSTOMER_TEMP && fromAccountId) {
+    const balance = await CustomerEquipmentBalance.findOne({
+      where: { customerId: fromAccountId, productId },
+      transaction,
+    });
+    if (balance) {
+      await balance.decrement("quantityTemporaryOwed", {
+        by: quantity,
+        transaction,
+      });
+    }
+  }
+
+  // 3. Update Product Station Stock
+  if (toAccountType === LedgerAccountType.STATION) {
+    await ProductInventory.increment("stockInStation", {
+      by: quantity,
+      where: { productId },
+      transaction,
+    });
+  }
+  if (fromAccountType === LedgerAccountType.STATION) {
     await ProductInventory.decrement("stockInStation", {
       by: quantity,
       where: { productId },
       transaction,
     });
+  }
+
+  // 4. Update Product Stock With Customers
+  if (
+    toAccountType === LedgerAccountType.CUSTOMER ||
+    toAccountType === LedgerAccountType.CUSTOMER_TEMP
+  ) {
     await ProductInventory.increment("stockWithCustomers", {
       by: quantity,
       where: { productId },
       transaction,
     });
-  } else if (
-    actionType === EquipmentActionType.RETURNED ||
-    actionType === EquipmentActionType.TEMPORARY_RETURNED
+  }
+  if (
+    fromAccountType === LedgerAccountType.CUSTOMER ||
+    fromAccountType === LedgerAccountType.CUSTOMER_TEMP
   ) {
-    await ProductInventory.increment("stockInStation", {
-      by: quantity,
-      where: { productId },
-      transaction,
-    });
     await ProductInventory.decrement("stockWithCustomers", {
-      by: quantity,
-      where: { productId },
-      transaction,
-    });
-  } else {
-    // LOST / DAMAGED / TEMPORARY_LOST / TEMPORARY_DAMAGED
-    await ProductInventory.decrement("stockWithCustomers", {
-      by: quantity,
-      where: { productId },
-      transaction,
-    });
-
-    const isDamaged =
-      actionType === EquipmentActionType.DAMAGED ||
-      actionType === EquipmentActionType.TEMPORARY_DAMAGED;
-
-    const targetField = isDamaged ? "stockDamaged" : "stockLost";
-    await ProductInventory.increment(targetField, {
       by: quantity,
       where: { productId },
       transaction,
     });
   }
-});
 
-InventoryAdjustment.afterCreate(async (adj, options) => {
-  const transaction = options.transaction;
-
-  if (adj.adjustmentType === InventoryAdjustmentType.STOCK_IN) {
-    await ProductInventory.increment("stockInStation", {
-      by: adj.quantity,
-      where: { productId: adj.productId },
-      transaction,
-    });
-  } else if (adj.adjustmentType === InventoryAdjustmentType.DECLARED_DAMAGED) {
-    await ProductInventory.decrement("stockInStation", {
-      by: adj.quantity,
-      where: { productId: adj.productId },
-      transaction,
-    });
+  // 5. Update Scrap Stock (Damaged / Lost)
+  if (toAccountType === LedgerAccountType.SCRAP_DAMAGED) {
     await ProductInventory.increment("stockDamaged", {
-      by: adj.quantity,
-      where: { productId: adj.productId },
+      by: quantity,
+      where: { productId },
       transaction,
     });
-  } else if (adj.adjustmentType === InventoryAdjustmentType.DECLARED_LOST) {
-    await ProductInventory.decrement("stockInStation", {
-      by: adj.quantity,
-      where: { productId: adj.productId },
-      transaction,
-    });
+  }
+  if (toAccountType === LedgerAccountType.SCRAP_LOST) {
     await ProductInventory.increment("stockLost", {
-      by: adj.quantity,
-      where: { productId: adj.productId },
+      by: quantity,
+      where: { productId },
       transaction,
     });
   }
@@ -213,8 +221,7 @@ export {
   Customer,
   CustomerEquipmentBalance,
   CustomerSpecialPricing,
-  EquipmentLog,
-  InventoryAdjustment,
+  EquipmentLedgerEntry,
   Order,
   OrderDetail,
   ProductInventory,

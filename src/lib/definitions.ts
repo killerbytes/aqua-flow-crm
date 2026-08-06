@@ -42,6 +42,34 @@ export const USER_ROLE_LABELS: Record<UserRole, string> = {
   [UserRole.DELIVERY]: "Delivery Personnel",
 };
 
+// Ledger Account & Reference Types (Pattern 1 Double-Entry Equipment Ledger)
+export enum LedgerAccountType {
+  STATION = "STATION",
+  CUSTOMER = "CUSTOMER",
+  CUSTOMER_TEMP = "CUSTOMER_TEMP",
+  SUPPLIER = "SUPPLIER",
+  SCRAP_DAMAGED = "SCRAP_DAMAGED",
+  SCRAP_LOST = "SCRAP_LOST",
+  IN_TRANSIT = "IN_TRANSIT",
+}
+
+export enum LedgerReferenceType {
+  ORDER = "ORDER",
+  MANUAL_LOG = "MANUAL_LOG",
+  INVENTORY_ADJUSTMENT = "INVENTORY_ADJUSTMENT",
+  RESTOCK = "RESTOCK",
+}
+
+export const LEDGER_ACCOUNT_LABELS: Record<LedgerAccountType, string> = {
+  [LedgerAccountType.STATION]: "Station Warehouse",
+  [LedgerAccountType.CUSTOMER]: "Customer Owed",
+  [LedgerAccountType.CUSTOMER_TEMP]: "Customer Temporary",
+  [LedgerAccountType.SUPPLIER]: "External Supplier",
+  [LedgerAccountType.SCRAP_DAMAGED]: "Scrap (Damaged)",
+  [LedgerAccountType.SCRAP_LOST]: "Scrap (Lost)",
+  [LedgerAccountType.IN_TRANSIT]: "In Transit",
+};
+
 // Equipment Action Types
 export enum EquipmentActionType {
   ISSUE = "ISSUE",
@@ -215,4 +243,16 @@ export const USER_ROLE_BADGE_COLOR: Record<UserRole, string> = {
 export const CUSTOMER_STATUS_BADGE_COLOR: Record<CustomerStatus, string> = {
   [CustomerStatus.ACTIVE]: "bg-green-100 text-black border-green-500",
   [CustomerStatus.INACTIVE]: "bg-red-100 text-black border-red-500",
+};
+
+export const INVENTORY_ADJUSTMENT_TYPE_BADGE_COLOR: Record<
+  InventoryAdjustmentType,
+  string
+> = {
+  [InventoryAdjustmentType.STOCK_IN]:
+    "bg-green-100 text-black border-green-500",
+  [InventoryAdjustmentType.DECLARED_DAMAGED]:
+    "bg-red-100 text-black border-red-500",
+  [InventoryAdjustmentType.DECLARED_LOST]:
+    "bg-orange-100 text-black border-orange-500",
 };

@@ -1,11 +1,6 @@
 import { initDatabase } from "@/backend/db/database";
-import {
-  EquipmentLog,
-  InventoryAdjustment,
-  ProductInventory,
-} from "@/backend/models";
+import { ProductInventory } from "@/backend/models";
 import { EquipmentService, ProductService } from "@/backend/services";
-import { InventoryService } from "@/backend/services/inventory.service";
 import {
   InventoryAdjustmentModalButton,
   ProductFormModalButton,
@@ -20,11 +15,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import EquipmentLedgerReports from "@/features/products/components/EquipmentLedgerReports";
 import EquipmentLogs from "@/features/products/components/EquipmentLogs";
 import { InventoryAdjustmentModal } from "@/features/products/components/InventoryAdjustmentModal";
-import InventoryLogs from "@/features/products/components/InventoryLogs";
 import { ProductFormModal } from "@/features/products/components/ProductFormModal";
-import { UserRole } from "@/lib/definitions";
+import { PAGINATION, UserRole } from "@/lib/definitions";
 import { formatCurrency } from "@/lib/utils";
 import { Paginated } from "@/types";
 import {
@@ -40,15 +35,46 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export default async function ProductsPage() {
+interface ProductPageProps {
+  searchParams?: Promise<{
+    page?: string;
+    limit?: string;
+    startDate?: string;
+    endDate?: string;
+    productId?: number;
+    customerId?: number;
+    actionType?: string;
+  }>;
+}
+
+export default async function ProductsPage({ searchParams }: ProductPageProps) {
   await initDatabase();
+  const params = await searchParams;
+
+  const page = Number(params?.page) || PAGINATION.PAGE;
+  const limit = Number(params?.limit) || PAGINATION.PAGE_SIZE;
 
   let products: any[] = [];
-  const logsPromise: Promise<Paginated<EquipmentLog>> =
-    EquipmentService.getAll();
+  const logsPromise: Promise<Paginated<any>> = EquipmentService.getAll({
+    limit,
+    page,
+    query: {
+      actionType: params?.actionType,
+      customerId: params?.customerId,
+      productId: params?.productId,
+    },
+  });
 
-  const inventoryAdjustmentPromise: Promise<Paginated<InventoryAdjustment>> =
-    InventoryService.getAll();
+  const reportsPromise = Promise.all([
+    EquipmentService.getBalanceSheetReport(),
+    EquipmentService.getCustomerLiabilityAgingReport(),
+    EquipmentService.getShrinkageRateReport(),
+  ]).then(([balanceSheet, agingReport, shrinkageReport]) => ({
+    balanceSheet,
+    agingReport,
+    shrinkageReport,
+  }));
+
   try {
     products = await ProductService.getAll();
   } catch (err) {
@@ -61,11 +87,11 @@ export default async function ProductsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             <Package />
-            Product Catalog & Pricing
+            Product Catalog & Equipment Ledger
           </h1>
           <p className="text-muted-foreground">
-            Manage refill products, unit pricing, station stock inventory, and
-            special pricing.
+            Manage refill products, double-entry equipment ledger transfers, and
+            inventory audit reports.
           </p>
         </div>
         <RoleGuard allowedRoles={[UserRole.ADMIN, UserRole.CASHIER]}>
@@ -175,17 +201,20 @@ export default async function ProductsPage() {
       </div>
 
       <Tabs defaultValue="equipmentLogs">
-        <TabsList>
-          <TabsTrigger value="equipmentLogs">Equipment Logs</TabsTrigger>
-          <TabsTrigger value="inventoryLogs">Inventory Logs</TabsTrigger>
-        </TabsList>
+        {/* <TabsList>
+          <TabsTrigger value="equipmentLogs">
+            Equipment Movement Ledger
+          </TabsTrigger>
+          <TabsTrigger value="pattern1Reports" className="gap-1.5">
+            <BarChart3 className="w-4 h-4 text-primary" />
+            Ledger Reports
+          </TabsTrigger>
+        </TabsList> */}
         <TabsContent value="equipmentLogs">
           <EquipmentLogs logsPromise={logsPromise} />
         </TabsContent>
-        <TabsContent value="inventoryLogs">
-          <InventoryLogs
-            inventoryAdjustmentPromise={inventoryAdjustmentPromise}
-          />
+        <TabsContent value="pattern1Reports">
+          <EquipmentLedgerReports reportsPromise={reportsPromise} />
         </TabsContent>
       </Tabs>
       <ProductFormModal />

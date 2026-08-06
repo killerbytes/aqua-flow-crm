@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { seedDatabase } from "../src/backend/db/seed";
 import {
   CustomerSpecialPricing,
-  InventoryAdjustment,
+  EquipmentLedgerEntry,
 } from "../src/backend/models";
 import { ReportService } from "../src/backend/services/report.service";
 import { UserRole } from "../src/lib/definitions";
@@ -15,9 +15,9 @@ describe("Feature Parity: Expanded Models, UI Store & Report Analytics", () => {
     await seedDatabase({ isTest: true, refDate });
   });
 
-  it("should support CustomerSpecialPricing and InventoryAdjustment models", () => {
+  it("should support CustomerSpecialPricing and EquipmentLedgerEntry models", () => {
     expect(CustomerSpecialPricing).toBeDefined();
-    expect(InventoryAdjustment).toBeDefined();
+    expect(EquipmentLedgerEntry).toBeDefined();
   });
 
   it("should manage UI store state for products, users, orders, and adjustments", () => {

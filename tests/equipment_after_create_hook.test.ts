@@ -1,11 +1,11 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { seedDatabase } from "../src/backend/db/seed";
 import { CustomerEquipmentBalance } from "../src/backend/models/CustomerEquipmentBalance";
-import { EquipmentLog } from "../src/backend/models/EquipmentLog";
+import { EquipmentLedgerEntry } from "../src/backend/models/EquipmentLedgerEntry";
 import { ProductInventory } from "../src/backend/models/ProductInventory";
-import { EquipmentActionType } from "../src/lib/definitions";
+import { LedgerAccountType, LedgerReferenceType } from "../src/lib/definitions";
 
-describe("EquipmentLog afterCreate Hook Refactoring Coverage Tests", () => {
+describe("EquipmentLedgerEntry afterCreate Hook Coverage Tests", () => {
   const refDate = new Date("2026-07-30T00:00:00Z");
 
   beforeAll(async () => {
@@ -20,11 +20,13 @@ describe("EquipmentLog afterCreate Hook Refactoring Coverage Tests", () => {
       unitPrice: 20,
     });
 
-    await EquipmentLog.create({
-      customerId: 1,
+    await EquipmentLedgerEntry.create({
       productId: product.productId,
-      actionType: EquipmentActionType.ISSUE,
+      fromAccountType: LedgerAccountType.STATION,
+      toAccountType: LedgerAccountType.CUSTOMER,
+      toAccountId: 1,
       quantity: 5,
+      referenceType: LedgerReferenceType.MANUAL_LOG,
       loggedBy: 1,
     });
 
@@ -47,11 +49,13 @@ describe("EquipmentLog afterCreate Hook Refactoring Coverage Tests", () => {
       unitPrice: 20,
     });
 
-    await EquipmentLog.create({
-      customerId: 1,
+    await EquipmentLedgerEntry.create({
       productId: product.productId,
-      actionType: EquipmentActionType.TEMPORARY,
+      fromAccountType: LedgerAccountType.STATION,
+      toAccountType: LedgerAccountType.CUSTOMER_TEMP,
+      toAccountId: 1,
       quantity: 4,
+      referenceType: LedgerReferenceType.MANUAL_LOG,
       loggedBy: 1,
     });
 
@@ -81,11 +85,13 @@ describe("EquipmentLog afterCreate Hook Refactoring Coverage Tests", () => {
       quantityTemporaryOwed: 0,
     });
 
-    await EquipmentLog.create({
-      customerId: 2,
+    await EquipmentLedgerEntry.create({
       productId: product.productId,
-      actionType: EquipmentActionType.RETURNED,
+      fromAccountType: LedgerAccountType.CUSTOMER,
+      fromAccountId: 2,
+      toAccountType: LedgerAccountType.STATION,
       quantity: 3,
+      referenceType: LedgerReferenceType.MANUAL_LOG,
       loggedBy: 1,
     });
 
@@ -114,11 +120,13 @@ describe("EquipmentLog afterCreate Hook Refactoring Coverage Tests", () => {
       quantityTemporaryOwed: 6,
     });
 
-    await EquipmentLog.create({
-      customerId: 2,
+    await EquipmentLedgerEntry.create({
       productId: product.productId,
-      actionType: EquipmentActionType.TEMPORARY_RETURNED,
+      fromAccountType: LedgerAccountType.CUSTOMER_TEMP,
+      fromAccountId: 2,
+      toAccountType: LedgerAccountType.STATION,
       quantity: 2,
+      referenceType: LedgerReferenceType.MANUAL_LOG,
       loggedBy: 1,
     });
 
@@ -149,19 +157,23 @@ describe("EquipmentLog afterCreate Hook Refactoring Coverage Tests", () => {
       quantityTemporaryOwed: 0,
     });
 
-    await EquipmentLog.create({
-      customerId: 3,
+    await EquipmentLedgerEntry.create({
       productId: product.productId,
-      actionType: EquipmentActionType.LOST,
+      fromAccountType: LedgerAccountType.CUSTOMER,
+      fromAccountId: 3,
+      toAccountType: LedgerAccountType.SCRAP_LOST,
       quantity: 2,
+      referenceType: LedgerReferenceType.MANUAL_LOG,
       loggedBy: 1,
     });
 
-    await EquipmentLog.create({
-      customerId: 3,
+    await EquipmentLedgerEntry.create({
       productId: product.productId,
-      actionType: EquipmentActionType.DAMAGED,
+      fromAccountType: LedgerAccountType.CUSTOMER,
+      fromAccountId: 3,
+      toAccountType: LedgerAccountType.SCRAP_DAMAGED,
       quantity: 1,
+      referenceType: LedgerReferenceType.MANUAL_LOG,
       loggedBy: 1,
     });
 
@@ -193,19 +205,23 @@ describe("EquipmentLog afterCreate Hook Refactoring Coverage Tests", () => {
       quantityTemporaryOwed: 10,
     });
 
-    await EquipmentLog.create({
-      customerId: 3,
+    await EquipmentLedgerEntry.create({
       productId: product.productId,
-      actionType: EquipmentActionType.TEMPORARY_LOST,
+      fromAccountType: LedgerAccountType.CUSTOMER_TEMP,
+      fromAccountId: 3,
+      toAccountType: LedgerAccountType.SCRAP_LOST,
       quantity: 3,
+      referenceType: LedgerReferenceType.MANUAL_LOG,
       loggedBy: 1,
     });
 
-    await EquipmentLog.create({
-      customerId: 3,
+    await EquipmentLedgerEntry.create({
       productId: product.productId,
-      actionType: EquipmentActionType.TEMPORARY_DAMAGED,
+      fromAccountType: LedgerAccountType.CUSTOMER_TEMP,
+      fromAccountId: 3,
+      toAccountType: LedgerAccountType.SCRAP_DAMAGED,
       quantity: 2,
+      referenceType: LedgerReferenceType.MANUAL_LOG,
       loggedBy: 1,
     });
 
