@@ -16,7 +16,8 @@ export const CustomerSchema = z.object({
     .min(11, "Mobile number must be 11 digits")
     .regex(/^(?:\+63|0)\s?9\d{2}[\s-]?\d{3}[\s-]?\d{4}$/, {
       message: "Invalid mobile number",
-    }),
+    })
+    .optional(),
   notes: z.string().optional(),
   barangayId: z.string().optional(),
   status: z.nativeEnum(CustomerStatus).optional(),
@@ -60,7 +61,7 @@ export const OrderSchema = z.object({
         quantity: z.number().int().positive(),
         unitPrice: z.number().positive(),
         discount: z.number().min(0).optional().default(0),
-      }),
+      })
     )
     .min(1, "At least one item is required"),
 });

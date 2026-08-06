@@ -15,7 +15,7 @@ export class Customer extends Model {
   declare customerId: number;
   declare name: string;
   declare address: string;
-  declare phone: string;
+  declare phone?: string;
   declare status: CustomerStatus;
   declare notes: string;
   declare barangayId: string;
@@ -53,7 +53,7 @@ Customer.init(
     },
     name: { type: DataTypes.STRING, allowNull: false },
     address: { type: DataTypes.STRING, allowNull: false },
-    phone: { type: DataTypes.STRING, allowNull: false, unique: true },
+    phone: { type: DataTypes.STRING, allowNull: true, unique: true },
     notes: { type: DataTypes.TEXT, allowNull: true },
     status: {
       type: DataTypes.ENUM(...Object.values(CustomerStatus)),
@@ -90,5 +90,5 @@ Customer.init(
         }
       },
     },
-  },
+  }
 );
