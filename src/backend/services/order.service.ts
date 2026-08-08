@@ -9,6 +9,7 @@ import {
   ProductInventory,
   User,
 } from "../models";
+import { PaymentFormData, PaymentSchema } from "../schemas/zodSchemas";
 import { CustomerService } from "./customer.service";
 import { ProductService } from "./product.service";
 
@@ -82,6 +83,12 @@ export class OrderService {
             ...(query?.customerId
               ? { where: { customerId: query.customerId } }
               : {}),
+            include: [
+              {
+                model: CustomerSpecialPricing,
+                as: "specialPricings",
+              },
+            ],
           },
         ],
       });
@@ -111,7 +118,16 @@ export class OrderService {
   static async get(id: number | string) {
     const order = await Order.findByPk(Number(id), {
       include: [
-        { model: Customer, as: "customer" },
+        {
+          model: Customer,
+          as: "customer",
+          include: [
+            {
+              model: CustomerSpecialPricing,
+              as: "specialPricings",
+            },
+          ],
+        },
         { model: User, as: "user" },
         {
           model: OrderDetail,
@@ -138,7 +154,13 @@ export class OrderService {
     },
     createdByUserId: number = 1,
   ) {
-    const { customerId, status, paymentStatus, items, createdBy: inputCreatedBy } = input;
+    const {
+      customerId,
+      status,
+      paymentStatus,
+      items,
+      createdBy: inputCreatedBy,
+    } = input;
     const createdBy = inputCreatedBy || createdByUserId || 1;
 
     const customer = await CustomerService.get(customerId);
@@ -204,13 +226,81 @@ export class OrderService {
     return await this.get(plainOrder.orderId);
   }
 
-  static async updateStatus(id: number | string, status: OrderStatus) {
-    const order = await Order.findByPk(Number(id));
+  static async updateStatus(id: number | string, status: OrderStatus | string) {
+    let targetStatus = status as OrderStatus;
+    if ((status as string) === "COMPLETED") {
+      targetStatus = OrderStatus.DELIVERED;
+    }
+
+    const validStatuses = Object.values(OrderStatus);
+    if (!validStatuses.includes(targetStatus)) {
+      throw new Error(`Invalid order status: ${status}`);
+    }
+
+    const order = await Order.findByPk(Number(id), {
+      include: [{ model: OrderDetail, as: "orderDetails" }],
+    });
     if (!order) {
       throw new Error(`Order with ID ${id} not found`);
     }
-    await order.update({ status });
-    return order?.get({ plain: true });
+
+    const currentStatus = order.status;
+
+    if (currentStatus === targetStatus) {
+      return order.get({ plain: true });
+    }
+
+    if (
+      currentStatus === OrderStatus.CANCELLED ||
+      currentStatus === OrderStatus.DELETED
+    ) {
+      throw new Error(
+        `Cannot change status of a ${currentStatus.toLowerCase()} order`,
+      );
+    }
+
+    const allowedTransitions: Record<OrderStatus, OrderStatus[]> = {
+      [OrderStatus.PENDING]: [
+        OrderStatus.OUT_FOR_DELIVERY,
+        OrderStatus.DELIVERED,
+        OrderStatus.CANCELLED,
+        OrderStatus.DELETED,
+      ],
+      [OrderStatus.OUT_FOR_DELIVERY]: [
+        OrderStatus.DELIVERED,
+        OrderStatus.CANCELLED,
+        OrderStatus.DELETED,
+      ],
+      [OrderStatus.DELIVERED]: [OrderStatus.CANCELLED, OrderStatus.DELETED],
+      [OrderStatus.CANCELLED]: [],
+      [OrderStatus.DELETED]: [],
+    };
+
+    const allowed = allowedTransitions[currentStatus] || [];
+    if (!allowed.includes(targetStatus)) {
+      throw new Error(
+        `Invalid status transition from ${currentStatus} to ${targetStatus}`,
+      );
+    }
+
+    if (
+      targetStatus === OrderStatus.CANCELLED ||
+      targetStatus === OrderStatus.DELETED
+    ) {
+      if (order.orderDetails && order.orderDetails.length > 0) {
+        for (const item of order.orderDetails) {
+          const product = await ProductService.get(item.productId);
+          if (product) {
+            await ProductService.update(item.productId, {
+              stockInStation: product.stockInStation + item.quantity,
+            });
+          }
+        }
+      }
+    }
+
+    await order.update({ status: targetStatus });
+    return order.get({ plain: true });
   }
 
   static async update(id: number | string, input: any) {
@@ -228,6 +318,36 @@ export class OrderService {
   static async delete(id: number | string) {
     const count = await Order.destroy({ where: { orderId: Number(id) } });
     return count > 0;
+  }
+
+  static async makePayment(id: number, input: PaymentFormData) {
+    const validatedData = PaymentSchema.parse(input);
+    const order = await Order.findByPk(Number(id), {
+      include: [{ model: OrderDetail, as: "orderDetails" }],
+    });
+    if (!order) {
+      throw new Error(`Order with ID ${id} not found`);
+    }
+
+    if (order.paymentStatus === PaymentStatus.PAID) {
+      throw new Error("Order is already marked as PAID");
+    }
+
+    if (
+      order.status === OrderStatus.CANCELLED ||
+      order.status === OrderStatus.DELETED
+    ) {
+      throw new Error(
+        `Cannot process payment for a ${order.status.toLowerCase()} order`,
+      );
+    }
+
+    await order.update({
+      paymentStatus: PaymentStatus.PAID,
+      paymentMethod: validatedData.paymentMethod,
+      paymentNotes: validatedData.paymentNotes,
+    });
+    return order.get({ plain: true });
   }
 }
 
@@ -268,22 +388,35 @@ const getSummary = async (where: any) => {
     },
   });
 
+  const deliveryOrders = await Order.count({
+    where: {
+      ...where,
+      ...{
+        status: { [Op.in]: [OrderStatus.OUT_FOR_DELIVERY] },
+      },
+    },
+  });
+
   return {
     totalAmount: {
-      label: "Total Amount",
+      label: "Total Sales",
       value: totalAmount,
     },
     pendingOrders: {
-      label: "Pending Orders",
+      label: "Pending",
       value: pendingOrders,
     },
     cancelledOrders: {
-      label: "Cancelled Orders",
+      label: "Cancelled",
       value: cancelledOrders,
     },
     unpaidOrders: {
-      label: "Unpaid Orders",
+      label: "Unpaid",
       value: unpaidOrders,
+    },
+    deliveryOrders: {
+      label: "Out for Delivery",
+      value: deliveryOrders,
     },
   };
 };

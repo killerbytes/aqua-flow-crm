@@ -16,7 +16,7 @@ export async function getProductsAction() {
   await initDatabase();
   const context = await getAuthContext();
   const user = requireAuth(context);
-  if (!checkPermission(user.role, "ADJUST_INVENTORY")) {
+  if (!checkPermission(user.role, "VIEW_PRODUCTS")) {
     throw new Error("Forbidden: insufficient permissions");
   }
 

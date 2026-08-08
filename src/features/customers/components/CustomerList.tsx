@@ -1,17 +1,12 @@
 "use client";
 import { Customer } from "@/backend/models";
-import { CustomerFormModalButton } from "@/components/ActionButtons";
-import { RoleGuard } from "@/components/auth/RoleGuard";
 import DataTable from "@/components/DataTable";
-import { MonoText } from "@/components/ui/presentation";
-import { CustomerStatus, UserRole } from "@/lib/definitions";
-import { useUIStore } from "@/store/uiStore";
+import Pager from "@/components/Pager";
+import { CustomerName, MonoText } from "@/components/presentation";
 import { Paginated } from "@/types";
 import { createColumnHelper } from "@tanstack/react-table";
-import { cx } from "class-variance-authority";
 import { motion } from "framer-motion";
-import { Edit, Tag } from "lucide-react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React from "react";
 
 interface CustomerListProps {
@@ -19,42 +14,20 @@ interface CustomerListProps {
 }
 
 export default function CustomerList({ customers }: CustomerListProps) {
-  const { isCustomerFormModalOpen, setCustomerFormModalOpen } = useUIStore();
+  const router = useRouter();
 
   const columnHelper = createColumnHelper<Customer>();
   const columns = React.useMemo(
     () => [
       columnHelper.accessor("customerId", {
         header: "ID",
-        cell: (info) => (
-          <MonoText className="font-semibold">#{info.getValue()}</MonoText>
-        ),
+        cell: (info) => <MonoText>#{info.getValue()}</MonoText>,
       }),
       columnHelper.accessor("name", {
         header: "Name",
         cell: (info) => {
           const customer = info.row.original;
-          const hasSpecialPricing = (customer.specialPricings?.length ?? 0) > 0;
-
-          return (
-            <div
-              className={cx(
-                "flex items-center gap-2",
-                customer.status === CustomerStatus.INACTIVE
-                  ? "opacity-60"
-                  : "opacity-100 text-primary",
-              )}
-            >
-              <Link
-                onClick={(e) => e.stopPropagation()}
-                href={`/customers/${customer.customerId}`}
-                className="font-medium hover:underline text-primary"
-              >
-                {info.getValue()}
-              </Link>
-              {hasSpecialPricing && <Tag className="w-4 h-4 text-orange-500" />}
-            </div>
-          );
+          return <CustomerName customer={customer} />;
         },
       }),
 
@@ -62,32 +35,13 @@ export default function CustomerList({ customers }: CustomerListProps) {
         header: "Phone",
         cell: (info) => <MonoText>{info.getValue()}</MonoText>,
       }),
+      columnHelper.accessor("address", {
+        header: "Address",
+        cell: (info) => <span className="text-xs">{info.getValue()}</span>,
+      }),
       columnHelper.accessor("barangay", {
         header: "Barangay",
         cell: (info) => <span className="text-xs">{info.getValue()}</span>,
-      }),
-
-      columnHelper.display({
-        id: "actions",
-        header: "Actions",
-        meta: {
-          align: "right",
-        },
-        cell: (info) => {
-          const customer = info.row.original;
-          return (
-            <div
-              className="flex items-center gap-2 justify-end"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <RoleGuard allowedRoles={[UserRole.ADMIN, UserRole.CASHIER]}>
-                <CustomerFormModalButton customer={customer} variant="outline">
-                  <Edit size={16} />
-                </CustomerFormModalButton>
-              </RoleGuard>
-            </div>
-          );
-        },
       }),
     ],
     [],
@@ -104,7 +58,11 @@ export default function CustomerList({ customers }: CustomerListProps) {
           columns={columns}
           data={customers.rows}
           emptyMessage="No customers found."
+          onRowClick={(row) => router.push(`/customers/${row.customerId}`)}
         />
+        {customers.pagination && customers.pagination.totalPages > 1 && (
+          <Pager initial={customers.pagination} />
+        )}
       </motion.div>
     </>
   );

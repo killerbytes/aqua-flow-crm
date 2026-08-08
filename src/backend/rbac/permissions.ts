@@ -7,6 +7,7 @@ export type PermissionAction =
   | "MANAGE_CUSTOMERS"
   | "CREATE_PRODUCT"
   | "MANAGE_PRODUCTS"
+  | "VIEW_PRODUCTS"
   | "ADJUST_INVENTORY"
   | "CREATE_ORDER"
   | "UPDATE_ORDER"
@@ -23,6 +24,7 @@ const ROLE_PERMISSIONS: Record<UserRole, PermissionAction[]> = {
     "MANAGE_CUSTOMERS",
     "CREATE_PRODUCT",
     "MANAGE_PRODUCTS",
+    "VIEW_PRODUCTS",
     "ADJUST_INVENTORY",
     "CREATE_ORDER",
     "UPDATE_ORDER",
@@ -36,6 +38,7 @@ const ROLE_PERMISSIONS: Record<UserRole, PermissionAction[]> = {
     "MANAGE_CUSTOMERS",
     "CREATE_PRODUCT",
     "MANAGE_PRODUCTS",
+    "VIEW_PRODUCTS",
     "ADJUST_INVENTORY",
     "CREATE_ORDER",
     "UPDATE_ORDER",
@@ -45,6 +48,7 @@ const ROLE_PERMISSIONS: Record<UserRole, PermissionAction[]> = {
   ],
   [UserRole.CASHIER]: [
     "CREATE_CUSTOMER",
+    "VIEW_PRODUCTS",
     "MANAGE_CUSTOMERS",
     "CREATE_ORDER",
     "UPDATE_ORDER",

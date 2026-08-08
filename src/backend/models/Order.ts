@@ -1,4 +1,4 @@
-import { OrderStatus, PaymentStatus } from "@/lib/definitions";
+import { OrderStatus, PaymentMethod, PaymentStatus } from "@/lib/definitions";
 import { CreationOptional, DataTypes, Model, NonAttribute } from "sequelize";
 import { sequelize } from "../db/database";
 import { Customer } from "./Customer";
@@ -11,6 +11,9 @@ export class Order extends Model {
   declare totalAmount: number;
   declare status: OrderStatus;
   declare paymentStatus: PaymentStatus;
+  declare paymentMethod: PaymentMethod;
+  declare paymentNotes: string;
+
   declare createdBy: number;
 
   declare createdAt: CreationOptional<Date>;
@@ -36,6 +39,12 @@ Order.init(
     paymentStatus: {
       type: DataTypes.ENUM(...Object.values(PaymentStatus)),
       defaultValue: PaymentStatus.UNPAID,
+    },
+    paymentMethod: {
+      type: DataTypes.ENUM(...Object.values(PaymentMethod)),
+    },
+    paymentNotes: {
+      type: DataTypes.TEXT,
     },
     createdBy: { type: DataTypes.INTEGER, allowNull: false },
   },

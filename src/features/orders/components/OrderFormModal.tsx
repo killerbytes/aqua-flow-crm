@@ -9,7 +9,7 @@ import { ProductInventory } from "@/backend/models";
 import { OrderSchema } from "@/backend/schemas/zodSchemas";
 import CustomerLookup from "@/components/CustomerLookup";
 import Modal from "@/components/Modal";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   DialogDescription,
   DialogHeader,
@@ -20,7 +20,6 @@ import {
   FieldError,
   FieldGroup,
   FieldLabel,
-  FieldSet,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
@@ -61,13 +60,8 @@ export function OrderFormModal() {
 
 export const OrderFormModalContent = () => {
   const router = useRouter();
-  const {
-    isOrderModalOpen,
-    setOrderFormModalOpen,
-    setCustomerLookupModalOpen,
-    products,
-    setProducts,
-  } = useUIStore();
+  const { isOrderModalOpen, setOrderFormModalOpen, products, setProducts } =
+    useUIStore();
   const [customers, setCustomers] = useState<any[]>([]);
   const [isPending, startTransition] = useTransition();
 
@@ -141,7 +135,7 @@ export const OrderFormModalContent = () => {
   return (
     <>
       <DialogHeader>
-        <DialogTitle className="flex flex-row gap-3">
+        <DialogTitle className="flex flex-row gap-2 items-center">
           <ShoppingBag className="w-5 h-5" />
           Create Order
         </DialogTitle>
@@ -154,20 +148,14 @@ export const OrderFormModalContent = () => {
             control={control}
             rules={{ required: "Customer selection is required" }}
             render={({ field }) => (
-              <Field>
+              <Field data-invalid={!!errors.customerId?.message}>
                 <FieldLabel>Customer</FieldLabel>
                 <CustomerLookup
                   onSelect={(e) => {
                     form.setValue("customerId", Number(e));
                   }}
                 >
-                  <FieldLabel
-                    onClick={() => setCustomerLookupModalOpen(true)}
-                    className={buttonVariants({
-                      variant: "outline",
-                      className: "w-full cursor-pointer justify-start",
-                    })}
-                  >
+                  <FieldLabel className="w-full cursor-pointer justify-start">
                     {customers.find((c) => c.customerId === field.value)
                       ?.name || (
                       <div
@@ -177,14 +165,13 @@ export const OrderFormModalContent = () => {
                       </div>
                     )}
                   </FieldLabel>
-                  <FieldError>{errors.customerId?.message}</FieldError>
                 </CustomerLookup>
               </Field>
             )}
           />
         </FieldGroup>
 
-        <div className="grid grid-cols-2 gap-4">
+        {/* <div className="grid grid-cols-2 gap-4">
           <FieldSet>
             <Controller
               name="paymentStatus"
@@ -215,7 +202,7 @@ export const OrderFormModalContent = () => {
               )}
             />
           </FieldSet>
-        </div>
+        </div> */}
 
         <div>
           <div className="flex justify-between items-center mb-2">
@@ -235,73 +222,91 @@ export const OrderFormModalContent = () => {
           <div className="space-y-3">
             {fields.map((fieldItem, idx) => (
               <div key={fieldItem.id} className="flex gap-3 items-center">
-                <div className="flex-1">
+                <FieldGroup className="flex flex-row gap-2">
                   <Controller
                     name={`items.${idx}.productId`}
                     control={control}
                     rules={{ required: "Product is required" }}
                     render={({ field }) => (
-                      <Select
-                        {...field}
-                        value={field.value}
-                        onValueChange={(value) => {
-                          field.onChange(value);
+                      <Field>
+                        <Select
+                          {...field}
+                          value={field.value}
+                          onValueChange={(value) => {
+                            field.onChange(value);
 
-                          form.setValue(
-                            `items.${idx}.unitPrice`,
-                            products.find(
-                              (p: ProductInventory) => p.productId === value,
-                            )?.unitPrice || 0,
-                          );
-                        }}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select product...">
-                            {(val) =>
+                            form.setValue(
+                              `items.${idx}.unitPrice`,
                               products.find(
-                                (p: ProductInventory) =>
-                                  String(p.productId) === String(val),
-                              )?.name
+                                (p: ProductInventory) => p.productId === value,
+                              )?.unitPrice || 0,
+                            );
+                          }}
+                        >
+                          <SelectTrigger
+                            aria-invalid={
+                              !!errors.items?.[idx]?.productId?.message
                             }
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {products
-                            .filter((i) => !i.isLendOnly)
-                            .filter((p: ProductInventory) => {
-                              const usedProductIds = (watchFields || [])
-                                .filter((_, i) => i !== idx)
-                                .map((item: any) => Number(item?.productId));
-                              return (
-                                p.productId === Number(field.value) ||
-                                !usedProductIds.includes(Number(p.productId))
-                              );
-                            })
-                            .map((p: ProductInventory) => (
-                              <SelectItem key={p.productId} value={p.productId}>
-                                {p.name} ({formatCurrency(p.unitPrice)})
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
+                            className="w-full"
+                          >
+                            <SelectValue placeholder="Select product...">
+                              {(val) =>
+                                products.find(
+                                  (p: ProductInventory) =>
+                                    String(p.productId) === String(val),
+                                )?.name
+                              }
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {products
+                              .filter((i) => !i.isLendOnly)
+                              .filter((p: ProductInventory) => {
+                                const usedProductIds = (watchFields || [])
+                                  .filter((_, i) => i !== idx)
+                                  .map((item: any) => Number(item?.productId));
+                                return (
+                                  p.productId === Number(field.value) ||
+                                  !usedProductIds.includes(Number(p.productId))
+                                );
+                              })
+                              .map((p: ProductInventory) => (
+                                <SelectItem
+                                  key={p.productId}
+                                  value={p.productId}
+                                >
+                                  {p.name} ({formatCurrency(p.unitPrice)})
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
                     )}
                   />
-                </div>
-                <div className="w-28">
                   <Controller
                     name={`items.${idx}.quantity`}
                     control={control}
                     rules={{ min: 1 }}
                     render={({ field }) => (
-                      <Input
-                        type="number"
-                        min="1"
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                      />
+                      <Field className="w-1/4">
+                        <Input
+                          type="number"
+                          min="1"
+                          {...field}
+                          aria-invalid={
+                            !!errors.items?.[idx]?.quantity?.message
+                          }
+                          onChange={(e) =>
+                            field.onChange(Number(e.target.value))
+                          }
+                        />
+                        <FieldError>
+                          {errors.items?.[idx]?.quantity?.message}
+                        </FieldError>
+                      </Field>
                     )}
                   />
-                </div>
+                </FieldGroup>
                 {fields.length > 1 && (
                   <Button
                     size="icon"

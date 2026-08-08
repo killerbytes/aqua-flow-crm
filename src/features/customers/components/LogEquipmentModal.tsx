@@ -14,6 +14,7 @@ import {
   FieldError,
   FieldGroup,
   FieldLabel,
+  FieldSet,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
@@ -25,11 +26,12 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
-import { EquipmentActionType } from "@/lib/definitions";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { ActionType, TemporaryEquipmentActionType } from "@/lib/definitions";
 import { useUIStore } from "@/store/uiStore";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import React, { useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 interface LogEquipmentModalProps {
@@ -43,6 +45,7 @@ function LogEquipmentModalContent({
 }: LogEquipmentModalProps) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const [isTemp, setIsTemp] = React.useState(false);
   const { selectedCustomerId, selectedProductId, setEquipmentLogModalOpen } =
     useUIStore();
 
@@ -51,9 +54,7 @@ function LogEquipmentModalContent({
     defaultValues: {
       customerId: Number(selectedCustomerId),
       productId: Number(selectedProductId || 0),
-      actionType: selectedProductId
-        ? EquipmentActionType.TEMPORARY_RETURNED
-        : EquipmentActionType.TEMPORARY,
+      actionType: undefined,
       quantity: 1,
       notes: "",
     },
@@ -85,6 +86,7 @@ function LogEquipmentModalContent({
       }
     });
   };
+  console.log(errors);
 
   return (
     <Modal
@@ -95,110 +97,130 @@ function LogEquipmentModalContent({
       maxWidth="md"
     >
       <form onSubmit={handleSubmit(handleSave)} className="space-y-4">
-        <FieldGroup>
+        <Field orientation="horizontal">
+          <ToggleGroup
+            variant="outline"
+            size="sm"
+            className="gap-0 grid grid-cols-2 w-full"
+            value={isTemp ? ["temp"] : ["fixed"]}
+            onValueChange={(value) => {
+              setIsTemp(value.length > 0 && value[0] === "temp");
+              form.setValue("actionType", "" as any);
+            }}
+          >
+            <ToggleGroupItem
+              className="rounded-r-none focus:z-10"
+              value="fixed"
+            >
+              Fixed
+            </ToggleGroupItem>
+            <ToggleGroupItem className="rounded-l-none focus:z-10" value="temp">
+              Temporary
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </Field>
+        <Controller
+          name="productId"
+          control={control}
+          rules={{ required: "Product is required" }}
+          render={({ field }) => (
+            <Field>
+              <FieldLabel>Equipment / Product</FieldLabel>
+              <Select
+                {...field}
+                value={field.value}
+                onValueChange={field.onChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a product...">
+                    {(val) =>
+                      products.find(
+                        (p: ProductInventory) =>
+                          String(p.productId) === String(val),
+                      )?.name
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {products.map((p: ProductInventory) => (
+                    <SelectItem key={p.productId} value={Number(p.productId)}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FieldError>{errors.productId?.message}</FieldError>
+            </Field>
+          )}
+        />
+
+        <FieldSet className="grid grid-cols-2 gap-4">
           <Controller
-            name="productId"
+            name="actionType"
             control={control}
-            rules={{ required: "Product is required" }}
             render={({ field }) => (
               <Field>
-                <FieldLabel>Equipment / Product</FieldLabel>
+                <FieldLabel>Action Type</FieldLabel>
                 <Select
-                  {...field}
-                  value={field.value}
-                  onValueChange={field.onChange}
+                  key={`${isTemp ? "temp" : "std"}-${field.value ?? ""}`}
+                  value={field.value ?? ""}
+                  onValueChange={(val) => field.onChange(val)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a product...">
-                      {(val) =>
-                        products.find(
-                          (p: ProductInventory) =>
-                            String(p.productId) === String(val),
-                        )?.name
-                      }
-                    </SelectValue>
+                    <SelectValue placeholder="Select action" />
                   </SelectTrigger>
                   <SelectContent>
-                    {products.map((p: ProductInventory) => (
-                      <SelectItem key={p.productId} value={Number(p.productId)}>
-                        {p.name}
+                    <SelectItem value=""></SelectItem>
+
+                    {Object.values(
+                      isTemp ? TemporaryEquipmentActionType : ActionType,
+                    ).map((actionType) => (
+                      <SelectItem key={actionType} value={actionType}>
+                        {actionType}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <FieldError>{errors.productId?.message}</FieldError>
+                <FieldError>{errors.actionType?.message}</FieldError>
               </Field>
             )}
           />
-        </FieldGroup>
 
-        <div className="grid grid-cols-2 gap-4">
-          <FieldGroup>
-            <Controller
-              name="actionType"
-              control={control}
-              render={({ field }) => (
-                <Field>
-                  <FieldLabel>Action Type</FieldLabel>
-                  <Select
-                    {...field}
-                    value={field.value}
-                    onValueChange={field.onChange}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select action" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.values(EquipmentActionType).map((actionType) => (
-                        <SelectItem key={actionType} value={actionType}>
-                          {actionType}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-              )}
-            />
-          </FieldGroup>
-
-          <FieldGroup>
-            <Controller
-              name="quantity"
-              control={control}
-              rules={{
-                required: "Quantity is required",
-                min: { value: 1, message: "Min quantity is 1" },
-              }}
-              render={({ field }) => (
-                <Field>
-                  <FieldLabel>Quantity</FieldLabel>
-                  <Input
-                    type="number"
-                    min="1"
-                    placeholder="1"
-                    {...field}
-                    onChange={(e) => field.onChange(Number(e.target.value))}
-                  />
-                  <FieldError>{errors.quantity?.message}</FieldError>
-                </Field>
-              )}
-            />
-          </FieldGroup>
-        </div>
-
-        <FieldGroup>
           <Controller
-            name="notes"
+            name="quantity"
             control={control}
+            rules={{
+              required: "Quantity is required",
+              min: { value: 1, message: "Min quantity is 1" },
+            }}
             render={({ field }) => (
               <Field>
-                <FieldLabel>Notes</FieldLabel>
-                <Textarea placeholder="Additional notes..." {...field} />
-                <FieldError>{errors.notes?.message}</FieldError>
+                <FieldLabel>Quantity</FieldLabel>
+                <Input
+                  type="number"
+                  min="1"
+                  placeholder="1"
+                  {...field}
+                  onChange={(e) => field.onChange(Number(e.target.value))}
+                />
+                <FieldError>{errors.quantity?.message}</FieldError>
               </Field>
             )}
           />
-        </FieldGroup>
+        </FieldSet>
+        <FieldGroup></FieldGroup>
+
+        <Controller
+          name="notes"
+          control={control}
+          render={({ field }) => (
+            <Field>
+              <FieldLabel>Notes</FieldLabel>
+              <Textarea placeholder="Additional notes..." {...field} />
+              <FieldError>{errors.notes?.message}</FieldError>
+            </Field>
+          )}
+        />
 
         <DialogFooter className="pt-4">
           <Button type="button" onClick={onClose} variant="outline">

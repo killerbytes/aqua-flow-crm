@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { getAuthContext, requireAuth } from "../auth/context";
 import { initDatabase } from "../db/database";
 import { checkPermission } from "../rbac/permissions";
+import { ChangePasswordData } from "../schemas/zodSchemas";
 import { AuthService } from "../services/auth.service";
 
 export async function loginAction(username: string, password: string) {
@@ -62,6 +63,22 @@ export async function deleteUserAction(id: number | string) {
   }
 
   const result = await AuthService.deleteUser(id);
+  revalidatePath("/users");
+  return result;
+}
+
+export async function changePasswordAction(
+  id: number,
+  input: ChangePasswordData,
+) {
+  await initDatabase();
+  const context = await getAuthContext();
+  const user = requireAuth(context);
+  if (!checkPermission(user.role, "MANAGE_USERS")) {
+    throw new Error("Forbidden: insufficient permissions");
+  }
+
+  const result = await AuthService.changePassword(id, input);
   revalidatePath("/users");
   return result;
 }

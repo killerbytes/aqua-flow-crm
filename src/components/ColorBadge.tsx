@@ -1,1 +1,1 @@
-export { ColorBadge as default } from "./ui/presentation";
+export { ColorBadge as default } from "./presentation";

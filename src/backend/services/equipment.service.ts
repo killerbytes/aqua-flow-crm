@@ -171,9 +171,9 @@ export class EquipmentService {
     }
 
     // Map EquipmentActionType to Double-Entry Ledger Accounts
-    let fromAccountType = LedgerAccountType.STATION;
+    let fromAccountType: LedgerAccountType = LedgerAccountType.STATION;
     let fromAccountId: number | null = null;
-    let toAccountType = LedgerAccountType.CUSTOMER;
+    let toAccountType: LedgerAccountType = LedgerAccountType.CUSTOMER;
     let toAccountId: number | null = customerId;
 
     switch (actionType) {

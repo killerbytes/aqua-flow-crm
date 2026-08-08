@@ -29,6 +29,7 @@ export default function ActionButtons({
     setProductFormModalOpen,
     setOrderFormModalOpen,
     setInventoryAdjustmentModalOpen,
+    setSpecialPricingModalOpen,
   } = useUIStore();
 
   switch (id) {
@@ -58,9 +59,9 @@ export default function ActionButtons({
     case "CUSTOMER_LOOKUP_BUTTON":
       return (
         <Button
-          variant="outline"
+          variant={variant}
           onClick={() => setCustomerLookupModalOpen(true)}
-          className="gap-2"
+          className={className}
         >
           {children}
         </Button>
@@ -90,6 +91,16 @@ export default function ActionButtons({
         <Button
           variant={variant}
           onClick={() => setInventoryAdjustmentModalOpen(true, product)}
+          className={className}
+        >
+          {children}
+        </Button>
+      );
+    case "SPECIAL_PRICING_MODAL_BUTTON":
+      return (
+        <Button
+          variant={variant}
+          onClick={() => setSpecialPricingModalOpen(true, customer)}
           className={className}
         >
           {children}
@@ -151,10 +162,22 @@ export const LogEquipmentButton = ({
 
 export const CustomerLookupButton = ({
   children,
+  variant,
+  className,
 }: {
   children: React.ReactNode;
+  variant?: VariantProps<typeof buttonVariants>["variant"];
+  className?: string;
 }) => {
-  return <ActionButtons id="CUSTOMER_LOOKUP_BUTTON">{children}</ActionButtons>;
+  return (
+    <ActionButtons
+      variant={variant}
+      className={className}
+      id="CUSTOMER_LOOKUP_BUTTON"
+    >
+      {children}
+    </ActionButtons>
+  );
 };
 
 export const OrderFormModalButton = ({
@@ -218,6 +241,29 @@ export const InventoryAdjustmentModalButton = ({
       variant={variant}
       className={className}
       product={product}
+    >
+      {children}
+    </ActionButtons>
+  );
+};
+
+export const SpecialPricingModalButton = ({
+  children,
+  variant,
+  className,
+  customer,
+}: {
+  children: React.ReactNode;
+  variant?: VariantProps<typeof buttonVariants>["variant"];
+  className?: string;
+  customer: Customer;
+}) => {
+  return (
+    <ActionButtons
+      id="SPECIAL_PRICING_MODAL_BUTTON"
+      variant={variant}
+      className={className}
+      customer={customer}
     >
       {children}
     </ActionButtons>

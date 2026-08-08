@@ -2,11 +2,11 @@
 import { lookupCustomerAction } from "@/backend/actions";
 import { Customer } from "@/backend/models";
 import useDebounce from "@/hooks/useDebounce";
-import { useUIStore } from "@/store/uiStore";
+import { VariantProps } from "class-variance-authority";
 import { Loader2, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
-import { Button } from "./ui/button";
+import { Button, buttonVariants } from "./ui/button";
 import {
   Command,
   CommandDialog,
@@ -18,20 +18,17 @@ import {
 } from "./ui/command";
 
 function CustomerLookupContent({
-  isOpen,
   onClose,
   onSelect,
   isActiveOnly = false,
 }: {
-  isOpen: boolean;
   onClose: () => void;
-  onSelect?: (e: string) => void;
+  onSelect: (e: string) => void;
   isActiveOnly?: boolean;
 }) {
   const [term, setTerm] = useState<string>();
   const debouncedTerm = useDebounce(term, 500);
   const [customers, setCustomers] = React.useState<Customer[]>([]);
-  const { isCustomerLookupModalOpen, setCustomerFormModalOpen } = useUIStore();
   const [loading, setLoading] = useState<boolean>(false);
   const router = useRouter();
   const getData = async () => {
@@ -50,18 +47,15 @@ function CustomerLookupContent({
 
   const handleSelect = (id: string) => {
     onClose();
-    onSelect ? onSelect(id) : router.push(`/customers/${id}`);
+    onSelect(id);
   };
 
   return (
     <div className="flex flex-col gap-4" onClick={(e) => e.stopPropagation()}>
-      <CommandDialog
-        open={isCustomerLookupModalOpen}
-        onOpenChange={onClose}
-        showCloseButton
-      >
+      <CommandDialog open onOpenChange={onClose} showCloseButton>
         <Command shouldFilter={false}>
           <CommandInput
+            value={term}
             onValueChange={setTerm}
             placeholder="Search customer..."
           />
@@ -82,7 +76,6 @@ function CustomerLookupContent({
                         variant="outline"
                         onClick={() => {
                           onClose();
-                          setCustomerFormModalOpen(true);
                         }}
                       >
                         <UserPlus className="h-4 w-4" /> New Customer
@@ -123,24 +116,33 @@ export default function CustomerLookup({
   isActiveOnly,
   onSelect,
   children,
+  variant = "outline",
 }: {
   isActiveOnly?: boolean;
-  onSelect?: (e: string) => void;
+  onSelect?: (id: string) => void;
   children?: React.ReactNode;
+  variant?: VariantProps<typeof buttonVariants>["variant"];
 }) {
-  const { isCustomerLookupModalOpen, setCustomerLookupModalOpen } =
-    useUIStore();
+  const [isOpen, setIsOpen] = React.useState(false);
+  const router = useRouter();
+
+  const handleSelect = (id: string) => {
+    setIsOpen(false);
+    onSelect ? onSelect(id) : router.push(`/customers/${id}`);
+  };
+
   return (
     <>
-      {children}
-      <CustomerLookupContent
-        isOpen={isCustomerLookupModalOpen}
-        onClose={() => {
-          setCustomerLookupModalOpen(false);
-        }}
-        isActiveOnly={isActiveOnly}
-        onSelect={onSelect}
-      />
+      <Button onClick={() => setIsOpen(true)} variant={variant}>
+        {children}
+      </Button>
+      {isOpen && (
+        <CustomerLookupContent
+          onSelect={handleSelect}
+          onClose={() => setIsOpen(false)}
+          isActiveOnly={isActiveOnly}
+        />
+      )}
     </>
   );
 }

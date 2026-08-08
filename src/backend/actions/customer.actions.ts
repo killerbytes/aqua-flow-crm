@@ -4,7 +4,11 @@ import { revalidatePath } from "next/cache";
 import { getAuthContext, requireAuth } from "../auth/context";
 import { initDatabase } from "../db/database";
 import { checkPermission } from "../rbac/permissions";
-import { CustomerFormData, EquipmentLogFormData } from "../schemas/zodSchemas";
+import {
+  CustomerFormData,
+  EquipmentLogFormData,
+  SpecialPricingFormData,
+} from "../schemas/zodSchemas";
 import { CustomerService } from "../services/customer.service";
 import { EquipmentService } from "../services/equipment.service";
 
@@ -88,5 +92,18 @@ export async function logEquipmentAction(input: EquipmentLogFormData) {
   const result = await EquipmentService.logEquipment(input, user.userId);
   revalidatePath("/inventory");
   revalidatePath("/customers");
+  return result;
+}
+
+export async function setSpecialPricingAction(input: SpecialPricingFormData) {
+  await initDatabase();
+  const context = await getAuthContext();
+  const user = requireAuth(context);
+  if (!checkPermission(user.role, "MANAGE_CUSTOMERS")) {
+    throw new Error("Forbidden: insufficient permissions");
+  }
+
+  const result = await CustomerService.setSpecialPricing(input);
+  revalidatePath(`/customers/${input.customerId}`);
   return result;
 }

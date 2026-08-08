@@ -3,6 +3,7 @@ import {
   EquipmentActionType,
   InventoryAdjustmentType,
   OrderStatus,
+  PaymentMethod,
   PaymentStatus,
   UserRole,
 } from "@/lib/definitions";
@@ -17,15 +18,27 @@ export const CustomerSchema = z.object({
     .regex(/^(?:\+63|0)\s?9\d{2}[\s-]?\d{3}[\s-]?\d{4}$/, {
       message: "Invalid mobile number",
     })
-    .optional(),
+    .or(z.literal(""))
+    .or(z.null())
+    .or(z.undefined()),
   notes: z.string().optional(),
   barangayId: z.string().optional(),
   status: z.nativeEnum(CustomerStatus).optional(),
 });
 
+export const SpecialPricingSchema = z.object({
+  customerId: z.number().int().positive(),
+  productId: z.number().int().positive("Product is required"),
+  discountAmount: z.coerce.number().positive("Discount amount is required"),
+});
+
 export const ProductInventorySchema = z.object({
   name: z.string().min(2, "Product name required"),
   unitPrice: z.coerce.number().nonnegative(),
+  stockInStation: z.coerce.number().optional(),
+  stockWithCustomers: z.coerce.number().optional(),
+  stockDamaged: z.coerce.number().optional(),
+  stockLost: z.coerce.number().optional(),
   isLendOnly: z.boolean().optional(),
   isDefault: z.boolean().optional(),
 });
@@ -61,9 +74,19 @@ export const OrderSchema = z.object({
         quantity: z.number().int().positive(),
         unitPrice: z.number().positive(),
         discount: z.number().min(0).optional().default(0),
-      })
+      }),
     )
     .min(1, "At least one item is required"),
+});
+
+export const PaymentSchema = OrderSchema.omit({
+  customerId: true,
+  status: true,
+  items: true,
+  paymentStatus: true,
+}).extend({
+  paymentMethod: z.nativeEnum(PaymentMethod),
+  paymentNotes: z.string().optional(),
 });
 
 export const UserSchema = z.object({
@@ -87,6 +110,24 @@ export const UserFormSchema = UserSchema.extend({
   path: ["confirmPassword"],
 });
 
+export const UserFormUpdateSchema = UserSchema.omit({
+  password: true,
+});
+
+export const ChangePasswordSchema = UserSchema.extend({
+  confirmPassword: z.string().min(4, "Password must be at least 4 characters"),
+})
+  .omit({
+    name: true,
+    username: true,
+    role: true,
+    isActive: true,
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
 export const AdjustmentSchema = z.object({
   productId: z.number().int().positive("Product is required"),
   adjustmentType: z.nativeEnum(InventoryAdjustmentType),
@@ -102,4 +143,8 @@ export type ProductFormData = z.infer<typeof ProductInventorySchema>;
 export type CustomerFormData = z.infer<typeof CustomerSchema>;
 export type LoginFormData = z.infer<typeof LoginSchema>;
 export type UserFormData = z.infer<typeof UserFormSchema>;
+export type UserFormUpdateData = z.infer<typeof UserFormUpdateSchema>;
+export type ChangePasswordData = z.infer<typeof ChangePasswordSchema>;
 export type EquipmentLogFormData = z.infer<typeof EquipmentLogSchema>;
+export type SpecialPricingFormData = z.infer<typeof SpecialPricingSchema>;
+export type PaymentFormData = z.infer<typeof PaymentSchema>;

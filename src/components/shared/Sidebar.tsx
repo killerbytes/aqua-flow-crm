@@ -108,19 +108,13 @@ export default function Sidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
+          <CustomerLookup>
+            <Search /> Search Customer
+          </CustomerLookup>
+
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="gap-1">
-              <SidebarMenuItem>
-                <CustomerLookup>
-                  <SidebarMenuButton
-                    onClick={() => setCustomerLookupModalOpen(true)}
-                  >
-                    <Search />
-                    Search Customer
-                  </SidebarMenuButton>
-                </CustomerLookup>
-              </SidebarMenuItem>
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive =
@@ -196,7 +190,7 @@ export default function Sidebar() {
                     </span>
                   </p>
                 </div>
-                <Button onClick={handleLogout} size="icon">
+                <Button variant="outline" onClick={handleLogout} size="icon">
                   <LogOut size={16} />
                 </Button>
               </div>

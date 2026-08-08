@@ -1,10 +1,10 @@
 import {
   ArrowLeft,
   ArrowRightLeft,
-  BadgePercent,
   ClockAlert,
   Edit,
   Package,
+  Tag,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -23,8 +23,10 @@ import { CommonService } from "@/backend/services/commonService";
 import {
   CustomerFormModalButton,
   LogEquipmentButton,
+  SpecialPricingModalButton,
 } from "@/components/ActionButtons";
 import { RoleGuard } from "@/components/auth/RoleGuard";
+import { ColorBadge } from "@/components/presentation";
 import {
   Card,
   CardContent,
@@ -32,10 +34,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ColorBadge } from "@/components/ui/presentation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CustomerFormModal } from "@/features/customers/components/CustomerFormModal";
 import { LogEquipmentModal } from "@/features/customers/components/LogEquipmentModal";
+import { SpecialPricingModal } from "@/features/customers/components/SpecialPricingModal";
 import OrderList from "@/features/orders/components/OrderList";
 import EquipmentLogs from "@/features/products/components/EquipmentLogs";
 import { CUSTOMER_STATUS_BADGE_COLOR, UserRole } from "@/lib/definitions";
@@ -112,6 +114,11 @@ export default async function CustomerPage({
                 <Edit className="w-4 h-4" />
                 Edit Customer
               </CustomerFormModalButton>
+              <SpecialPricingModalButton customer={customer} variant="outline">
+                <Tag className="w-4 h-4 text-orange-500" />
+                Special Discount
+              </SpecialPricingModalButton>
+
               <LogEquipmentButton customer={customer} variant="secondary">
                 <ArrowRightLeft size={16} /> Log Equipment
               </LogEquipmentButton>
@@ -206,7 +213,7 @@ export default async function CustomerPage({
             {customer.specialPricings.length > 0 && (
               <div className="pt-4 border-t space-y-3">
                 <h2 className="text-sm font-semibold flex items-center gap-2">
-                  <BadgePercent size={16} /> Special Discount
+                  <Tag className="text-orange-500" size={16} /> Special Discount
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {customer.specialPricings.map(
@@ -231,42 +238,37 @@ export default async function CustomerPage({
         )}
       </div>
 
-      <Tabs defaultValue="history">
+      <Tabs defaultValue="logs">
         <TabsList>
-          <TabsTrigger value="history">Order History</TabsTrigger>
           <TabsTrigger value="logs">Equipment Logs</TabsTrigger>
+          <TabsTrigger value="history">Order History</TabsTrigger>
         </TabsList>
-        <TabsContent value="history">
-          <Card>
-            <CardHeader>
-              <CardTitle>Order History</CardTitle>
-              <CardDescription>
-                View your key metrics and recent project activity. Track
-                progress across all your active projects.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <OrderList orders={orders} />
-            </CardContent>
-          </Card>
-        </TabsContent>
         <TabsContent value="logs">
           <Card>
             <CardHeader>
               <CardTitle>Equipment Logs</CardTitle>
-              <CardDescription>
-                Track performance and user engagement metrics. Monitor trends
-                and identify growth opportunities.
-              </CardDescription>
+              <CardDescription>Track equipment loan history.</CardDescription>
             </CardHeader>
             <CardContent>
               <EquipmentLogs logsPromise={logsPromise} />
             </CardContent>
           </Card>
         </TabsContent>
+        <TabsContent value="history">
+          <Card>
+            <CardHeader>
+              <CardTitle>Order History</CardTitle>
+              <CardDescription>View order history</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <OrderList orders={orders} />
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
       <CustomerFormModal barangays={barangays} />
       <LogEquipmentModal products={products} />
+      <SpecialPricingModal products={products} />
     </>
   );
 }

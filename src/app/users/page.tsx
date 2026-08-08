@@ -1,5 +1,6 @@
 import { initDatabase } from "@/backend/db/database";
 import { AuthService } from "@/backend/services";
+import { ChangePasswordModal } from "@/features/users/components/ChangePasswordModal";
 import { UserFormModal } from "@/features/users/components/UserFormModal";
 import UserList from "@/features/users/components/UserList";
 import { UserListActions } from "@/features/users/components/UserListActions";
@@ -35,6 +36,7 @@ export default async function UsersPage() {
 
       <UserList users={users} />
       <UserFormModal />
+      <ChangePasswordModal />
     </div>
   );
 }

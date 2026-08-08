@@ -1,11 +1,11 @@
 "use server";
 
+import { OrderStatus } from "@/lib/definitions";
 import { revalidatePath } from "next/cache";
 import { getAuthContext, requireAuth } from "../auth/context";
 import { initDatabase } from "../db/database";
 import { checkPermission } from "../rbac/permissions";
 import { OrderService } from "../services/order.service";
-import { OrderStatus } from "@/lib/definitions";
 
 export async function createOrderAction(input: any) {
   await initDatabase();
@@ -45,6 +45,19 @@ export async function deleteOrderAction(id: number | string) {
   }
 
   const result = await OrderService.delete(id);
+  revalidatePath("/orders");
+  return result;
+}
+
+export async function makePaymentAction(id: number | string, input: any) {
+  await initDatabase();
+  const context = await getAuthContext();
+  const user = requireAuth(context);
+  if (!checkPermission(user.role, "UPDATE_ORDER")) {
+    throw new Error("Forbidden: insufficient permissions");
+  }
+
+  const result = await OrderService.makePayment(Number(id), input);
   revalidatePath("/orders");
   return result;
 }

@@ -48,7 +48,7 @@ export class InventoryService {
     return {
       rows: rows.map((r) => {
         const plain = r.get({ plain: true });
-        let mappedType = InventoryAdjustmentType.STOCK_IN;
+        let mappedType: InventoryAdjustmentType = InventoryAdjustmentType.STOCK_IN;
         if (plain.toAccountType === LedgerAccountType.SCRAP_DAMAGED) {
           mappedType = InventoryAdjustmentType.DECLARED_DAMAGED;
         } else if (plain.toAccountType === LedgerAccountType.SCRAP_LOST) {
@@ -88,8 +88,8 @@ export class InventoryService {
     }
 
     try {
-      let fromAccountType = LedgerAccountType.SUPPLIER;
-      let toAccountType = LedgerAccountType.STATION;
+      let fromAccountType: LedgerAccountType = LedgerAccountType.SUPPLIER;
+      let toAccountType: LedgerAccountType = LedgerAccountType.STATION;
 
       if (adjustmentType === InventoryAdjustmentType.DECLARED_DAMAGED) {
         fromAccountType = LedgerAccountType.STATION;

@@ -1,4 +1,4 @@
-import { Customer, ProductInventory, User } from "@/backend/models";
+import { Customer, Order, ProductInventory, User } from "@/backend/models";
 import { UserRole } from "@/lib/definitions";
 import { create } from "zustand";
 
@@ -23,6 +23,10 @@ interface UIState {
   selectedProductId?: number | null;
   products: ProductInventory[];
   isCustomerLookupModalOpen: boolean;
+  isChangePasswordModalOpen: boolean;
+  isSpecialPricingModalOpen: boolean;
+  isPaymentModalOpen: boolean;
+  editingOrder?: Order | null;
 
   setRole: (role: UserRole) => void;
   setProducts: (products: ProductInventory[]) => void;
@@ -43,6 +47,13 @@ interface UIState {
     product?: ProductInventory | null,
   ) => void;
   setCustomerLookupModalOpen: (open: boolean) => void;
+  setChangePasswordModalOpen: (open: boolean, user: User | null) => void;
+  setSpecialPricingModalOpen: (
+    open: boolean,
+    customer?: Customer | null,
+  ) => void;
+
+  setPaymentModalOpen: (open: boolean, order: Order | null) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -60,6 +71,10 @@ export const useUIStore = create<UIState>((set) => ({
   selectedProductId: null,
   products: [],
   isCustomerLookupModalOpen: false,
+  isChangePasswordModalOpen: false,
+  isSpecialPricingModalOpen: false,
+  isPaymentModalOpen: false,
+  editingOrder: null,
 
   setRole: (role) => set({ currentRole: role }),
   setProducts: (products) => set({ products }),
@@ -80,4 +95,13 @@ export const useUIStore = create<UIState>((set) => ({
     set({ isInventoryAdjustmentModalOpen: open, editingProduct: product }),
   setCustomerLookupModalOpen: (open) =>
     set({ isCustomerLookupModalOpen: open }),
+  setChangePasswordModalOpen: (open, user = null) =>
+    set({ isChangePasswordModalOpen: open, editingUser: user }),
+  setSpecialPricingModalOpen: (open, customer = null) =>
+    set({
+      isSpecialPricingModalOpen: open,
+      editingCustomer: customer,
+    }),
+  setPaymentModalOpen: (open, order = null) =>
+    set({ isPaymentModalOpen: open, editingOrder: order }),
 }));

@@ -2,8 +2,8 @@
 
 import DataTable from "@/components/DataTable";
 import Pager from "@/components/Pager";
+import { ColorBadge, MonoText } from "@/components/presentation";
 import { Badge } from "@/components/ui/badge";
-import { ColorBadge, MonoText } from "@/components/ui/presentation";
 import {
   EQUIPMENT_BADGE_COLOR,
   LEDGER_ACCOUNT_LABELS,
@@ -21,19 +21,12 @@ interface EquipmentLogsProps {
 
 export default function EquipmentLogs({ logsPromise }: EquipmentLogsProps) {
   const data = use(logsPromise);
-  console.log(data);
 
   const columnHelper = createColumnHelper<any>();
   const columns = [
     columnHelper.accessor("logId", {
       header: "Log ID",
-      cell: (info) => (
-        <MonoText className="font-semibold">#{info.getValue()}</MonoText>
-      ),
-    }),
-    columnHelper.accessor("createdAt", {
-      header: "Date",
-      cell: (info) => <MonoText>{formatDateTime(info.getValue())}</MonoText>,
+      cell: (info) => <MonoText>#{info.getValue()}</MonoText>,
     }),
     columnHelper.accessor("customer.name", {
       header: "Customer",
@@ -61,6 +54,7 @@ export default function EquipmentLogs({ logsPromise }: EquipmentLogsProps) {
       header: "Product",
       cell: (info) => info.getValue() || "N/A",
     }),
+
     columnHelper.accessor("fromAccountType", {
       header: "Ledger Transfer (From -> To)",
       cell: (info) => {
@@ -91,6 +85,11 @@ export default function EquipmentLogs({ logsPromise }: EquipmentLogsProps) {
         );
       },
     }),
+    columnHelper.accessor("createdAt", {
+      header: "Date",
+      cell: (info) => <MonoText>{formatDateTime(info.getValue())}</MonoText>,
+    }),
+
     columnHelper.accessor("actionType", {
       header: "Action / Type",
       cell: (info) => {

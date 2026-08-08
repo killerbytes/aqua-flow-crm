@@ -1,6 +1,11 @@
-import { comparePassword, signToken } from "@/lib/auth";
+import { comparePassword, hashPassword, signToken } from "@/lib/auth";
 import { User } from "../models";
-import { UserFormSchema, UserSchema } from "../schemas/zodSchemas";
+import {
+  ChangePasswordData,
+  ChangePasswordSchema,
+  UserFormUpdateSchema,
+  UserSchema,
+} from "../schemas/zodSchemas";
 
 export class AuthService {
   static async login(username: string, password: string) {
@@ -56,20 +61,21 @@ export class AuthService {
 
   static async createUser(input: {
     name: string;
-    email: string;
+    username: string;
     password?: string;
     role: string;
   }) {
     const validatedData = UserSchema.parse(input);
     const user = await User.create({
       ...validatedData,
-      passwordHash: input.password,
+      passwordHash: await hashPassword(validatedData.password),
     } as any);
     return user?.get({ plain: true });
   }
 
   static async updateUser(id: number | string, input: any) {
-    const validatedData = UserFormSchema.parse(input);
+    const validatedData = UserFormUpdateSchema.parse(input);
+
     const user = await User.findByPk(Number(id));
     if (!user) throw new Error("User not found");
     await user.update(validatedData);
@@ -79,5 +85,15 @@ export class AuthService {
   static async deleteUser(id: number | string) {
     const count = await User.destroy({ where: { user_id: Number(id) } });
     return count > 0;
+  }
+
+  static async changePassword(id: number, input: ChangePasswordData) {
+    const validatedData = ChangePasswordSchema.parse(input);
+    const user = await User.findByPk(id);
+    if (!user) throw new Error("User not found");
+    await user.update({
+      passwordHash: await hashPassword(validatedData.password),
+    });
+    return user?.get({ plain: true });
   }
 }

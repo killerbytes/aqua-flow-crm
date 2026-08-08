@@ -2,80 +2,69 @@
 
 import { updateOrderStatusAction } from "@/backend/actions";
 import { Order } from "@/backend/models";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
-import { OrderStatus } from "@/lib/definitions";
-import { Loader2Icon } from "lucide-react";
+import { OrderStatus, PaymentStatus } from "@/lib/definitions";
+import { useUIStore } from "@/store/uiStore";
+import { Banknote, Check, Truck } from "lucide-react";
 import { useTransition } from "react";
 
 export default function OrderActions({ order }: { order: Order }) {
   const [isPending, startTransition] = useTransition();
-
+  const { setPaymentModalOpen } = useUIStore();
   const handleClick = async (status: OrderStatus) => {
     startTransition(async () => {
       await updateOrderStatusAction(order.orderId, status);
     });
   };
   return (
-    <>
-      {order.status === OrderStatus.PENDING && (
-        <Button
-          onClick={() => {
-            handleClick(OrderStatus.OUT_FOR_DELIVERY);
-          }}
-        >
-          Out For Delivery
-        </Button>
-      )}
-      {order.status === OrderStatus.OUT_FOR_DELIVERY && (
-        <Button
-          onClick={() => {
-            handleClick(OrderStatus.DELIVERED);
-          }}
-        >
-          Mark as Delivered
-        </Button>
-      )}
-      {order.status === OrderStatus.DELIVERED && (
-        <AlertDialog>
-          <AlertDialogTrigger
-            render={<Button variant="destructive">Cancel Order</Button>}
-          />
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                Are you sure you want to cancel this order?
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                variant="destructive"
-                disabled={isPending}
-                onClick={() => handleClick(OrderStatus.CANCELLED)}
-              >
-                {isPending && (
-                  <Loader2Icon className="animate-spin" aria-hidden="true" />
-                )}
-                Continue
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
-    </>
+    <div className="flex">
+      <div>
+        {order.status === OrderStatus.DELIVERED && (
+          <ConfirmDialog
+            isLoading={isPending}
+            onConfirm={() => handleClick(OrderStatus.CANCELLED)}
+            title="Are you sure you want to cancel this order?"
+            description="This action cannot be undone."
+            actionButtonText="Cancel Order"
+          >
+            <Button variant="destructive">Cancel Order</Button>
+          </ConfirmDialog>
+        )}
+      </div>
+      <div className="ml-auto flex gap-2">
+        {order.paymentStatus !== PaymentStatus.PAID && (
+          <Button onClick={() => setPaymentModalOpen(true, order)}>
+            <Banknote /> Payment
+          </Button>
+        )}
+        {order.status === OrderStatus.PENDING && (
+          <ConfirmDialog
+            isLoading={isPending}
+            onConfirm={() => handleClick(OrderStatus.OUT_FOR_DELIVERY)}
+            title="Mark order as out for delivery?"
+            description=""
+            actionButtonText="Out For Delivery"
+          >
+            <Button className="bg-orange-500 hover:bg-orange-600">
+              <Truck className="w-4 h-4" /> Out For Delivery
+            </Button>
+          </ConfirmDialog>
+        )}
+        {order.status === OrderStatus.OUT_FOR_DELIVERY && (
+          <ConfirmDialog
+            isLoading={isPending}
+            onConfirm={() => handleClick(OrderStatus.DELIVERED)}
+            title="Mark order as delivered?"
+            description=""
+            actionButtonText="Mark as Delivered"
+          >
+            <Button className="bg-green-500 hover:bg-green-600">
+              <Check className="w-4 h-4" /> Mark as Delivered
+            </Button>
+          </ConfirmDialog>
+        )}
+      </div>
+    </div>
   );
 }

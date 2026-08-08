@@ -1,16 +1,19 @@
 "use client";
 import { User } from "@/backend/models";
-import { ColorBadge } from "@/components/ui/presentation";
+import { RoleGuard } from "@/components/auth/RoleGuard";
 import DataTable from "@/components/DataTable";
-import { USER_ROLE_BADGE_COLOR } from "@/lib/definitions";
+import { ColorBadge } from "@/components/presentation";
+import { Button } from "@/components/ui/button";
+import { USER_ROLE_BADGE_COLOR, UserRole } from "@/lib/definitions";
 import { useUIStore } from "@/store/uiStore";
 import { createColumnHelper } from "@tanstack/react-table";
 import { motion } from "framer-motion";
+import { Edit, KeyRound } from "lucide-react";
 import React from "react";
 
 export default function UserList({ users }: { users: User[] }) {
   const columnHelper = createColumnHelper<User>();
-  const { setUserModalOpen } = useUIStore();
+  const { setUserModalOpen, setChangePasswordModalOpen } = useUIStore();
   const columns = React.useMemo(
     () => [
       columnHelper.accessor("userId", {
@@ -34,6 +37,39 @@ export default function UserList({ users }: { users: User[] }) {
       columnHelper.accessor("isActive", {
         header: "Active Status",
       }),
+      columnHelper.display({
+        id: "actions",
+        header: "Actions",
+        meta: {
+          align: "right",
+        },
+        cell: (info) => {
+          const user = info.row.original;
+          return (
+            <div
+              className="flex items-center gap-2 justify-end"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <RoleGuard allowedRoles={[UserRole.ADMIN]}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setUserModalOpen(true, user)}
+                >
+                  <Edit />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setChangePasswordModalOpen(true, user)}
+                >
+                  <KeyRound />
+                </Button>
+              </RoleGuard>
+            </div>
+          );
+        },
+      }),
     ],
     [],
   );
@@ -49,7 +85,6 @@ export default function UserList({ users }: { users: User[] }) {
           columns={columns}
           data={users}
           emptyMessage="No users found."
-          onRowClick={(user) => setUserModalOpen(true, user)}
         />
       </motion.div>
     </>

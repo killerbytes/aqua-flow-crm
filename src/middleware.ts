@@ -23,7 +23,6 @@ export async function middleware(request: NextRequest) {
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
-
   const result = await verifyOrRefreshToken(token);
 
   if (!result) {
@@ -33,7 +32,6 @@ export async function middleware(request: NextRequest) {
     response.cookies.delete("token");
     return response;
   }
-
   const response = NextResponse.next();
   if (result.newToken) {
     response.cookies.set("token", result.newToken, {
@@ -44,7 +42,6 @@ export async function middleware(request: NextRequest) {
       sameSite: "lax",
     });
   }
-
   return response;
 }
 

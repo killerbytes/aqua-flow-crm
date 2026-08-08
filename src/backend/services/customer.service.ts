@@ -7,7 +7,11 @@ import {
   CustomerSpecialPricing,
   ProductInventory,
 } from "../models";
-import { CustomerSchema } from "../schemas/zodSchemas";
+import {
+  CustomerSchema,
+  SpecialPricingFormData,
+  SpecialPricingSchema,
+} from "../schemas/zodSchemas";
 import { handleServiceError } from "./errorHandler";
 
 export interface CustomerQueryParams {
@@ -81,6 +85,7 @@ export class CustomerService {
         offset,
         include,
         order: [["customerId", "ASC"]],
+        distinct: true,
       });
 
       return {
@@ -116,31 +121,9 @@ export class CustomerService {
     return customer?.get({ plain: true });
   }
 
-  static async getWithTemporaryBalance() {
-    const result = await CustomerService.getAll({
-      query: { withTemporaryBalanceOnly: true },
-    });
-    return result.rows;
-  }
-
-  static async getCustomerBalances(customerId: number | string) {
-    const balances = await CustomerEquipmentBalance.findAll({
-      where: { customerId: Number(customerId) },
-      include: [{ model: ProductInventory, as: "product" }],
-    });
-    return balances.map((b) => b.get({ plain: true }));
-  }
-
-  static async getCustomerPricing(customerId: number | string) {
-    const pricing = await CustomerSpecialPricing.findAll({
-      where: { customerId: Number(customerId) },
-      include: [{ model: ProductInventory, as: "product" }],
-    });
-    return pricing.map((p) => p.get({ plain: true }));
-  }
-
   static async create(input: any) {
     const validatedData = CustomerSchema.parse(input);
+
     try {
       const customer = await Customer.create(validatedData);
       return customer.get({ plain: true });
@@ -182,5 +165,54 @@ export class CustomerService {
       limit: 10,
     });
     return customers.map((c) => c.get({ plain: true }));
+  }
+
+  static async getWithTemporaryBalance() {
+    const result = await CustomerService.getAll({
+      query: { withTemporaryBalanceOnly: true },
+    });
+    return result.rows;
+  }
+
+  static async getCustomerBalances(customerId: number | string) {
+    const balances = await CustomerEquipmentBalance.findAll({
+      where: { customerId: Number(customerId) },
+      include: [{ model: ProductInventory, as: "product" }],
+    });
+    return balances.map((b) => b.get({ plain: true }));
+  }
+
+  static async getCustomerPricing(customerId: number | string) {
+    const pricing = await CustomerSpecialPricing.findAll({
+      where: { customerId: Number(customerId) },
+      include: [{ model: ProductInventory, as: "product" }],
+    });
+    return pricing.map((p) => p.get({ plain: true }));
+  }
+
+  static async setSpecialPricing(input: SpecialPricingFormData) {
+    const validatedData = SpecialPricingSchema.parse(input);
+    const customer = await Customer.findByPk(Number(validatedData.customerId));
+    if (!customer) throw new Error("Customer not found");
+    const product = await ProductInventory.findByPk(
+      Number(validatedData.productId),
+    );
+    if (!product) throw new Error("Product not found");
+
+    try {
+      const [pricing, created] = await CustomerSpecialPricing.findOrCreate({
+        where: {
+          customerId: Number(validatedData.customerId),
+          productId: Number(validatedData.productId),
+        },
+        defaults: validatedData,
+      });
+      if (!created) {
+        await pricing.update(validatedData);
+      }
+      return pricing.get({ plain: true });
+    } catch (error) {
+      handleServiceError(error);
+    }
   }
 }

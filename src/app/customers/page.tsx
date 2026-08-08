@@ -1,12 +1,9 @@
 import { initDatabase } from "@/backend/db/database";
 import { CommonService } from "@/backend/services/commonService";
 import { CustomerService } from "@/backend/services/customer.service";
-import {
-  CustomerFormModalButton,
-  CustomerLookupButton,
-} from "@/components/ActionButtons";
+import { CustomerFormModalButton } from "@/components/ActionButtons";
 import { RoleGuard } from "@/components/auth/RoleGuard";
-import Pager from "@/components/Pager";
+import CustomerLookup from "@/components/CustomerLookup";
 import { CustomerFormModal } from "@/features/customers/components/CustomerFormModal";
 import CustomerList from "@/features/customers/components/CustomerList";
 import { PAGINATION, UserRole } from "@/lib/definitions";
@@ -65,9 +62,9 @@ export default async function CustomersPage({
           </p>
         </div>
         <div className="flex items-center gap-1">
-          <CustomerLookupButton>
-            <Search className="w-4 h-4" />
-          </CustomerLookupButton>
+          <CustomerLookup>
+            <Search />
+          </CustomerLookup>
           <RoleGuard allowedRoles={[UserRole.ADMIN, UserRole.CASHIER]}>
             <CustomerFormModalButton>
               <UserPlus className="w-4 h-4" />
@@ -88,11 +85,9 @@ export default async function CustomersPage({
       ) : (
         <>
           <CustomerList customers={customers} />
-          <Pager initial={customers.pagination} />
         </>
       )}
 
-      {/* Client Dialog Modals */}
       <Suspense>
         <CustomerFormModal barangays={barangays} />
       </Suspense>

@@ -4,11 +4,13 @@ import Link from "next/link";
 import { initDatabase } from "@/backend/db/database";
 import { Order } from "@/backend/models";
 import { OrderService } from "@/backend/services";
-import { ColorBadge } from "@/components/ui/presentation";
+import { ColorBadge, CustomerName } from "@/components/presentation";
 import OrderActions from "@/features/orders/components/OrderActions";
 import OrderDetailList from "@/features/orders/components/OrderDetailList";
+import { PaymentModal } from "@/features/orders/components/PaymentModal";
 import {
   ORDER_STATUS_BADGE_COLOR,
+  PAYMENT_METHOD_BADGE_COLOR,
   PAYMENT_STATUS_BADGE_COLOR,
 } from "@/lib/definitions";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
@@ -57,6 +59,9 @@ export default async function OrderDetailsPage({
           <ColorBadge colorMap={PAYMENT_STATUS_BADGE_COLOR}>
             {order.paymentStatus}
           </ColorBadge>
+          <ColorBadge colorMap={PAYMENT_METHOD_BADGE_COLOR}>
+            {order.paymentMethod}
+          </ColorBadge>
           <div className="text-3xl text-primary font-bold ml-4">
             {formatCurrency(order.totalAmount)}
           </div>
@@ -65,15 +70,15 @@ export default async function OrderDetailsPage({
       {order && (
         <div className="grid grid-cols-2 gap-4 pt-4 border-t space-y-2 text-sm">
           <div className="space-y-2">
-            <p>
+            <div>
               <strong>Name:</strong>{" "}
               <Link
                 className="text-primary hover:underline hover:cursor-pointer"
                 href={`/customers/${order.customer?.customerId}`}
               >
-                {order.customer?.name}
+                <CustomerName customer={order.customer} />
               </Link>
-            </p>
+            </div>
             <p>
               <strong>Address:</strong> {order.customer?.address}
             </p>
@@ -96,9 +101,8 @@ export default async function OrderDetailsPage({
       )}
 
       <OrderDetailList orderDetails={order.orderDetails} />
-      <div className="flex justify-end">
-        <OrderActions order={order} />
-      </div>
+      <OrderActions order={order} />
+      <PaymentModal />
     </>
   );
 }

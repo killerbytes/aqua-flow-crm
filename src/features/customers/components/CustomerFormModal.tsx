@@ -133,142 +133,155 @@ function CustomerFormModalContent({
           {isEditing ? "Edit Customer Profile" : "Register New Customer"}
         </DialogTitle>
         <DialogDescription>
-          {isEditing
-            ? `Update profile details for ${editingCustomer?.name}`
-            : "Add a new customer to AquaFlow CRM"}
+          {isEditing ? (
+            <div>
+              Update profile details for{" "}
+              <span className="font-bold text-accent-foreground">
+                {editingCustomer?.name}
+              </span>
+            </div>
+          ) : (
+            "Add a new customer to AquaFlow CRM"
+          )}
         </DialogDescription>
       </DialogHeader>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <FieldSet>
-          <Controller
-            name="name"
-            control={control}
-            render={({ field }) => (
-              <Field>
-                <FieldLabel>Full Name / Company Name</FieldLabel>
-                <Input placeholder="e.g. John Doe / Apex Inc." {...field} />
-                <FieldError>{errors.name?.message}</FieldError>
-              </Field>
-            )}
-          />
-        </FieldSet>
-        <FieldSet>
-          <Controller
-            name="address"
-            control={control}
-            render={({ field }) => (
-              <Field>
-                <FieldLabel>Delivery Address</FieldLabel>
-                <Input
-                  placeholder="e.g. 123 Palm Street, Suite 400"
-                  {...field}
-                />
-                <FieldError>{errors.address?.message}</FieldError>
-              </Field>
-            )}
-          />
-        </FieldSet>
-        <FieldSet>
-          <Controller
-            name="barangayId"
-            control={control}
-            render={({ field }) => (
-              <Field>
-                <FieldLabel>Barangay</FieldLabel>
-                <Input {...field} type="hidden" />
-                <Combobox
-                  items={barangays}
-                  value={
-                    field.value
-                      ? barangays.find((b) => b.code === field.value)
-                      : null
-                  }
-                  onValueChange={(item) => {
-                    field.onChange(item?.code || "");
-                  }}
-                  itemToStringLabel={(item: Barangay | null) =>
-                    item?.name ?? ""
-                  }
-                  itemToStringValue={(item: Barangay | null) =>
-                    item?.code ?? ""
-                  }
-                >
-                  <ComboboxInput placeholder="Select a barangay" />
-                  <ComboboxContent>
-                    <ComboboxEmpty>No barangay found.</ComboboxEmpty>
-                    <ComboboxList>
-                      {(item) => (
-                        <ComboboxItem key={item.code} value={item}>
-                          {item.name}
-                        </ComboboxItem>
-                      )}
-                    </ComboboxList>
-                  </ComboboxContent>
-                </Combobox>
-                <FieldError>{errors.barangayId?.message}</FieldError>
-              </Field>
-            )}
-          />
-        </FieldSet>
-        <FieldSet>
-          <Controller
-            name="phone"
-            control={control}
-            render={({ field }) => (
-              <Field>
-                <FieldLabel>Contact Phone</FieldLabel>
-                <Input placeholder="e.g. +63 917 123 4567" {...field} />
-                <FieldError>{errors.phone?.message}</FieldError>
-              </Field>
-            )}
-          />
-        </FieldSet>
-        <FieldSet>
-          <Controller
-            name="notes"
-            control={control}
-            render={({ field }) => (
-              <Field>
-                <FieldLabel>Notes</FieldLabel>
-                <Textarea
-                  placeholder="e.g. Special delivery instructions"
-                  {...field}
-                />
-                <FieldError>{errors.notes?.message}</FieldError>
-              </Field>
-            )}
-          />
-        </FieldSet>
-        <FieldSet>
-          <Controller
-            name="status"
-            control={control}
-            render={({ field }) => (
-              <Field>
-                <FieldLabel>Status</FieldLabel>
-                <Select
-                  {...field}
-                  value={field.value}
-                  onValueChange={field.onChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
+        <div className="-mx-4 no-scrollbar space-y-4 max-h-[50vh] overflow-y-auto px-4">
+          <FieldSet>
+            <Controller
+              name="name"
+              control={control}
+              render={({ field }) => (
+                <Field>
+                  <FieldLabel>Full Name / Company Name</FieldLabel>
+                  <Input placeholder="e.g. John Doe / Apex Inc." {...field} />
+                  <FieldError>{errors.name?.message}</FieldError>
+                </Field>
+              )}
+            />
+          </FieldSet>
+          <FieldSet>
+            <Controller
+              name="address"
+              control={control}
+              render={({ field }) => (
+                <Field>
+                  <FieldLabel>Delivery Address</FieldLabel>
+                  <Input
+                    placeholder="e.g. 123 Palm Street, Suite 400"
+                    {...field}
+                  />
+                  <FieldError>{errors.address?.message}</FieldError>
+                </Field>
+              )}
+            />
+          </FieldSet>
+          <FieldSet>
+            <Controller
+              name="barangayId"
+              control={control}
+              render={({ field }) => (
+                <Field>
+                  <FieldLabel>Barangay</FieldLabel>
+                  <Input {...field} type="hidden" />
+                  <Combobox
+                    items={barangays}
+                    value={
+                      field.value
+                        ? barangays.find((b) => b.code === field.value)
+                        : null
+                    }
+                    onValueChange={(item) => {
+                      field.onChange(item?.code || "");
+                    }}
+                    itemToStringLabel={(item: Barangay | null) =>
+                      item?.name ?? ""
+                    }
+                    itemToStringValue={(item: Barangay | null) =>
+                      item?.code ?? ""
+                    }
+                  >
+                    <ComboboxInput placeholder="Select a barangay" />
+                    <ComboboxContent>
+                      <ComboboxEmpty>No barangay found.</ComboboxEmpty>
+                      <ComboboxList>
+                        {(item) => (
+                          <ComboboxItem key={item.code} value={item}>
+                            {item.name}
+                          </ComboboxItem>
+                        )}
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
+                  <FieldError>{errors.barangayId?.message}</FieldError>
+                </Field>
+              )}
+            />
+          </FieldSet>
+          <FieldSet>
+            <Controller
+              name="phone"
+              control={control}
+              render={({ field }) => (
+                <Field>
+                  <FieldLabel>Contact Phone</FieldLabel>
+                  <Input
+                    placeholder="e.g. +63 917 123 4567"
+                    {...field}
+                    value={field.value || ""}
+                  />
+                  <FieldError>{errors.phone?.message}</FieldError>
+                </Field>
+              )}
+            />
+          </FieldSet>
+          <FieldSet>
+            <Controller
+              name="notes"
+              control={control}
+              render={({ field }) => (
+                <Field>
+                  <FieldLabel>Notes</FieldLabel>
+                  <Textarea
+                    placeholder="e.g. Special delivery instructions"
+                    {...field}
+                  />
+                  <FieldError>{errors.notes?.message}</FieldError>
+                </Field>
+              )}
+            />
+          </FieldSet>
+          <FieldSet>
+            <Controller
+              name="status"
+              control={control}
+              render={({ field }) => (
+                <Field>
+                  <FieldLabel>Status</FieldLabel>
+                  <Select
+                    {...field}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
 
-                  <SelectContent>
-                    {Object.values(CustomerStatus).map((pst) => (
-                      <SelectItem key={pst} value={pst}>
-                        {pst}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FieldError>{errors.status?.message}</FieldError>
-              </Field>
-            )}
-          />
-        </FieldSet>
+                    <SelectContent>
+                      {Object.values(CustomerStatus).map((pst) => (
+                        <SelectItem key={pst} value={pst}>
+                          {pst}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FieldError>{errors.status?.message}</FieldError>
+                </Field>
+              )}
+            />
+          </FieldSet>
+        </div>
         <DialogFooter>
           {isEditing && (
             <Button

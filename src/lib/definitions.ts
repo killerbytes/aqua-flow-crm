@@ -5,12 +5,13 @@ export const PAGINATION = {
 };
 
 // User Roles & RBAC
-export enum UserRole {
-  ADMIN = "ADMIN",
-  MANAGER = "MANAGER",
-  CASHIER = "CASHIER",
-  DELIVERY = "DELIVERY",
-}
+export const UserRole = {
+  ADMIN: "ADMIN",
+  MANAGER: "MANAGER",
+  CASHIER: "CASHIER",
+  DELIVERY: "DELIVERY",
+} as const;
+export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 
 export const USER_ROLE_OPTIONS = [
   {
@@ -43,22 +44,26 @@ export const USER_ROLE_LABELS: Record<UserRole, string> = {
 };
 
 // Ledger Account & Reference Types (Pattern 1 Double-Entry Equipment Ledger)
-export enum LedgerAccountType {
-  STATION = "STATION",
-  CUSTOMER = "CUSTOMER",
-  CUSTOMER_TEMP = "CUSTOMER_TEMP",
-  SUPPLIER = "SUPPLIER",
-  SCRAP_DAMAGED = "SCRAP_DAMAGED",
-  SCRAP_LOST = "SCRAP_LOST",
-  IN_TRANSIT = "IN_TRANSIT",
-}
+export const LedgerAccountType = {
+  STATION: "STATION",
+  CUSTOMER: "CUSTOMER",
+  CUSTOMER_TEMP: "CUSTOMER_TEMP",
+  SUPPLIER: "SUPPLIER",
+  SCRAP_DAMAGED: "SCRAP_DAMAGED",
+  SCRAP_LOST: "SCRAP_LOST",
+  IN_TRANSIT: "IN_TRANSIT",
+} as const;
+export type LedgerAccountType =
+  (typeof LedgerAccountType)[keyof typeof LedgerAccountType];
 
-export enum LedgerReferenceType {
-  ORDER = "ORDER",
-  MANUAL_LOG = "MANUAL_LOG",
-  INVENTORY_ADJUSTMENT = "INVENTORY_ADJUSTMENT",
-  RESTOCK = "RESTOCK",
-}
+export const LedgerReferenceType = {
+  ORDER: "ORDER",
+  MANUAL_LOG: "MANUAL_LOG",
+  INVENTORY_ADJUSTMENT: "INVENTORY_ADJUSTMENT",
+  RESTOCK: "RESTOCK",
+} as const;
+export type LedgerReferenceType =
+  (typeof LedgerReferenceType)[keyof typeof LedgerReferenceType];
 
 export const LEDGER_ACCOUNT_LABELS: Record<LedgerAccountType, string> = {
   [LedgerAccountType.STATION]: "Station Warehouse",
@@ -71,16 +76,31 @@ export const LEDGER_ACCOUNT_LABELS: Record<LedgerAccountType, string> = {
 };
 
 // Equipment Action Types
-export enum EquipmentActionType {
-  ISSUE = "ISSUE",
-  RETURNED = "RETURNED",
-  TEMPORARY = "TEMPORARY",
-  TEMPORARY_RETURNED = "TEMPORARY_RETURNED",
-  LOST = "LOST",
-  TEMPORARY_LOST = "TEMPORARY_LOST",
-  DAMAGED = "DAMAGED",
-  TEMPORARY_DAMAGED = "TEMPORARY_DAMAGED",
-}
+
+export const ActionType = {
+  ISSUE: "ISSUE",
+  RETURNED: "RETURNED",
+  LOST: "LOST",
+  DAMAGED: "DAMAGED",
+} as const;
+export type ActionType = (typeof ActionType)[keyof typeof ActionType];
+
+export const TemporaryEquipmentActionType = {
+  TEMPORARY: "TEMPORARY",
+  TEMPORARY_RETURNED: "TEMPORARY_RETURNED",
+  TEMPORARY_LOST: "TEMPORARY_LOST",
+  TEMPORARY_DAMAGED: "TEMPORARY_DAMAGED",
+} as const;
+export type TemporaryEquipmentActionType =
+  (typeof TemporaryEquipmentActionType)[keyof typeof TemporaryEquipmentActionType];
+
+export const EquipmentActionType = {
+  ...ActionType,
+  ...TemporaryEquipmentActionType,
+} as const;
+
+export type EquipmentActionType =
+  (typeof EquipmentActionType)[keyof typeof EquipmentActionType];
 
 export const EQUIPMENT_ACTION_OPTIONS = [
   {
@@ -137,11 +157,13 @@ export const EQUIPMENT_ACTION_LABELS: Record<EquipmentActionType, string> = {
 };
 
 // Inventory Adjustment Types
-export enum InventoryAdjustmentType {
-  STOCK_IN = "STOCK_IN",
-  DECLARED_DAMAGED = "DECLARED_DAMAGED",
-  DECLARED_LOST = "DECLARED_LOST",
-}
+export const InventoryAdjustmentType = {
+  STOCK_IN: "STOCK_IN",
+  DECLARED_DAMAGED: "DECLARED_DAMAGED",
+  DECLARED_LOST: "DECLARED_LOST",
+} as const;
+export type InventoryAdjustmentType =
+  (typeof InventoryAdjustmentType)[keyof typeof InventoryAdjustmentType];
 
 export const INVENTORY_ADJUSTMENT_OPTIONS = [
   { value: InventoryAdjustmentType.STOCK_IN, label: "Stock In (Restock)" },
@@ -153,13 +175,14 @@ export const INVENTORY_ADJUSTMENT_OPTIONS = [
 ];
 
 // Order Status & Payment Status
-export enum OrderStatus {
-  PENDING = "PENDING",
-  PROCESSING = "PROCESSING",
-  OUT_FOR_DELIVERY = "OUT_FOR_DELIVERY",
-  DELIVERED = "DELIVERED",
-  CANCELLED = "CANCELLED",
-}
+export const OrderStatus = {
+  PENDING: "PENDING",
+  DELETED: "DELETED",
+  OUT_FOR_DELIVERY: "OUT_FOR_DELIVERY",
+  DELIVERED: "DELIVERED",
+  CANCELLED: "CANCELLED",
+} as const;
+export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
 
 export const ORDER_STATUS_OPTIONS = [
   {
@@ -168,8 +191,8 @@ export const ORDER_STATUS_OPTIONS = [
     color: "text-amber-400 border-amber-500/30",
   },
   {
-    value: OrderStatus.PROCESSING,
-    label: "Processing",
+    value: OrderStatus.DELETED,
+    label: "Deleted",
     color: "text-blue-400 border-blue-500/30",
   },
   {
@@ -189,22 +212,30 @@ export const ORDER_STATUS_OPTIONS = [
   },
 ];
 
-export enum PaymentStatus {
-  UNPAID = "UNPAID",
-  PAID = "PAID",
-  PARTIAL = "PARTIAL",
-}
+export const PaymentStatus = {
+  UNPAID: "UNPAID",
+  PAID: "PAID",
+} as const;
+export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
 
 export const PAYMENT_STATUS_OPTIONS = [
   { value: PaymentStatus.UNPAID, label: "Unpaid" },
   { value: PaymentStatus.PAID, label: "Paid" },
-  { value: PaymentStatus.PARTIAL, label: "Partial Payment" },
 ];
 
-export enum CustomerStatus {
-  ACTIVE = "ACTIVE",
-  INACTIVE = "INACTIVE",
-}
+export const PaymentMethod = {
+  CASH: "CASH",
+  GCASH: "GCASH",
+  ONLINE: "ONLINE",
+} as const;
+export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod];
+
+export const CustomerStatus = {
+  ACTIVE: "ACTIVE",
+  INACTIVE: "INACTIVE",
+} as const;
+export type CustomerStatus =
+  (typeof CustomerStatus)[keyof typeof CustomerStatus];
 
 export const EQUIPMENT_BADGE_COLOR: Record<EquipmentActionType, string> = {
   [EquipmentActionType.ISSUE]: "bg-green-100 text-black border-green-500",
@@ -222,12 +253,17 @@ export const EQUIPMENT_BADGE_COLOR: Record<EquipmentActionType, string> = {
 export const PAYMENT_STATUS_BADGE_COLOR: Record<PaymentStatus, string> = {
   [PaymentStatus.UNPAID]: "bg-orange-100 text-black border-orange-500",
   [PaymentStatus.PAID]: "bg-green-100 text-black border-green-500",
-  [PaymentStatus.PARTIAL]: "bg-yellow-100 text-black border-yellow-500",
+};
+
+export const PAYMENT_METHOD_BADGE_COLOR: Record<PaymentMethod, string> = {
+  [PaymentMethod.CASH]: "bg-gray-100 text-black border-gray-500",
+  [PaymentMethod.GCASH]: "bg-blue-100 text-black border-blue-500",
+  [PaymentMethod.ONLINE]: "bg-purple-100 text-black border-purple-500",
 };
 
 export const ORDER_STATUS_BADGE_COLOR: Record<OrderStatus, string> = {
   [OrderStatus.PENDING]: "bg-yellow-100 text-black border-yellow-500",
-  [OrderStatus.PROCESSING]: "bg-blue-100 text-black border-blue-500",
+  [OrderStatus.DELETED]: "bg-gray-100 text-black border-gray-500",
   [OrderStatus.OUT_FOR_DELIVERY]: "bg-purple-100 text-black border-purple-500",
   [OrderStatus.DELIVERED]: "bg-green-100 text-black border-green-500",
   [OrderStatus.CANCELLED]: "bg-red-100 text-black border-red-500",

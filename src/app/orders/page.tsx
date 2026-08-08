@@ -76,7 +76,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
           Create Order
         </OrderFormModalButton>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
           <CardHeader>
             <CardDescription>
@@ -87,30 +87,46 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
             </CardTitle>
           </CardHeader>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>
-              {orders.summary.unpaidOrders?.label}
-            </CardDescription>
-            <CardTitle>{orders.summary.unpaidOrders?.value}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>
-              {orders.summary.pendingOrders?.label}
-            </CardDescription>
-            <CardTitle>{orders.summary.pendingOrders?.value}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>
-              {orders.summary.cancelledOrders?.label}
-            </CardDescription>
-            <CardTitle>{orders.summary.cancelledOrders?.value}</CardTitle>
-          </CardHeader>
-        </Card>
+        {orders.summary.unpaidOrders?.value > 0 && (
+          <Card>
+            <CardHeader>
+              <CardDescription>
+                {orders.summary.unpaidOrders?.label}
+              </CardDescription>
+              <CardTitle>{orders.summary.unpaidOrders?.value}</CardTitle>
+            </CardHeader>
+          </Card>
+        )}
+        {orders.summary.pendingOrders?.value > 0 && (
+          <Card>
+            <CardHeader>
+              <CardDescription>
+                {orders.summary.pendingOrders?.label}
+              </CardDescription>
+              <CardTitle>{orders.summary.pendingOrders?.value}</CardTitle>
+            </CardHeader>
+          </Card>
+        )}
+        {orders.summary.deliveryOrders?.value > 0 && (
+          <Card>
+            <CardHeader>
+              <CardDescription>
+                {orders.summary.deliveryOrders?.label}
+              </CardDescription>
+              <CardTitle>{orders.summary.deliveryOrders?.value}</CardTitle>
+            </CardHeader>
+          </Card>
+        )}
+        {orders.summary.cancelledOrders?.value > 0 && (
+          <Card>
+            <CardHeader>
+              <CardDescription className="text-red-500">
+                {orders.summary.cancelledOrders?.label}
+              </CardDescription>
+              <CardTitle>{orders.summary.cancelledOrders?.value}</CardTitle>
+            </CardHeader>
+          </Card>
+        )}
       </div>
       <div className="space-y-2">
         <OrderListFilter />

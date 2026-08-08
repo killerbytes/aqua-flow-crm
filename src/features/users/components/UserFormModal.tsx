@@ -1,7 +1,12 @@
 "use client";
 
 import { createUserAction, updateUserAction } from "@/backend/actions";
-import { UserFormData, UserFormSchema } from "@/backend/schemas/zodSchemas";
+import {
+  UserFormData,
+  UserFormSchema,
+  UserFormUpdateData,
+  UserFormUpdateSchema,
+} from "@/backend/schemas/zodSchemas";
 import Modal from "@/components/Modal";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,8 +62,10 @@ export const OrderFormModalContent = () => {
     reset,
     control,
     formState: { errors, isSubmitting },
-  } = useForm({
-    resolver: zodResolver(UserFormSchema),
+  } = useForm<UserFormData>({
+    resolver: zodResolver(
+      isEditing ? UserFormUpdateSchema : UserFormSchema,
+    ) as any,
     values: React.useMemo(
       () => ({
         name: editingUser?.name || "",
@@ -66,7 +73,7 @@ export const OrderFormModalContent = () => {
         password: "",
         confirmPassword: "",
         role: editingUser?.role || UserRole.CASHIER,
-        isActive: editingUser?.isActive || true,
+        isActive: editingUser?.isActive ?? true,
       }),
       [editingUser],
     ),
@@ -147,34 +154,38 @@ export const OrderFormModalContent = () => {
             )}
           ></Controller>
         </FieldGroup>
-        <FieldGroup>
-          <Controller
-            name="password"
-            control={control}
-            render={({ field }) => (
-              <Field>
-                <FieldLabel>Password</FieldLabel>
+        {!isEditing && (
+          <>
+            <FieldGroup>
+              <Controller
+                name="password"
+                control={control}
+                render={({ field }) => (
+                  <Field>
+                    <FieldLabel>Password</FieldLabel>
 
-                <Input placeholder="e.g. *********" {...field} />
-                <FieldError>{errors.password?.message}</FieldError>
-              </Field>
-            )}
-          ></Controller>
-        </FieldGroup>
-        <FieldGroup>
-          <Controller
-            name="confirmPassword"
-            control={control}
-            render={({ field }) => (
-              <Field>
-                <FieldLabel>Confirm Password</FieldLabel>
+                    <Input placeholder="e.g. *********" {...field} />
+                    <FieldError>{errors.password?.message}</FieldError>
+                  </Field>
+                )}
+              ></Controller>
+            </FieldGroup>
+            <FieldGroup>
+              <Controller
+                name="confirmPassword"
+                control={control}
+                render={({ field }) => (
+                  <Field>
+                    <FieldLabel>Confirm Password</FieldLabel>
 
-                <Input placeholder="e.g. *********" {...field} />
-                <FieldError>{errors.confirmPassword?.message}</FieldError>
-              </Field>
-            )}
-          ></Controller>
-        </FieldGroup>
+                    <Input placeholder="e.g. *********" {...field} />
+                    <FieldError>{errors.confirmPassword?.message}</FieldError>
+                  </Field>
+                )}
+              ></Controller>
+            </FieldGroup>
+          </>
+        )}
 
         <FieldGroup>
           <Controller

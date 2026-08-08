@@ -254,16 +254,6 @@ async function uploadToBackblaze(filePath) {
       }
     }
   } catch (err) {
-    console.log(B2_BUCKET, {
-      region: AWS_DEFAULT_REGION,
-      endpoint: AWS_ENDPOINT,
-      forcePathStyle: true, // 👈 Backblaze requires this
-      credentials: {
-        accessKeyId: AWS_ACCESS_KEY_ID,
-        secretAccessKey: AWS_SECRET_ACCESS_KEY,
-      },
-    });
-
     console.error("❌ Backblaze upload/cleanup failed:", err.message);
   }
 }

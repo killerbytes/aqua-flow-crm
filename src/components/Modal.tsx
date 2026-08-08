@@ -9,8 +9,8 @@ import {
 export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  title?: React.ReactNode;
-  description?: string;
+  title?: string | React.ReactNode;
+  description?: string | React.ReactNode;
   maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl";
   children: React.ReactNode;
   className?: string;
@@ -49,7 +49,13 @@ export function Modal({
                 <div className="font-semibold text-lg">{title}</div>
               ))}
             {description && (
-              <DialogDescription>{description}</DialogDescription>
+              <DialogDescription>
+                {typeof description === "string" ? (
+                  description
+                ) : (
+                  <>{description}</>
+                )}
+              </DialogDescription>
             )}
           </DialogHeader>
         )}
