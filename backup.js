@@ -20,7 +20,10 @@ const nodeEnv = process.env.NODE_ENV || "development";
 dotenv.config();
 
 // Load .env.local (overrides base .env)
-dotenv.config({ path: path.resolve(process.cwd(), ".env.local"), override: true });
+dotenv.config({
+  path: path.resolve(process.cwd(), ".env.local"),
+  override: true,
+});
 
 // Load environment-specific file (e.g. .env.production) with top override priority
 if (nodeEnv) {
@@ -31,8 +34,14 @@ if (nodeEnv) {
 }
 
 // Normalize DATABASE_URL if present
-if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("postgresql://")) {
-  process.env.DATABASE_URL = process.env.DATABASE_URL.replace(/^postgresql:\/\//, "postgres://");
+if (
+  process.env.DATABASE_URL &&
+  process.env.DATABASE_URL.startsWith("postgresql://")
+) {
+  process.env.DATABASE_URL = process.env.DATABASE_URL.replace(
+    /^postgresql:\/\//,
+    "postgres://",
+  );
 }
 
 // Parse DATABASE_URL if provided
@@ -75,7 +84,6 @@ const {
   ListObjectsV2Command,
   DeleteObjectCommand,
 } = require("@aws-sdk/client-s3");
-
 
 const BACKUP_DIR = process.env.BACKUP_DIR || "./backups";
 if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
@@ -246,6 +254,16 @@ async function uploadToBackblaze(filePath) {
       }
     }
   } catch (err) {
+    console.log(B2_BUCKET, {
+      region: AWS_DEFAULT_REGION,
+      endpoint: AWS_ENDPOINT,
+      forcePathStyle: true, // 👈 Backblaze requires this
+      credentials: {
+        accessKeyId: AWS_ACCESS_KEY_ID,
+        secretAccessKey: AWS_SECRET_ACCESS_KEY,
+      },
+    });
+
     console.error("❌ Backblaze upload/cleanup failed:", err.message);
   }
 }
