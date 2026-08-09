@@ -75,7 +75,7 @@ export default function Sidebar() {
   // if (user?.role === UserRole.CASHIER || user?.role === UserRole.ADMIN) {
   //   navItems.push({
   //     name: "Reports",
-  //     href: "/reports",
+  //     href: "/reports/customers",
   //     icon: FileText,
   //     subMenu: [
   //       {

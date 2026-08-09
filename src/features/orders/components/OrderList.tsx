@@ -1,5 +1,6 @@
 "use client";
 import { Order } from "@/backend/models";
+import ColumnSort from "@/components/ColumnSort";
 import DataTable from "@/components/DataTable";
 import Pager from "@/components/Pager";
 import { ColorBadge, CustomerName, MonoText } from "@/components/presentation";
@@ -37,14 +38,15 @@ export default function OrderList({ orders }: OrderListProps) {
         }),
         !pathname.startsWith("/customers") &&
           columnHelper.accessor("customer.name", {
-            header: "Name",
+            header: ({ column }) => {
+              return <ColumnSort column={column}>Name</ColumnSort>;
+            },
             cell: (info) => {
               const order = info.row.original;
               const customerId = order.customerId;
 
               const hasSpecialPricing =
                 (order.customer?.specialPricings?.length ?? 0) > 0;
-              console.log(order.customer);
 
               return (
                 <Link
@@ -63,13 +65,17 @@ export default function OrderList({ orders }: OrderListProps) {
             },
           }),
         columnHelper.accessor("createdAt", {
-          header: "Date Ordered",
+          header: ({ column }) => {
+            return <ColumnSort column={column}>Date Ordered</ColumnSort>;
+          },
           cell: (info) => (
             <MonoText>{formatDateTime(info.getValue())}</MonoText>
           ),
         }),
         columnHelper.accessor("status", {
-          header: "Status",
+          header: ({ column }) => {
+            return <ColumnSort column={column}>Status</ColumnSort>;
+          },
           cell: (info) => (
             <ColorBadge colorMap={ORDER_STATUS_BADGE_COLOR}>
               {info.getValue()}
@@ -77,7 +83,9 @@ export default function OrderList({ orders }: OrderListProps) {
           ),
         }),
         columnHelper.accessor("paymentStatus", {
-          header: "Payment Status",
+          header: ({ column }) => {
+            return <ColumnSort column={column}>Payment Status</ColumnSort>;
+          },
           cell: (info) => (
             <div className="space-x-1">
               <ColorBadge colorMap={PAYMENT_STATUS_BADGE_COLOR}>
@@ -93,7 +101,9 @@ export default function OrderList({ orders }: OrderListProps) {
         }),
 
         columnHelper.accessor("totalAmount", {
-          header: "Total Amount",
+          header: ({ column }) => {
+            return <ColumnSort column={column}>Total Amount</ColumnSort>;
+          },
           meta: {
             align: "right",
           },
@@ -106,6 +116,7 @@ export default function OrderList({ orders }: OrderListProps) {
       ].filter(Boolean) as any[],
     [pathname],
   );
+  console.log(orders);
 
   return (
     <>

@@ -9,6 +9,7 @@ import {
   Customer,
   CustomerEquipmentBalance,
   EquipmentLedgerEntry,
+  Order,
   ProductInventory,
 } from "../models";
 import { EquipmentLogSchema } from "../schemas/zodSchemas";
@@ -16,6 +17,8 @@ import { EquipmentLogSchema } from "../schemas/zodSchemas";
 export interface EquipmentLogQueryParams {
   limit?: number;
   page?: number;
+  sort?: string;
+  order?: "ASC" | "DESC";
   query?: {
     customerId?: number;
     productId?: number;
@@ -98,9 +101,6 @@ export class EquipmentService {
     };
   }
 
-  /**
-   * Log an equipment action for a customer using Pattern 1 Double-Entry Ledger.
-   */
   static async logEquipment(input: any, loggedByUserId: number) {
     const validatedData = EquipmentLogSchema.parse(input);
     const { customerId, productId, actionType, quantity, notes } =
@@ -341,19 +341,36 @@ export class EquipmentService {
         order: [["createdAt", "DESC"]],
       });
 
-      const lastDate = lastEntry?.createdAt || b.updatedAt;
+      const lastOrder = await Order.findOne({
+        where: { customerId: b.customerId },
+        order: [["createdAt", "DESC"]],
+      });
+
+      const ledgerTime = lastEntry?.createdAt
+        ? new Date(lastEntry.createdAt).getTime()
+        : 0;
+      const orderTime = lastOrder?.createdAt
+        ? new Date(lastOrder.createdAt).getTime()
+        : 0;
+      const balanceTime = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+
+      const maxTime = Math.max(ledgerTime, orderTime, balanceTime);
+      const lastDate = maxTime > 0 ? new Date(maxTime) : b.updatedAt;
+
       const daysIdle = Math.floor(
         (Date.now() - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24),
       );
 
       report.push({
         customerId: b.customerId,
+        productId: b.productId,
         customerName: plain.customer?.name || "Unknown",
         productName: plain.product?.name || "Unknown",
         quantityOwed: b.quantityOwed,
         quantityTemporaryOwed: b.quantityTemporaryOwed,
         totalHoldings: b.quantityOwed + b.quantityTemporaryOwed,
         lastActivityDate: lastDate,
+        lastOrderDate: lastOrder?.createdAt || null,
         daysIdle: Math.max(0, daysIdle),
       });
     }

@@ -1,4 +1,4 @@
-import { DataTypes, Model, NonAttribute } from "sequelize";
+import { DataTypes, Model, NonAttribute, Order } from "sequelize";
 import { sequelize } from "../db/database";
 import { ProductInventory } from "./ProductInventory";
 
@@ -10,6 +10,7 @@ export class OrderDetail extends Model {
   declare unitPrice: number;
   declare discount: number;
   declare product: NonAttribute<ProductInventory>;
+  declare order?: NonAttribute<Order>;
 }
 OrderDetail.init(
   {

@@ -1,6 +1,6 @@
 import { OrderStatus, PAGINATION, PaymentStatus } from "@/lib/definitions";
 import moment from "moment-timezone";
-import { Op } from "sequelize";
+import { Op, OrderItem } from "sequelize";
 import {
   Customer,
   CustomerSpecialPricing,
@@ -9,7 +9,11 @@ import {
   ProductInventory,
   User,
 } from "../models";
-import { PaymentFormData, PaymentSchema } from "../schemas/zodSchemas";
+import {
+  OrderFormData,
+  PaymentFormData,
+  PaymentSchema,
+} from "../schemas/zodSchemas";
 import { CustomerService } from "./customer.service";
 import { ProductService } from "./product.service";
 
@@ -33,8 +37,8 @@ export class OrderService {
       limit = PAGINATION.PAGE_SIZE,
       page = PAGINATION.PAGE,
       query = {},
-      sort = "createdAt",
-      order: sortOrder = "DESC",
+      sort,
+      order: sortOrder = "ASC",
     } = params;
     try {
       const where: any = {};
@@ -63,18 +67,31 @@ export class OrderService {
         }
         where.createdAt = createdAtFilter;
       }
-      const orderByMap: Record<string, any[]> = {
+
+      const orderByMap: Record<string, any> = {
+        customer_name: [{ model: Customer, as: "customer" }, "name"],
         "customer.name": [{ model: Customer, as: "customer" }, "name"],
+        createdAt: "createdAt",
+        status: "status",
+        paymentStatus: "paymentStatus",
+        totalAmount: "totalAmount",
+        orderId: "orderId",
       };
-      const orderBy: any = orderByMap[sort]
-        ? [[...orderByMap[sort], sortOrder]]
-        : [[sort, sortOrder]];
+
+      const orderTarget =
+        sort && orderByMap[sort] ? orderByMap[sort] : "createdAt";
+      const orderBy: OrderItem = Array.isArray(orderTarget)
+        ? ([...orderTarget, sortOrder] as unknown as OrderItem)
+        : ([orderTarget, sortOrder] as unknown as OrderItem);
 
       const offset = (page - 1) * limit;
+      console.log(limit);
+
       const { rows, count } = await Order.findAndCountAll({
         offset,
         limit,
-        order: orderBy,
+        subQuery: false,
+        order: [orderBy],
         where,
         include: [
           {
@@ -87,10 +104,12 @@ export class OrderService {
               {
                 model: CustomerSpecialPricing,
                 as: "specialPricings",
+                separate: true,
               },
             ],
           },
         ],
+        distinct: true,
       });
 
       return {
@@ -139,29 +158,9 @@ export class OrderService {
     return order ? order.get({ plain: true }) : null;
   }
 
-  static async create(
-    input: {
-      customerId: number;
-      createdBy?: number;
-      status: OrderStatus;
-      paymentStatus: PaymentStatus;
-      items: {
-        productId: number;
-        quantity: number;
-        unitPrice: number;
-        discount?: number;
-      }[];
-    },
-    createdByUserId: number = 1,
-  ) {
-    const {
-      customerId,
-      status,
-      paymentStatus,
-      items,
-      createdBy: inputCreatedBy,
-    } = input;
-    const createdBy = inputCreatedBy || createdByUserId || 1;
+  static async create(input: OrderFormData, createdByUserId: number) {
+    const { customerId, status, paymentStatus, items, createdAt } = input;
+    const createdBy = createdByUserId;
 
     const customer = await CustomerService.get(customerId);
     if (!customer) {
@@ -201,6 +200,7 @@ export class OrderService {
       status,
       paymentStatus,
       createdBy,
+      createdAt,
     });
 
     const plainOrder = order.get({ plain: true });
@@ -213,14 +213,6 @@ export class OrderService {
         unitPrice: item.unitPrice,
         discount: item.discount,
       });
-
-      const product = await ProductService.get(item.productId);
-      if (product) {
-        const newStock = Math.max(0, product.stockInStation - item.quantity);
-        await ProductService.update(item.productId, {
-          stockInStation: newStock,
-        });
-      }
     }
 
     return await this.get(plainOrder.orderId);
@@ -281,22 +273,6 @@ export class OrderService {
       throw new Error(
         `Invalid status transition from ${currentStatus} to ${targetStatus}`,
       );
-    }
-
-    if (
-      targetStatus === OrderStatus.CANCELLED ||
-      targetStatus === OrderStatus.DELETED
-    ) {
-      if (order.orderDetails && order.orderDetails.length > 0) {
-        for (const item of order.orderDetails) {
-          const product = await ProductService.get(item.productId);
-          if (product) {
-            await ProductService.update(item.productId, {
-              stockInStation: product.stockInStation + item.quantity,
-            });
-          }
-        }
-      }
     }
 
     await order.update({ status: targetStatus });

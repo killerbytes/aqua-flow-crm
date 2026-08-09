@@ -15,7 +15,7 @@ export async function createOrderAction(input: any) {
     throw new Error("Forbidden: insufficient permissions");
   }
 
-  const result = await OrderService.create(input);
+  const result = await OrderService.create(input, user.userId);
   revalidatePath("/orders");
   return result;
 }

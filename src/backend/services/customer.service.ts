@@ -1,5 +1,5 @@
 import { CustomerStatus, PAGINATION } from "@/lib/definitions";
-import { Op } from "sequelize";
+import { Op, OrderItem } from "sequelize";
 import { sequelize } from "../db/database";
 import {
   Customer,
@@ -17,6 +17,8 @@ import { handleServiceError } from "./errorHandler";
 export interface CustomerQueryParams {
   limit?: number;
   page?: number;
+  sort?: string;
+  order?: string;
   query?: {
     withSpecialPricing?: boolean;
     withBalance?: boolean;
@@ -32,6 +34,8 @@ export class CustomerService {
       const {
         limit = PAGINATION.PAGE_SIZE,
         page = PAGINATION.PAGE,
+        sort,
+        order: sortOrder = "ASC",
         query = {
           withSpecialPricing: false,
           withBalance: false,
@@ -79,12 +83,25 @@ export class CustomerService {
       ];
 
       const offset = (page - 1) * limit;
+
+      const orderByMap: Record<string, string> = {
+        customerId: "customerId",
+        name: "name",
+        barangay: "barangayId",
+        status: "status",
+      };
+
+      const orderByField =
+        sort && orderByMap[sort] ? orderByMap[sort] : "customerId";
+      const orderBy: OrderItem = [orderByField, sortOrder];
+      console.log(123, orderBy);
+
       const { rows, count } = await Customer.findAndCountAll({
         where,
         limit,
         offset,
         include,
-        order: [["customerId", "ASC"]],
+        order: [orderBy],
         distinct: true,
       });
 

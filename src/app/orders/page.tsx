@@ -26,6 +26,8 @@ interface OrdersPageProps {
     status?: string;
     customerId?: number;
     paymentStatus?: PaymentStatus;
+    sort?: string;
+    order?: "ASC" | "DESC";
   }>;
 }
 
@@ -37,6 +39,8 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const limit = Number(params?.limit) || PAGINATION.PAGE_SIZE;
   const startDate = params?.startDate || "";
   const endDate = params?.endDate || "";
+  const sort = params?.sort || "createdAt";
+  const order = params?.order || "DESC";
   let orders: Paginated<any>;
 
   try {
@@ -50,6 +54,8 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
         endDate,
         paymentStatus: params?.paymentStatus,
       },
+      sort,
+      order,
     });
   } catch (err) {
     orders = {

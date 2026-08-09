@@ -63,20 +63,23 @@ export const EquipmentLedgerSchema = z.object({
   notes: z.string().optional(),
 });
 
+export const OrderItems = z
+  .array(
+    z.object({
+      productId: z.number().int().positive("Product is required"),
+      quantity: z.number().int().positive(),
+      unitPrice: z.number().positive(),
+      discount: z.number().min(0).optional().default(0),
+    }),
+  )
+  .min(1, "At least one item is required");
+
 export const OrderSchema = z.object({
   customerId: z.number().int().positive("Customer is required"),
   status: z.nativeEnum(OrderStatus),
   paymentStatus: z.nativeEnum(PaymentStatus),
-  items: z
-    .array(
-      z.object({
-        productId: z.number().int().positive("Product is required"),
-        quantity: z.number().int().positive(),
-        unitPrice: z.number().positive(),
-        discount: z.number().min(0).optional().default(0),
-      }),
-    )
-    .min(1, "At least one item is required"),
+  createdAt: z.union([z.date(), z.string()]).optional(),
+  items: OrderItems,
 });
 
 export const PaymentSchema = OrderSchema.omit({
@@ -148,3 +151,5 @@ export type ChangePasswordData = z.infer<typeof ChangePasswordSchema>;
 export type EquipmentLogFormData = z.infer<typeof EquipmentLogSchema>;
 export type SpecialPricingFormData = z.infer<typeof SpecialPricingSchema>;
 export type PaymentFormData = z.infer<typeof PaymentSchema>;
+export type OrderFormData = z.infer<typeof OrderSchema>;
+export type OrderItemsFormData = z.infer<typeof OrderItems>;

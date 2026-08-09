@@ -58,15 +58,15 @@ export function initDatabase(): Promise<void> {
           isDbInitialized = true;
         } else {
           await sequelize.authenticate();
-          try {
-            if (process.env.NODE_ENV !== "production") {
-              await sequelize.sync({ alter: true });
-              console.info("Database tables synchronized successfully.");
-            }
-          } catch (syncErr) {
-            // Fallback sync to guarantee table creation without dropping constraints
-            await sequelize.sync({ alter: false });
-          }
+          // try {
+          //   if (process.env.NODE_ENV !== "production") {
+          //     await sequelize.sync({ alter: true });
+          //     console.info("Database tables synchronized successfully.");
+          //   }
+          // } catch (syncErr) {
+          //   // Fallback sync to guarantee table creation without dropping constraints
+          //   await sequelize.sync({ alter: false });
+          // }
           isDbInitialized = true;
         }
       } catch (error) {

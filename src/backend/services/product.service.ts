@@ -5,7 +5,7 @@ import { handleServiceError } from "./errorHandler";
 export class ProductService {
   static async getAll() {
     const products = await ProductInventory.findAll({
-      order: [["name", "ASC"]],
+      order: [["productId", "ASC"]],
     });
     return products.map((r) => r.get({ plain: true }));
   }

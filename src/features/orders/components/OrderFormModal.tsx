@@ -6,7 +6,7 @@ import {
   getProductsAction,
 } from "@/backend/actions";
 import { ProductInventory } from "@/backend/models";
-import { OrderSchema } from "@/backend/schemas/zodSchemas";
+import { OrderFormData, OrderSchema } from "@/backend/schemas/zodSchemas";
 import CustomerLookup from "@/components/CustomerLookup";
 import Modal from "@/components/Modal";
 import { Button } from "@/components/ui/button";
@@ -39,9 +39,6 @@ import { Plus, Search, ShoppingBag, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
-import z from "zod";
-
-type OrderFormData = z.infer<typeof OrderSchema>;
 
 export function OrderFormModal() {
   const { isOrderModalOpen, setOrderFormModalOpen } = useUIStore();

@@ -27,6 +27,7 @@ import {
 } from "@/components/ActionButtons";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { ColorBadge } from "@/components/presentation";
+import TabWrapper from "@/components/TabWrapper";
 import {
   Card,
   CardContent,
@@ -34,7 +35,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CustomerFormModal } from "@/features/customers/components/CustomerFormModal";
 import { LogEquipmentModal } from "@/features/customers/components/LogEquipmentModal";
 import { SpecialPricingModal } from "@/features/customers/components/SpecialPricingModal";
@@ -48,11 +49,20 @@ export const dynamic = "force-dynamic";
 
 export default async function CustomerPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{
+    tab?: string;
+    limit?: number;
+    page?: number;
+    sort?: string;
+    order?: "ASC" | "DESC";
+  }>;
 }) {
   await initDatabase();
   const { id } = await params;
+  const { tab, limit, page, sort, order } = await searchParams;
   let customer;
 
   try {
@@ -65,11 +75,19 @@ export default async function CustomerPage({
 
   const products = await ProductService.getAll();
   const logsPromise = EquipmentService.getAll({
+    limit,
+    page,
+    sort,
+    order,
     query: {
       customerId: Number(id),
     },
   });
   const orders = await OrderService.getAll({
+    limit,
+    page,
+    sort,
+    order,
     query: {
       customerId: Number(id),
     },
@@ -238,7 +256,7 @@ export default async function CustomerPage({
         )}
       </div>
 
-      <Tabs defaultValue="logs">
+      <TabWrapper defaultValue="logs">
         <TabsList>
           <TabsTrigger value="logs">Equipment Logs</TabsTrigger>
           <TabsTrigger value="history">Order History</TabsTrigger>
@@ -265,7 +283,7 @@ export default async function CustomerPage({
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
+      </TabWrapper>
       <CustomerFormModal barangays={barangays} />
       <LogEquipmentModal products={products} />
       <SpecialPricingModal products={products} />

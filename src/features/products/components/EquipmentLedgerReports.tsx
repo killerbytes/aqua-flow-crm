@@ -50,6 +50,7 @@ export default function EquipmentLedgerReports({
   reportsPromise,
 }: EquipmentLedgerReportsProps) {
   const { balanceSheet, agingReport, shrinkageReport } = use(reportsPromise);
+  console.log(agingReport);
 
   return (
     <div className="space-y-8">
@@ -164,7 +165,7 @@ export default function EquipmentLedgerReports({
                           {item.productName}
                         </td>
                         <td className="p-2.5 text-right font-mono font-semibold">
-                          {item.totalHoldings}
+                          {item.quantityTemporaryOwed}
                         </td>
                         <td className="p-2.5 text-right">
                           <Badge

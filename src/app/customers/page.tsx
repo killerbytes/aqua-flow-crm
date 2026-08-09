@@ -1,6 +1,10 @@
 import { initDatabase } from "@/backend/db/database";
+import { Customer } from "@/backend/models";
 import { CommonService } from "@/backend/services/commonService";
-import { CustomerService } from "@/backend/services/customer.service";
+import {
+  CustomerQueryParams,
+  CustomerService,
+} from "@/backend/services/customer.service";
 import { CustomerFormModalButton } from "@/components/ActionButtons";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import CustomerLookup from "@/components/CustomerLookup";
@@ -13,10 +17,7 @@ import { Suspense } from "react";
 export const dynamic = "force-dynamic";
 
 interface CustomersPageProps {
-  searchParams?: Promise<{
-    page?: string;
-    limit?: string;
-  }>;
+  searchParams?: Promise<CustomerQueryParams>;
 }
 
 export default async function CustomersPage({
@@ -27,9 +28,18 @@ export default async function CustomersPage({
 
   const page = Number(params?.page) || PAGINATION.PAGE;
   const limit = Number(params?.limit) || PAGINATION.PAGE_SIZE;
+  const sort = params?.sort;
+  const order = params?.order;
 
   const barangays = CommonService.getBarangays();
-  let customers: { rows: any[]; pagination: any } = {
+  let customers: {
+    rows: Customer[];
+    pagination: {
+      total: number;
+      currentPage: number;
+      totalPages: number;
+    };
+  } = {
     rows: [],
     pagination: { total: 0, currentPage: 1, totalPages: 1 },
   };
@@ -37,6 +47,8 @@ export default async function CustomersPage({
     const res = await CustomerService.getAll({
       limit,
       page,
+      sort,
+      order,
     });
     if (res) {
       customers = res;
