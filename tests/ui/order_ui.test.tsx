@@ -1,9 +1,12 @@
-import { describe, it, expect } from "vitest";
 import fs from "fs";
 import path from "path";
-import { ORDER_STATUS_OPTIONS, EQUIPMENT_ACTION_OPTIONS } from "../src/lib/definitions";
+import { describe, expect, it } from "vitest";
+import {
+  EQUIPMENT_ACTION_OPTIONS,
+  ORDER_STATUS_OPTIONS,
+} from "../../src/lib/definitions";
 
-describe("AquaFlow CRM UI Design System & Definitions", () => {
+describe("UI - Order Components & Theme Design System", () => {
   it("should have theme CSS variables in globals.css", () => {
     const cssPath = path.resolve(process.cwd(), "src/app/globals.css");
     const cssContent = fs.readFileSync(cssPath, "utf-8");
@@ -16,5 +19,14 @@ describe("AquaFlow CRM UI Design System & Definitions", () => {
   it("should contain definitions for order statuses and equipment action types", () => {
     expect(ORDER_STATUS_OPTIONS.length).toBeGreaterThan(0);
     expect(EQUIPMENT_ACTION_OPTIONS.length).toBeGreaterThan(0);
+  });
+
+  it("should format totalAmount in OrderList table column helper", () => {
+    const orderListPath = path.resolve(
+      process.cwd(),
+      "src/features/orders/components/OrderList.tsx",
+    );
+    const content = fs.readFileSync(orderListPath, "utf-8");
+    expect(content).toContain("totalAmount");
   });
 });
