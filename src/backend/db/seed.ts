@@ -16,9 +16,19 @@ import {
 } from "@/lib/definitions";
 
 import { hashPassword } from "@/lib/auth";
-import { Customer, ProductInventory, User, sequelize } from "../models";
-import { CustomerFormData, ProductFormData } from "../schemas/zodSchemas";
-import { EquipmentService } from "../services";
+import { User, sequelize } from "../models";
+import {
+  CustomerFormData,
+  OrderFormData,
+  OrderItemsFormData,
+  ProductFormData,
+} from "../schemas/zodSchemas";
+import {
+  CustomerService,
+  EquipmentService,
+  OrderService,
+  ProductService,
+} from "../services";
 import { InventoryService } from "../services/inventory.service";
 import { markDbInitialized } from "./database";
 
@@ -42,7 +52,7 @@ export interface SeedOrderInput {
 export interface SeedDataResult {
   products: ProductFormData[];
   customers: CustomerFormData[];
-  orders: SeedOrderInput[];
+  orders: OrderFormData[];
 }
 
 /**
@@ -54,15 +64,15 @@ export function generateSeedData(refDate: Date = new Date()): SeedDataResult {
       name: "5-Gallon Container (Slim)",
       unitPrice: 35.0,
     },
-    // {
-    //   name: "5-Gallon Container (Round)",
-    //   unitPrice: 40.0,
-    // },
-    // {
-    //   name: "Water Dispenser",
-    //   unitPrice: 240.0,
-    //   isLendOnly: true,
-    // },
+    {
+      name: "5-Gallon Container (Round)",
+      unitPrice: 40.0,
+    },
+    {
+      name: "Water Dispenser",
+      unitPrice: 240.0,
+      isLendOnly: true,
+    },
   ];
 
   const customers: CustomerFormData[] = [
@@ -85,62 +95,62 @@ export function generateSeedData(refDate: Date = new Date()): SeedDataResult {
     {
       name: "Apex Tech Solutions Inc.",
       address: "Suite 801, Eastwood City, Libis",
-      phone: "+63288881234",
+      phone: "09168888123",
       barangayId: "034903020",
       status: CustomerStatus.ACTIVE,
     },
     {
       name: "Elena Rostova",
       address: "789 Katipunan Ave, Loyola Heights",
-      phone: "9193456789",
+      phone: "+639193456789",
       barangayId: "034903020",
       status: CustomerStatus.ACTIVE,
     },
-    {
-      name: "Golden Bay Restaurant",
-      address: "12 Roxas Blvd, Pasay City",
-      phone: "044285559876",
-      barangayId: "034903020",
-      status: CustomerStatus.ACTIVE,
-    },
-    {
-      name: "Roberto Garcia",
-      address: "32 Commonwealth Ave, Fairview",
-      phone: "9204567890",
-      barangayId: "034903002",
-      status: CustomerStatus.ACTIVE,
-    },
-    {
-      name: "Bright Minds Academy",
-      address: "15 Teachers Village, Diliman",
-      phone: "287774321",
-      barangayId: "034903002",
-      status: CustomerStatus.ACTIVE,
-    },
-    {
-      name: "Ana Lim",
-      address: "88 Timog Ave, South Triangle",
-      phone: "09215678901",
-      barangayId: "034903002",
-      status: CustomerStatus.ACTIVE,
-    },
-    {
-      name: "St. Jude Clinic",
-      address: "54 Banawe St, Sta. Mesa Heights",
-      phone: "84443322",
-      barangayId: "034903002",
-      status: CustomerStatus.ACTIVE,
-    },
-    {
-      name: "Carlos Reyes",
-      address: "21 E. Rodriguez Sr. Ave, New Manila",
-      phone: "09226789012",
-      barangayId: "034903002",
-      status: CustomerStatus.ACTIVE,
-    },
+    // {
+    //   name: "Golden Bay Restaurant",
+    //   address: "12 Roxas Blvd, Pasay City",
+    //   phone: "09165554444",
+    //   barangayId: "034903020",
+    //   status: CustomerStatus.ACTIVE,
+    // },
+    // {
+    //   name: "Roberto Garcia",
+    //   address: "32 Commonwealth Ave, Fairview",
+    //   phone: "09204567890",
+    //   barangayId: "034903002",
+    //   status: CustomerStatus.ACTIVE,
+    // },
+    // {
+    //   name: "Bright Minds Academy",
+    //   address: "15 Teachers Village, Diliman",
+    //   phone: "287774321",
+    //   barangayId: "034903002",
+    //   status: CustomerStatus.ACTIVE,
+    // },
+    // {
+    //   name: "Ana Lim",
+    //   address: "88 Timog Ave, South Triangle",
+    //   phone: "09215678901",
+    //   barangayId: "034903002",
+    //   status: CustomerStatus.ACTIVE,
+    // },
+    // {
+    //   name: "St. Jude Clinic",
+    //   address: "54 Banawe St, Sta. Mesa Heights",
+    //   phone: "84443322",
+    //   barangayId: "034903002",
+    //   status: CustomerStatus.ACTIVE,
+    // },
+    // {
+    //   name: "Carlos Reyes",
+    //   address: "21 E. Rodriguez Sr. Ave, New Manila",
+    //   phone: "09226789012",
+    //   barangayId: "034903002",
+    //   status: CustomerStatus.ACTIVE,
+    // },
   ];
 
-  const orders: SeedOrderInput[] = [];
+  const orders: OrderFormData[] = [];
   const statuses = [
     OrderStatus.DELIVERED,
     OrderStatus.DELIVERED,
@@ -169,11 +179,12 @@ export function generateSeedData(refDate: Date = new Date()): SeedDataResult {
     const itemQty1 = isCommercial ? 10 + (i % 15) : 1 + (i % 4);
     const itemQty2 = i % 3 === 0 ? (isCommercial ? 5 : 1) : 0;
 
-    const details: SeedOrderDetailInput[] = [
+    const details: OrderItemsFormData = [
       {
         productId: 1,
         quantity: itemQty1,
         unitPrice: 35.0,
+        discount: 0,
       },
     ];
 
@@ -182,22 +193,20 @@ export function generateSeedData(refDate: Date = new Date()): SeedDataResult {
         productId: 2,
         quantity: itemQty2,
         unitPrice: 40.0,
+        discount: 0,
       });
     }
 
     const totalAmount = details.reduce(
       (sum, d) => sum + d.quantity * d.unitPrice,
-      0,
+      0
     );
 
     orders.push({
       customerId: customerId,
-      totalAmount: totalAmount,
       status: statuses[i % statuses.length],
       paymentStatus: paymentStatuses[i % paymentStatuses.length],
-      createdBy: 1,
-      createdAt: createdAt,
-      details,
+      items: details,
     });
   }
 
@@ -223,7 +232,7 @@ export async function seedDatabase(options?: {
     if (!isTest && sequelize.getDialect() === "postgres") {
       try {
         await sequelize.query(
-          "DROP SCHEMA public CASCADE; CREATE SCHEMA public;",
+          "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
         );
       } catch (dropErr) {
         console.warn("PostgreSQL schema drop fallback warning:", dropErr);
@@ -270,7 +279,7 @@ export async function seedDatabase(options?: {
   await seedForTest(options);
 
   console.log(
-    "Database seeded successfully with 3 products, 10 customers, and 50 orders!",
+    "Database seeded successfully with 3 products, 10 customers, and 50 orders!"
   );
   markDbInitialized();
 }
@@ -280,18 +289,12 @@ async function seedForTest(options: any) {
 
   // Seed Products
   for (const prod of seedData.products) {
-    await ProductInventory.findOrCreate({
-      where: { name: prod.name },
-      defaults: prod,
-    });
+    await ProductService.create(prod);
   }
 
   // Seed Customers
   for (const cust of seedData.customers) {
-    await Customer.findOrCreate({
-      where: { phone: cust.phone },
-      defaults: cust,
-    });
+    await CustomerService.create(cust);
   }
 
   await InventoryService.createAdjustment({
@@ -300,41 +303,29 @@ async function seedForTest(options: any) {
     quantity: 10,
     reason: "Initial stock",
   });
-  // await InventoryService.createAdjustment({
-  //   productId: 2,
-  //   adjustmentType: InventoryAdjustmentType.STOCK_IN,
-  //   quantity: 10,
-  //   reason: "Initial stock",
-  // });
-  // await InventoryService.createAdjustment({
-  //   productId: 2,
-  //   adjustmentType: InventoryAdjustmentType.DECLARED_DAMAGED,
-  //   quantity: 2,
-  //   reason: "Damaged bottle",
-  // });
-  // await InventoryService.createAdjustment({
-  //   productId: 1,
-  //   adjustmentType: InventoryAdjustmentType.STOCK_IN,
-  //   quantity: 3,
-  //   reason: "Initial stock",
-  // });
-  // await InventoryService.createAdjustment({
-  //   productId: 3,
-  //   adjustmentType: InventoryAdjustmentType.STOCK_IN,
-  //   quantity: 10,
-  //   reason: "Initial stock",
-  // });
+  await InventoryService.createAdjustment({
+    productId: 2,
+    adjustmentType: InventoryAdjustmentType.STOCK_IN,
+    quantity: 10,
+    reason: "Initial stock",
+  });
+  await InventoryService.createAdjustment({
+    productId: 3,
+    adjustmentType: InventoryAdjustmentType.STOCK_IN,
+    quantity: 10,
+    reason: "Initial stock",
+  });
 
-  // await CustomerSpecialPricing.create({
-  //   customerId: 1,
-  //   productId: 1,
-  //   discountAmount: 5.0,
-  // });
-  // await CustomerSpecialPricing.create({
-  //   customerId: 1,
-  //   productId: 2,
-  //   discountAmount: 1.5,
-  // });
+  await CustomerService.setSpecialPricing({
+    customerId: 1,
+    productId: 1,
+    discountAmount: 5.0,
+  });
+  await CustomerService.setSpecialPricing({
+    customerId: 1,
+    productId: 2,
+    discountAmount: 1.5,
+  });
 
   await EquipmentService.logEquipment(
     {
@@ -343,7 +334,7 @@ async function seedForTest(options: any) {
       actionType: EquipmentActionType.ISSUE,
       quantity: 1,
     },
-    1,
+    1
   );
 
   await EquipmentService.logEquipment(
@@ -353,7 +344,7 @@ async function seedForTest(options: any) {
       actionType: EquipmentActionType.TEMPORARY,
       quantity: 1,
     },
-    1,
+    1
   );
 
   await InventoryService.createAdjustment({
@@ -370,7 +361,7 @@ async function seedForTest(options: any) {
       actionType: EquipmentActionType.TEMPORARY_RETURNED,
       quantity: 1,
     },
-    1,
+    1
   );
 
   await EquipmentService.logEquipment(
@@ -380,7 +371,7 @@ async function seedForTest(options: any) {
       actionType: EquipmentActionType.DAMAGED,
       quantity: 1,
     },
-    1,
+    1
   );
 
   // await EquipmentService.logEquipment(
@@ -414,30 +405,9 @@ async function seedForTest(options: any) {
   // );
 
   // Seed Orders and Details
-  // for (const ord of seedData.orders) {
-  //   const createdOrder = await Order.create(
-  //     {
-  //       customerId: ord.customerId,
-  //       totalAmount: ord.totalAmount,
-  //       status: ord.status,
-  //       paymentStatus: ord.paymentStatus,
-  //       createdBy: ord.createdBy,
-  //       createdAt: ord.createdAt,
-  //       updatedAt: ord.createdAt,
-  //     },
-  //     { silent: true }, // Preserves explicit timestamps
-  //   );
-
-  //   for (const detail of ord.details) {
-  //     await OrderDetail.create({
-  //       orderId: createdOrder.orderId,
-  //       productId: detail.productId,
-  //       quantity: detail.quantity,
-  //       unitPrice: detail.unitPrice,
-  //       discount: detail.discount || 0,
-  //     });
-  //   }
-  // }
+  for (const ord of seedData.orders) {
+    const createdOrder = await OrderService.create(ord, 1);
+  }
 }
 // Execution block when invoked directly via CLI (e.g. `npx tsx src/backend/db/seed.ts`)
 if (require.main === module) {

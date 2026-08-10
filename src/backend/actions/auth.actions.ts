@@ -9,23 +9,27 @@ import { ChangePasswordData } from "../schemas/zodSchemas";
 import { AuthService } from "../services/auth.service";
 
 export async function loginAction(username: string, password: string) {
-  await initDatabase();
-  const { token, user } = await AuthService.login(username, password);
-
   try {
-    const cookieStore = await cookies();
-    cookieStore.set("token", token, {
-      httpOnly: true,
-      path: "/",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-      sameSite: "lax",
-    });
-  } catch (err) {
-    console.warn("Cookie set error (outside request context):", err);
-  }
+    await initDatabase();
+    const { token, user } = await AuthService.login(username, password);
 
-  return { token, user };
+    try {
+      const cookieStore = await cookies();
+      cookieStore.set("token", token, {
+        httpOnly: true,
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+        sameSite: "lax",
+      });
+    } catch (err) {
+      console.warn("Cookie set error (outside request context):", err);
+    }
+
+    return { success: true, token, user };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Invalid credentials" };
+  }
 }
 
 export async function createUserAction(input: any) {

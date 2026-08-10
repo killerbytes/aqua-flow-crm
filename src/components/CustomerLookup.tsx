@@ -76,6 +76,7 @@ function CustomerLookupContent({
                         variant="outline"
                         onClick={() => {
                           onClose();
+                          router.push(`/customers/new`);
                         }}
                       >
                         <UserPlus className="h-4 w-4" /> New Customer

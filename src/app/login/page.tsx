@@ -82,8 +82,9 @@ function LoginPageContent() {
       try {
         const res = await loginAction(data.username, data.password);
 
-        if (!res?.token) {
-          throw new Error("Login failed. Please check your credentials.");
+        if (!res?.success || !res?.token) {
+          setError(res?.error || "Login failed. Please check your credentials.");
+          return;
         }
 
         router.push(redirectPath);
