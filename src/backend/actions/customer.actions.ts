@@ -1,109 +1,78 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getAuthContext, requireAuth } from "../auth/context";
-import { initDatabase } from "../db/database";
-import { checkPermission } from "../rbac/permissions";
+import { createProtectedAction } from "../lib/safe-action";
 import {
   CustomerFormData,
+  CustomerSchema,
   EquipmentLogFormData,
+  EquipmentLogSchema,
   SpecialPricingFormData,
+  SpecialPricingSchema,
 } from "../schemas/zodSchemas";
 import { CustomerService } from "../services/customer.service";
 import { EquipmentService } from "../services/equipment.service";
 
-export async function getCustomersAction() {
-  await initDatabase();
-  const context = await getAuthContext();
-  const user = requireAuth(context);
-  if (!checkPermission(user.role, "CREATE_ORDER")) {
-    throw new Error("Forbidden: insufficient permissions");
-  }
+export const getCustomersAction = createProtectedAction({
+  permission: "CREATE_ORDER",
+  handler: async () => {
+    return await CustomerService.getAll();
+  },
+});
 
-  const result = await CustomerService.getAll();
-  return result;
-}
+export const createCustomerAction = createProtectedAction({
+  permission: "CREATE_ORDER",
+  schema: CustomerSchema,
+  handler: async (_ctx, input: CustomerFormData) => {
+    const result = await CustomerService.create(input);
+    revalidatePath("/customers");
+    return result;
+  },
+});
 
-export async function createCustomerAction(input: CustomerFormData) {
-  await initDatabase();
-  const context = await getAuthContext();
-  const user = requireAuth(context);
-  if (!checkPermission(user.role, "CREATE_ORDER")) {
-    throw new Error("Forbidden: insufficient permissions");
-  }
+export const updateCustomerAction = createProtectedAction({
+  permission: "CREATE_ORDER",
+  schema: CustomerSchema,
+  handler: async (_ctx, id: number | string, input: CustomerFormData) => {
+    const result = await CustomerService.update(id, input);
+    revalidatePath("/customers");
+    return result;
+  },
+});
 
-  const result = await CustomerService.create(input);
-  revalidatePath("/customers");
-  return result;
-}
+export const deleteCustomerAction = createProtectedAction({
+  permission: "MANAGE_USERS",
+  handler: async (_ctx, id: number | string) => {
+    const result = await CustomerService.delete(id);
+    revalidatePath("/customers");
+    return result;
+  },
+});
 
-export async function updateCustomerAction(
-  id: number | string,
-  input: CustomerFormData,
-) {
-  await initDatabase();
-  const context = await getAuthContext();
+export const lookupCustomerAction = createProtectedAction({
+  permission: "CREATE_ORDER",
+  handler: async (_ctx, term: string, isActiveOnly: boolean = false) => {
+    return await CustomerService.lookup(term, isActiveOnly);
+  },
+});
 
-  const user = requireAuth(context);
-  if (!checkPermission(user.role, "CREATE_ORDER")) {
-    throw new Error("Forbidden: insufficient permissions");
-  }
+export const logEquipmentAction = createProtectedAction({
+  permission: "LOG_EQUIPMENT",
+  schema: EquipmentLogSchema,
+  handler: async (ctx, input: EquipmentLogFormData) => {
+    const result = await EquipmentService.logEquipment(input, ctx.user.userId);
+    revalidatePath("/inventory");
+    revalidatePath("/customers");
+    return result;
+  },
+});
 
-  const result = await CustomerService.update(id, input);
-  revalidatePath("/customers");
-  return result;
-}
-
-export async function deleteCustomerAction(id: number | string) {
-  await initDatabase();
-  const context = await getAuthContext();
-  const user = requireAuth(context);
-  if (!checkPermission(user.role, "MANAGE_USERS")) {
-    throw new Error("Forbidden: insufficient permissions");
-  }
-
-  const result = await CustomerService.delete(id);
-  revalidatePath("/customers");
-  return result;
-}
-
-export async function lookupCustomerAction(
-  term: string,
-  isActiveOnly: boolean = false,
-) {
-  await initDatabase();
-  const context = await getAuthContext();
-  const user = requireAuth(context);
-  if (!checkPermission(user.role, "CREATE_ORDER")) {
-    throw new Error("Forbidden: insufficient permissions");
-  }
-  const result = await CustomerService.lookup(term, isActiveOnly);
-  return result;
-}
-
-export async function logEquipmentAction(input: EquipmentLogFormData) {
-  await initDatabase();
-  const context = await getAuthContext();
-  const user = requireAuth(context);
-  if (!checkPermission(user.role, "LOG_EQUIPMENT")) {
-    throw new Error("Forbidden: insufficient permissions");
-  }
-
-  const result = await EquipmentService.logEquipment(input, user.userId);
-  revalidatePath("/inventory");
-  revalidatePath("/customers");
-  return result;
-}
-
-export async function setSpecialPricingAction(input: SpecialPricingFormData) {
-  await initDatabase();
-  const context = await getAuthContext();
-  const user = requireAuth(context);
-  if (!checkPermission(user.role, "MANAGE_CUSTOMERS")) {
-    throw new Error("Forbidden: insufficient permissions");
-  }
-
-  const result = await CustomerService.setSpecialPricing(input);
-  revalidatePath(`/customers/${input.customerId}`);
-  return result;
-}
+export const setSpecialPricingAction = createProtectedAction({
+  permission: "MANAGE_CUSTOMERS",
+  schema: SpecialPricingSchema,
+  handler: async (_ctx, input: SpecialPricingFormData) => {
+    const result = await CustomerService.setSpecialPricing(input);
+    revalidatePath(`/customers/${input.customerId}`);
+    return result;
+  },
+});

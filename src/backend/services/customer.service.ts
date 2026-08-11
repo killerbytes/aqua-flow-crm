@@ -94,7 +94,6 @@ export class CustomerService {
       const orderByField =
         sort && orderByMap[sort] ? orderByMap[sort] : "customerId";
       const orderBy: OrderItem = [orderByField, sortOrder];
-      console.log(123, orderBy);
 
       const { rows, count } = await Customer.findAndCountAll({
         where,

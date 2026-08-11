@@ -35,8 +35,8 @@ function CustomerLookupContent({
     setLoading(true);
     const res = await lookupCustomerAction(debouncedTerm!, isActiveOnly);
 
-    if (res) {
-      setCustomers(res);
+    if (res && res.success) {
+      setCustomers(res.data);
     }
     setLoading(false);
   };

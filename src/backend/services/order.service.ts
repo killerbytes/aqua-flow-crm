@@ -85,7 +85,6 @@ export class OrderService {
         : ([orderTarget, sortOrder] as unknown as OrderItem);
 
       const offset = (page - 1) * limit;
-      console.log(limit);
 
       const { rows, count } = await Order.findAndCountAll({
         offset,

@@ -56,6 +56,9 @@ function InventoryAdjustmentModalContent() {
     startTransition(async () => {
       try {
         const result = await createAdjustmentAction(data);
+        if (!result.success) {
+          return;
+        }
         setInventoryAdjustmentModalOpen(false);
         reset();
       } catch (error) {}

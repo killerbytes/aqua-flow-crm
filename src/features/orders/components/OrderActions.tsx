@@ -14,7 +14,10 @@ export default function OrderActions({ order }: { order: Order }) {
   const { setPaymentModalOpen } = useUIStore();
   const handleClick = async (status: OrderStatus) => {
     startTransition(async () => {
-      await updateOrderStatusAction(order.orderId, status);
+      const res = await updateOrderStatusAction(order.orderId, status);
+      if (!res.success) {
+        return;
+      }
     });
   };
   return (

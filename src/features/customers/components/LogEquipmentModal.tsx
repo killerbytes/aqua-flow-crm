@@ -63,14 +63,16 @@ function LogEquipmentModalContent({
   const {
     handleSubmit,
     control,
-    setError,
     formState: { errors },
   } = form;
 
   const handleSave = (data: EquipmentLogFormData) => {
     startTransition(async () => {
       try {
-        await logEquipmentAction(data);
+        const res = await logEquipmentAction(data);
+        if (!res.success) {
+          throw new Error(res.error);
+        }
 
         toast.add({
           type: "success",
@@ -81,12 +83,12 @@ function LogEquipmentModalContent({
       } catch (error: any) {
         toast.add({
           type: "error",
+          priority: "high",
           description: error.message || "Failed to log equipment",
         });
       }
     });
   };
-  console.log(errors);
 
   return (
     <Modal

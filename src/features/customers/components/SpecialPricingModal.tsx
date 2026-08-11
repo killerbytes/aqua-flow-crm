@@ -51,14 +51,16 @@ function SpecialPricingModalContent({
   const {
     handleSubmit,
     control,
-    setError,
     formState: { errors },
   } = form;
 
   const handleSave = (data: SpecialPricingFormData) => {
     startTransition(async () => {
       try {
-        await setSpecialPricingAction(data);
+        const res = await setSpecialPricingAction(data);
+        if (!res.success) {
+          throw new Error(res.error);
+        }
 
         toast.add({
           type: "success",
@@ -69,12 +71,12 @@ function SpecialPricingModalContent({
       } catch (error: any) {
         toast.add({
           type: "error",
+          priority: "high",
           description: error.message || "Failed to set special pricing",
         });
       }
     });
   };
-  console.log(errors);
 
   return (
     <Modal

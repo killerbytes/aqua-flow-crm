@@ -1,93 +1,68 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getAuthContext, requireAuth } from "../auth/context";
-import { initDatabase } from "../db/database";
-import { checkPermission } from "../rbac/permissions";
+import { createProtectedAction } from "../lib/safe-action";
 import {
   AdjustmentFormData,
+  AdjustmentSchema,
   ProductFormData,
   ProductInventorySchema,
 } from "../schemas/zodSchemas";
 import { InventoryService } from "../services/inventory.service";
 import { ProductService } from "../services/product.service";
 
-export async function getProductsAction() {
-  await initDatabase();
-  const context = await getAuthContext();
-  const user = requireAuth(context);
-  if (!checkPermission(user.role, "VIEW_PRODUCTS")) {
-    throw new Error("Forbidden: insufficient permissions");
-  }
+export const getProductsAction = createProtectedAction({
+  permission: "VIEW_PRODUCTS",
+  handler: async () => {
+    return await ProductService.getAll();
+  },
+});
 
-  const result = await ProductService.getAll();
-  return result;
-}
+export const createProductAction = createProtectedAction({
+  permission: "MANAGE_PRODUCTS",
+  schema: ProductInventorySchema,
+  handler: async (_ctx, input: ProductFormData) => {
+    const result = await ProductService.create(input);
+    revalidatePath("/products");
+    return result;
+  },
+});
 
-export async function createProductAction(input: ProductFormData) {
-  await initDatabase();
-  const validatedData = ProductInventorySchema.parse(input);
-  const context = await getAuthContext();
-  const user = requireAuth(context);
-  if (!checkPermission(user.role, "MANAGE_PRODUCTS")) {
-    throw new Error("Forbidden: insufficient permissions");
-  }
+export const updateProductAction = createProtectedAction({
+  permission: "MANAGE_PRODUCTS",
+  handler: async (
+    _ctx,
+    id: number | string,
+    input: Partial<ProductFormData>,
+  ) => {
+    const result = await ProductService.update(id, input);
+    revalidatePath("/products");
+    return result;
+  },
+});
 
-  const result = await ProductService.create(validatedData);
-  revalidatePath("/products");
-  return result;
-}
+export const deleteProductAction = createProtectedAction({
+  permission: "MANAGE_PRODUCTS",
+  handler: async (_ctx, id: number | string) => {
+    const result = await ProductService.delete(id);
+    revalidatePath("/products");
+    return result;
+  },
+});
 
-export async function updateProductAction(
-  id: number | string,
-  input: Partial<ProductFormData>,
-) {
-  await initDatabase();
-  const context = await getAuthContext();
-  const user = requireAuth(context);
-  if (!checkPermission(user.role, "MANAGE_PRODUCTS")) {
-    throw new Error("Forbidden: insufficient permissions");
-  }
+export const getInventoryAction = createProtectedAction({
+  permission: "ADJUST_INVENTORY",
+  handler: async () => {
+    return await InventoryService.getAll();
+  },
+});
 
-  const result = await ProductService.update(id, input);
-  revalidatePath("/products");
-  return result;
-}
-
-export async function deleteProductAction(id: number | string) {
-  await initDatabase();
-  const context = await getAuthContext();
-  const user = requireAuth(context);
-  if (!checkPermission(user.role, "MANAGE_PRODUCTS")) {
-    throw new Error("Forbidden: insufficient permissions");
-  }
-
-  const result = await ProductService.delete(id);
-  revalidatePath("/products");
-  return result;
-}
-
-export async function getInventoryAction() {
-  await initDatabase();
-  const context = await getAuthContext();
-  const user = requireAuth(context);
-  if (!checkPermission(user.role, "ADJUST_INVENTORY")) {
-    throw new Error("Forbidden: insufficient permissions");
-  }
-
-  const result = await InventoryService.getAll();
-  return result;
-}
-
-export async function createAdjustmentAction(input: AdjustmentFormData) {
-  await initDatabase();
-  const context = await getAuthContext();
-  const user = requireAuth(context);
-  if (!checkPermission(user.role, "ADJUST_INVENTORY")) {
-    throw new Error("Forbidden: insufficient permissions");
-  }
-
-  const result = await InventoryService.createAdjustment(input);
-  revalidatePath("/products");
-  return result;
-}
+export const createAdjustmentAction = createProtectedAction({
+  permission: "ADJUST_INVENTORY",
+  schema: AdjustmentSchema,
+  handler: async (_ctx, input: AdjustmentFormData) => {
+    const result = await InventoryService.createAdjustment(input);
+    revalidatePath("/products");
+    return result;
+  },
+});

@@ -74,13 +74,19 @@ export const ProductFormModalContent = ({}) => {
 
       const targetId = editingProduct?.productId;
       if (isEditing && targetId) {
-        await updateProductAction(targetId, payload);
+        const res = await updateProductAction(targetId, payload);
+        if (!res.success) {
+          throw new Error(res.error);
+        }
         toast.add({
           type: "success",
           title: "Product updated successfully!",
         });
       } else {
-        await createProductAction(payload);
+        const res = await createProductAction(payload);
+        if (!res.success) {
+          throw new Error(res.error);
+        }
         toast.add({
           type: "success",
           title: "Product added successfully!",
@@ -93,6 +99,7 @@ export const ProductFormModalContent = ({}) => {
     } catch (err: any) {
       toast.add({
         type: "error",
+        priority: "high",
         title: `Failed to save product: ${err.message}`,
       });
     }
@@ -102,7 +109,10 @@ export const ProductFormModalContent = ({}) => {
     try {
       const targetId = editingProduct?.productId;
       if (isEditing && targetId) {
-        await deleteProductAction(targetId);
+        const res = await deleteProductAction(targetId);
+        if (!res.success) {
+          throw new Error(res.error);
+        }
         toast.add({
           type: "success",
           title: "Product deleted successfully!",
@@ -114,7 +124,8 @@ export const ProductFormModalContent = ({}) => {
     } catch (err: any) {
       toast.add({
         type: "error",
-        title: `Product deletion failed! ${err.message}`,
+        priority: "high",
+        title: `Failed to delete product: ${err.message}`,
       });
     }
   };

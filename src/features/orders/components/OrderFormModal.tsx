@@ -89,12 +89,16 @@ export const OrderFormModalContent = () => {
   });
 
   const getData = async () => {
-    const [customers, products] = await Promise.all([
+    const [customersRes, productsRes] = await Promise.all([
       getCustomersAction(),
       getProductsAction(),
     ]);
-    setCustomers(customers.rows);
-    setProducts(products);
+    if (customersRes.success) {
+      setCustomers((customersRes.data as any).rows || customersRes.data);
+    }
+    if (productsRes.success) {
+      setProducts(productsRes.data);
+    }
   };
 
   useEffect(() => {
@@ -119,15 +123,25 @@ export const OrderFormModalContent = () => {
 
   const onSubmit = async (data: OrderFormData) => {
     startTransition(async () => {
-      await createOrderAction(data);
-      toast.add({
-        title: "Order Created",
-      });
-      setOrderFormModalOpen(false);
-      router.refresh();
+      try {
+        const res = await createOrderAction(data);
+        if (!res.success) {
+          throw new Error(res.error);
+        }
+        toast.add({
+          title: "Order Created",
+        });
+        setOrderFormModalOpen(false);
+        router.refresh();
+      } catch (error: any) {
+        toast.add({
+          type: "error",
+          priority: "high",
+          description: error.message || "Failed to set special pricing",
+        });
+      }
     });
   };
-  console.log(errors);
 
   return (
     <>

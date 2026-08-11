@@ -4,7 +4,6 @@ import { createUserAction, updateUserAction } from "@/backend/actions";
 import {
   UserFormData,
   UserFormSchema,
-  UserFormUpdateData,
   UserFormUpdateSchema,
 } from "@/backend/schemas/zodSchemas";
 import Modal from "@/components/Modal";
@@ -85,12 +84,18 @@ export const OrderFormModalContent = () => {
     try {
       startTransition(async () => {
         if (isEditing && editingUser?.userId) {
-          await updateUserAction(String(editingUser.userId), data);
+          const res = await updateUserAction(String(editingUser.userId), data);
+          if (!res.success) {
+            throw new Error(res.error);
+          }
           toast.add({
             title: "User updated successfully",
           });
         } else {
-          await createUserAction(data);
+          const res = await createUserAction(data);
+          if (!res.success) {
+            throw new Error(res.error);
+          }
           toast.add({
             title: "User created successfully",
           });
@@ -102,6 +107,8 @@ export const OrderFormModalContent = () => {
       });
     } catch (err: any) {
       toast.add({
+        type: "error",
+        priority: "high",
         title: err.message || "Failed to save user account",
       });
     }

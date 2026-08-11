@@ -56,7 +56,10 @@ const ChangePasswordModalContent = () => {
     try {
       startTransition(async () => {
         if (editingUser?.userId) {
-          await changePasswordAction(editingUser.userId, data);
+          const res = await changePasswordAction(editingUser.userId, data);
+          if (!res.success) {
+            throw new Error(res.error);
+          }
           toast.add({
             title: "Password updated successfully",
           });
@@ -68,6 +71,8 @@ const ChangePasswordModalContent = () => {
       });
     } catch (err: any) {
       toast.add({
+        type: "error",
+        priority: "high",
         title: err.message || "Failed to change password",
       });
     }

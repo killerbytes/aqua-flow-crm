@@ -76,16 +76,22 @@ function CustomerFormModalContent({
     startTransition(async () => {
       try {
         if (isEditing && targetId) {
-          await updateCustomerAction(targetId, data);
+          const res = await updateCustomerAction(targetId, data);
+          if (!res.success) {
+            throw new Error(res.error);
+          }
           toast.add({
             title: "Customer Updated",
           });
         } else {
-          const customer = await createCustomerAction(data);
+          const res = await createCustomerAction(data);
+          if (!res.success) {
+            throw new Error(res.error);
+          }
           toast.add({
             title: "Customer Created",
           });
-          router.push("/customers/" + customer.customerId);
+          router.push("/customers/" + res.data.customerId);
         }
 
         reset();
@@ -93,7 +99,8 @@ function CustomerFormModalContent({
         router.refresh();
       } catch (err: any) {
         toast.add({
-          title: "Error",
+          type: "error",
+          priority: "high",
           description:
             err.message ||
             `Failed to ${isEditing ? "update" : "create"} customer`,
@@ -105,7 +112,10 @@ function CustomerFormModalContent({
   const onDelete = async () => {
     try {
       if (isEditing && editingCustomer.customerId) {
-        await deleteCustomerAction(editingCustomer.customerId);
+        const res = await deleteCustomerAction(editingCustomer.customerId);
+        if (!res.success) {
+          throw new Error(res.error);
+        }
         toast.add({
           title: "Customer Deleted",
         });
@@ -115,7 +125,8 @@ function CustomerFormModalContent({
       router.replace("/customers");
     } catch (err: any) {
       toast.add({
-        title: "Error",
+        type: "error",
+        priority: "high",
         description: err.message || `Failed to delete customer`,
       });
     }

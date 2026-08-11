@@ -52,7 +52,10 @@ export function PaymentModalContent({ onClose }: { onClose: () => void }) {
   const onSubmit = (data: PaymentFormData) => {
     startTransition(async () => {
       try {
-        await makePaymentAction(editingOrder.orderId, data);
+        const res = await makePaymentAction(editingOrder.orderId, data);
+        if (!res.success) {
+          throw new Error(res.error);
+        }
         toast.add({
           type: "success",
           title: `Order #${editingOrder.orderId} marked as Paid`,
@@ -62,12 +65,12 @@ export function PaymentModalContent({ onClose }: { onClose: () => void }) {
       } catch (err: any) {
         toast.add({
           type: "error",
+          priority: "high",
           title: err.message || "Failed to settle order payment",
         });
       }
     });
   };
-  console.log(errors);
 
   return (
     <>
