@@ -52,5 +52,11 @@ describe("Integration - Report Service & Analytics", () => {
         ),
       ).toBe(true);
     });
+
+    it("should retrieve customers with temporary balances using getCustomersWithTemporary", async () => {
+      const tempResult = await ReportService.getCustomersWithTemporary();
+      expect(tempResult.rows).toBeDefined();
+      expect(tempResult.pagination).toBeDefined();
+    });
   });
 });

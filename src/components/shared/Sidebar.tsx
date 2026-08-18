@@ -6,6 +6,7 @@ import { getInitials } from "@/lib/utils";
 import { useUIStore } from "@/store/uiStore";
 import { cx } from "class-variance-authority";
 import {
+  FileText,
   LayoutDashboard,
   LogOut,
   Receipt,
@@ -74,26 +75,26 @@ export default function Sidebar() {
     { name: "Invoices", href: "/invoices", icon: Receipt },
   ];
 
-  // if (user?.role === UserRole.CASHIER || user?.role === UserRole.ADMIN) {
-  //   navItems.push({
-  //     name: "Reports",
-  //     href: "/reports/customers",
-  //     icon: FileText,
-  //     subMenu: [
-  //       {
-  //         name: "Customers",
-  //         href: "/reports/customers",
-  //         icon: FileText,
-  //       },
-  //       {
-  //         name: "Monthly Sales",
-  //         href: "/reports/monthly-sales",
-  //         icon: FileText,
-  //       },
-  //       { name: "Yearly Sales", href: "/reports/yearly-sales", icon: FileText },
-  //     ],
-  //   });
-  // }
+  if (user?.role === UserRole.CASHIER || user?.role === UserRole.ADMIN) {
+    navItems.push({
+      name: "Reports",
+      href: "/reports/customers",
+      icon: FileText,
+      subMenu: [
+        {
+          name: "Customers",
+          href: "/reports/customers",
+          icon: FileText,
+        },
+        {
+          name: "Monthly Sales",
+          href: "/reports/monthly-sales",
+          icon: FileText,
+        },
+        { name: "Yearly Sales", href: "/reports/yearly-sales", icon: FileText },
+      ],
+    });
+  }
   if (user?.role === UserRole.ADMIN) {
     navItems.push({ name: "Users", href: "/users", icon: UserCog });
   }
@@ -132,7 +133,7 @@ export default function Sidebar() {
                         "hover:bg-primary/90 hover:text-primary-foreground ",
                         {
                           "bg-primary text-primary-foreground": isActive,
-                        },
+                        }
                       )}
                       render={<Link href={item.href} />}
                     >
@@ -156,7 +157,7 @@ export default function Sidebar() {
                                   {
                                     "bg-primary text-primary-foreground":
                                       isSubActive,
-                                  },
+                                  }
                                 )}
                                 render={<Link href={subItem.href} />}
                               >

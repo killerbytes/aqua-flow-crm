@@ -199,7 +199,7 @@ export function generateSeedData(refDate: Date = new Date()): SeedDataResult {
 
     const totalAmount = details.reduce(
       (sum, d) => sum + d.quantity * d.unitPrice,
-      0,
+      0
     );
 
     orders.push({
@@ -233,7 +233,7 @@ export async function seedDatabase(options?: {
     if (!isTest && sequelize.getDialect() === "postgres") {
       try {
         await sequelize.query(
-          "DROP SCHEMA public CASCADE; CREATE SCHEMA public;",
+          "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
         );
       } catch (dropErr) {
         console.warn("PostgreSQL schema drop fallback warning:", dropErr);
@@ -280,7 +280,7 @@ export async function seedDatabase(options?: {
   await seedForTest(options);
 
   console.log(
-    "Database seeded successfully with 3 products, 10 customers, and 50 orders!",
+    "Database seeded successfully with 3 products, 10 customers, and 50 orders!"
   );
   markDbInitialized();
 }
@@ -307,7 +307,7 @@ async function seedForTest(options: any) {
   await InventoryService.createAdjustment({
     productId: 2,
     adjustmentType: InventoryAdjustmentType.STOCK_IN,
-    quantity: 10,
+    quantity: 20,
     reason: "Initial stock",
   });
   await InventoryService.createAdjustment({
@@ -328,26 +328,6 @@ async function seedForTest(options: any) {
     discountAmount: 1.5,
   });
 
-  await EquipmentService.logEquipment(
-    {
-      customerId: 1,
-      productId: 1,
-      actionType: EquipmentActionType.ISSUE,
-      quantity: 1,
-    },
-    1,
-  );
-
-  await EquipmentService.logEquipment(
-    {
-      customerId: 1,
-      productId: 1,
-      actionType: EquipmentActionType.TEMPORARY,
-      quantity: 1,
-    },
-    1,
-  );
-
   await InventoryService.createAdjustment({
     productId: 1,
     adjustmentType: InventoryAdjustmentType.DECLARED_LOST,
@@ -359,10 +339,30 @@ async function seedForTest(options: any) {
     {
       customerId: 1,
       productId: 1,
+      actionType: EquipmentActionType.ISSUE,
+      quantity: 1,
+    },
+    1
+  );
+
+  await EquipmentService.logEquipment(
+    {
+      customerId: 1,
+      productId: 1,
+      actionType: EquipmentActionType.TEMPORARY,
+      quantity: 1,
+    },
+    1
+  );
+
+  await EquipmentService.logEquipment(
+    {
+      customerId: 1,
+      productId: 1,
       actionType: EquipmentActionType.TEMPORARY_RETURNED,
       quantity: 1,
     },
-    1,
+    1
   );
 
   await EquipmentService.logEquipment(
@@ -372,9 +372,27 @@ async function seedForTest(options: any) {
       actionType: EquipmentActionType.DAMAGED,
       quantity: 1,
     },
-    1,
+    1
   );
 
+  await EquipmentService.logEquipment(
+    {
+      customerId: 2,
+      productId: 2,
+      actionType: EquipmentActionType.ISSUE,
+      quantity: 10,
+    },
+    1
+  );
+  await EquipmentService.logEquipment(
+    {
+      customerId: 2,
+      productId: 2,
+      actionType: EquipmentActionType.TEMPORARY,
+      quantity: 1,
+    },
+    1
+  );
   // await EquipmentService.logEquipment(
   //   {
   //     customerId: 1,

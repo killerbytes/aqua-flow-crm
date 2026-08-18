@@ -1,6 +1,7 @@
 import { PAGINATION } from "@/lib/definitions";
 import { Op, OrderItem } from "sequelize";
 import { Customer, Order, OrderDetail, ProductInventory } from "../models";
+import { CustomerService } from "./customer.service";
 
 export interface CustomersWithLastOrderParams {
   limit?: number;
@@ -196,6 +197,19 @@ export class ReportService {
         currentPage: Number(page),
       },
     };
+  }
+
+  static async getCustomersWithTemporary(params?: CustomersWithLastOrderParams) {
+    return CustomerService.getAll({
+      limit: params?.limit,
+      page: params?.page,
+      sort: params?.sort,
+      order: params?.order,
+      query: {
+        ...params?.query,
+        withTemporaryBalanceOnly: true,
+      },
+    });
   }
 
   static async getWeeklyChurn() {

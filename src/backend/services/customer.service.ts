@@ -190,6 +190,16 @@ export class CustomerService {
     return result.rows;
   }
 
+  static async getCustomersWithTemporary(params: CustomerQueryParams = {}) {
+    return CustomerService.getAll({
+      ...params,
+      query: {
+        ...params.query,
+        withTemporaryBalanceOnly: true,
+      },
+    });
+  }
+
   static async getCustomerBalances(customerId: number | string) {
     const balances = await CustomerEquipmentBalance.findAll({
       where: { customerId: Number(customerId) },
