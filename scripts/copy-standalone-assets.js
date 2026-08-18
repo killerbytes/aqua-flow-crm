@@ -43,6 +43,16 @@ function main() {
     copyFolderRecursiveSync(staticSrc, staticDest);
   }
 
+  const serverJsPath = path.join(standaloneDir, "server.js");
+  if (fs.existsSync(serverJsPath)) {
+    let serverJsContent = fs.readFileSync(serverJsPath, "utf8");
+    if (!serverJsContent.includes("process.env.HOSTNAME = '0.0.0.0'")) {
+      console.log("Patching .next/standalone/server.js with HOSTNAME=0.0.0.0...");
+      serverJsContent = "process.env.HOSTNAME = '0.0.0.0';\n" + serverJsContent;
+      fs.writeFileSync(serverJsPath, serverJsContent, "utf8");
+    }
+  }
+
   console.log("Standalone assets copied successfully.");
 }
 

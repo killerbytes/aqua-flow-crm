@@ -6,7 +6,7 @@ const envSchema = z.object({
     .default("development"),
   PORT: z
     .string()
-    .default("3001")
+    .default("3000")
     .transform((val) => parseInt(val, 10)),
   JWT_SECRET: z
     .string()
