@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  createOrderAction,
-  getCustomersAction,
-  getProductsAction,
-} from "@/backend/actions";
+import { createOrderAction, getProductsAction } from "@/backend/actions";
 import { ProductInventory } from "@/backend/models";
 import { OrderFormData, OrderSchema } from "@/backend/schemas/zodSchemas";
 import CustomerLookup from "@/components/CustomerLookup";
@@ -37,29 +33,18 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { cx } from "class-variance-authority";
 import { Plus, Search, ShoppingBag, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useTransition } from "react";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
-
-export function OrderFormModal() {
-  const { isOrderModalOpen, setOrderFormModalOpen } = useUIStore();
-
-  if (!isOrderModalOpen) return null;
-
-  return (
-    <Modal
-      isOpen={isOrderModalOpen}
-      onClose={() => setOrderFormModalOpen(false)}
-    >
-      <OrderFormModalContent />
-    </Modal>
-  );
-}
 
 export const OrderFormModalContent = () => {
   const router = useRouter();
-  const { isOrderModalOpen, setOrderFormModalOpen, products, setProducts } =
-    useUIStore();
-  const [customers, setCustomers] = useState<any[]>([]);
+  const {
+    isOrderModalOpen,
+    setOrderFormModalOpen,
+    products,
+    setProducts,
+    lookupCustomers,
+  } = useUIStore();
   const [isPending, startTransition] = useTransition();
 
   const form = useForm({
@@ -89,13 +74,7 @@ export const OrderFormModalContent = () => {
   });
 
   const getData = async () => {
-    const [customersRes, productsRes] = await Promise.all([
-      getCustomersAction(),
-      getProductsAction(),
-    ]);
-    if (customersRes.success) {
-      setCustomers((customersRes.data as any).rows || customersRes.data);
-    }
+    const productsRes = await getProductsAction();
     if (productsRes.success) {
       setProducts(productsRes.data);
     }
@@ -167,7 +146,7 @@ export const OrderFormModalContent = () => {
                   }}
                 >
                   <FieldLabel className="w-full cursor-pointer justify-start">
-                    {customers.find((c) => c.customerId === field.value)
+                    {lookupCustomers.find((c) => c.customerId === field.value)
                       ?.name || (
                       <div
                         className={cx("flex justify-start gap-2 items-center")}
@@ -356,3 +335,18 @@ export const OrderFormModalContent = () => {
     </>
   );
 };
+
+export function OrderFormModal() {
+  const { isOrderModalOpen, setOrderFormModalOpen } = useUIStore();
+
+  if (!isOrderModalOpen) return null;
+
+  return (
+    <Modal
+      isOpen={isOrderModalOpen}
+      onClose={() => setOrderFormModalOpen(false)}
+    >
+      <OrderFormModalContent />
+    </Modal>
+  );
+}

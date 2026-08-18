@@ -26,6 +26,7 @@ export interface OrderQueryParams {
     startDate?: string;
     endDate?: string;
     paymentStatus?: PaymentStatus;
+    isInvoice?: boolean;
   };
   sort?: string;
   order?: "ASC" | "DESC";
@@ -42,9 +43,25 @@ export class OrderService {
     } = params;
     try {
       const where: any = {};
-      const { startDate, endDate, status, paymentStatus, customerId } = query;
+      const {
+        startDate,
+        endDate,
+        status,
+        paymentStatus,
+        customerId,
+        isInvoice = false,
+      } = query;
 
-      if (status) where.status = status;
+      if (isInvoice) {
+        where.status = {
+          [Op.ne]: OrderStatus.CANCELLED,
+        };
+      }
+
+      if (status) {
+        where.status = { ...where.status, status };
+      }
+
       if (customerId) where.customerId = customerId;
       if (paymentStatus) where.paymentStatus = paymentStatus;
 

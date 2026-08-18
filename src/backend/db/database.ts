@@ -58,15 +58,10 @@ export function initDatabase(): Promise<void> {
           isDbInitialized = true;
         } else {
           await sequelize.authenticate();
-          // try {
-          //   if (process.env.NODE_ENV !== "production") {
-          //     await sequelize.sync({ alter: true });
-          //     console.info("Database tables synchronized successfully.");
-          //   }
-          // } catch (syncErr) {
-          //   // Fallback sync to guarantee table creation without dropping constraints
-          //   await sequelize.sync({ alter: false });
-          // }
+          // Production Best Practice: Schema changes are managed strictly via
+          // version-controlled migration files in `src/backend/migrations`
+          // (`npm run db:migrate`). Runtime `sequelize.sync({ alter: true })`
+          // is disabled to ensure zero table locking or data loss risks.
           isDbInitialized = true;
         }
       } catch (error) {

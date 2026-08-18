@@ -116,7 +116,6 @@ export default function OrderList({ orders }: OrderListProps) {
       ].filter(Boolean) as any[],
     [pathname],
   );
-  console.log(orders);
 
   return (
     <>

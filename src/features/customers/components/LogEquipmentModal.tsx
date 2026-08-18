@@ -46,8 +46,7 @@ function LogEquipmentModalContent({
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const [isTemp, setIsTemp] = React.useState(false);
-  const { selectedCustomerId, selectedProductId, setEquipmentLogModalOpen } =
-    useUIStore();
+  const { selectedCustomerId, selectedProductId } = useUIStore();
 
   const form = useForm<EquipmentLogFormData>({
     resolver: zodResolver(EquipmentLogSchema),
@@ -91,13 +90,7 @@ function LogEquipmentModalContent({
   };
 
   return (
-    <Modal
-      isOpen
-      onClose={onClose}
-      title="Log Equipment"
-      description="Track containers borrowed, returned, or lost by customers."
-      maxWidth="md"
-    >
+    <>
       <form onSubmit={handleSubmit(handleSave)} className="space-y-4">
         <Field orientation="horizontal">
           <ToggleGroup
@@ -236,7 +229,7 @@ function LogEquipmentModalContent({
           </Button>
         </DialogFooter>
       </form>
-    </Modal>
+    </>
   );
 }
 
@@ -251,6 +244,8 @@ export function LogEquipmentModal({
 
   return (
     <Modal
+      title="Log Equipment"
+      description="Track containers borrowed, returned, or lost by customers."
       isOpen={isEquipmentLogModalOpen}
       onClose={() => setEquipmentLogModalOpen(false, null)}
     >

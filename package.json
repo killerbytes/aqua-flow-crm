@@ -9,6 +9,10 @@
     "test": "vitest run",
     "type-check": "tsc --noEmit",
     "seed": "npx tsx src/backend/db/seed.ts",
+    "db:migrate": "sequelize-cli db:migrate",
+    "db:migrate:undo": "sequelize-cli db:migrate:undo",
+    "db:migrate:status": "sequelize-cli db:migrate:status",
+    "db:migration:create": "sequelize-cli migration:generate",
     "backup": "node backup.js backup",
     "restore": "node backup.js restore"
   },

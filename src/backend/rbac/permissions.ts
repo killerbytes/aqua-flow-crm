@@ -9,9 +9,13 @@ export type PermissionAction =
   | "MANAGE_PRODUCTS"
   | "VIEW_PRODUCTS"
   | "ADJUST_INVENTORY"
+  | "VIEW_ORDERS"
   | "CREATE_ORDER"
   | "UPDATE_ORDER"
   | "DELETE_ORDER"
+  | "CREATE_INVOICE"
+  | "PAY_INVOICE"
+  | "VIEW_INVOICES"
   | "LOG_EQUIPMENT"
   | "UPDATE_DELIVERY_STATUS"
   | "VIEW_REPORTS";
@@ -26,9 +30,13 @@ const ROLE_PERMISSIONS: Record<UserRole, PermissionAction[]> = {
     "MANAGE_PRODUCTS",
     "VIEW_PRODUCTS",
     "ADJUST_INVENTORY",
+    "VIEW_ORDERS",
     "CREATE_ORDER",
     "UPDATE_ORDER",
     "DELETE_ORDER",
+    "CREATE_INVOICE",
+    "PAY_INVOICE",
+    "VIEW_INVOICES",
     "LOG_EQUIPMENT",
     "UPDATE_DELIVERY_STATUS",
     "VIEW_REPORTS",
@@ -40,8 +48,12 @@ const ROLE_PERMISSIONS: Record<UserRole, PermissionAction[]> = {
     "MANAGE_PRODUCTS",
     "VIEW_PRODUCTS",
     "ADJUST_INVENTORY",
+    "VIEW_ORDERS",
     "CREATE_ORDER",
     "UPDATE_ORDER",
+    "CREATE_INVOICE",
+    "PAY_INVOICE",
+    "VIEW_INVOICES",
     "LOG_EQUIPMENT",
     "UPDATE_DELIVERY_STATUS",
     "VIEW_REPORTS",
@@ -49,9 +61,13 @@ const ROLE_PERMISSIONS: Record<UserRole, PermissionAction[]> = {
   [UserRole.CASHIER]: [
     "CREATE_CUSTOMER",
     "VIEW_PRODUCTS",
+    "VIEW_ORDERS",
     "MANAGE_CUSTOMERS",
     "CREATE_ORDER",
     "UPDATE_ORDER",
+    "CREATE_INVOICE",
+    "PAY_INVOICE",
+    "VIEW_INVOICES",
     "LOG_EQUIPMENT",
     "UPDATE_DELIVERY_STATUS",
   ],

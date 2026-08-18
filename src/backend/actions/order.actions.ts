@@ -3,13 +3,24 @@
 import { OrderStatus } from "@/lib/definitions";
 import { revalidatePath } from "next/cache";
 import { createProtectedAction } from "../lib/safe-action";
-import { OrderSchema, PaymentSchema } from "../schemas/zodSchemas";
-import { OrderService } from "../services/order.service";
+import {
+  OrderFormData,
+  OrderSchema,
+  PaymentSchema,
+} from "../schemas/zodSchemas";
+import { OrderQueryParams, OrderService } from "../services/order.service";
+
+export const getOrdersAction = createProtectedAction({
+  permission: "VIEW_ORDERS",
+  handler: async (ctx, input: OrderQueryParams) => {
+    return await OrderService.getAll(input);
+  },
+});
 
 export const createOrderAction = createProtectedAction({
   permission: "CREATE_ORDER",
   schema: OrderSchema,
-  handler: async (ctx, input: any) => {
+  handler: async (ctx, input: OrderFormData) => {
     const result = await OrderService.create(input, ctx.user.userId);
     revalidatePath("/orders");
     return result;

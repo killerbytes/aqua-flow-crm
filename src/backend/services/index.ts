@@ -5,4 +5,6 @@ export * from "./order.service";
 export * from "./equipment.service";
 export * from "./report.service";
 export * from "./inventory.service";
+export * from "./invoice.service";
 export * from "./errorHandler";
+

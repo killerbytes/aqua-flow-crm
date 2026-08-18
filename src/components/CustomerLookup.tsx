@@ -1,7 +1,7 @@
 "use client";
 import { lookupCustomerAction } from "@/backend/actions";
-import { Customer } from "@/backend/models";
 import useDebounce from "@/hooks/useDebounce";
+import { useUIStore } from "@/store/uiStore";
 import { VariantProps } from "class-variance-authority";
 import { Loader2, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -26,9 +26,10 @@ function CustomerLookupContent({
   onSelect: (e: string) => void;
   isActiveOnly?: boolean;
 }) {
+  const { lookupCustomers, setLookupCustomers } = useUIStore();
+
   const [term, setTerm] = useState<string>();
   const debouncedTerm = useDebounce(term, 500);
-  const [customers, setCustomers] = React.useState<Customer[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const router = useRouter();
   const getData = async () => {
@@ -36,7 +37,7 @@ function CustomerLookupContent({
     const res = await lookupCustomerAction(debouncedTerm!, isActiveOnly);
 
     if (res && res.success) {
-      setCustomers(res.data);
+      setLookupCustomers(res.data);
     }
     setLoading(false);
   };
@@ -67,7 +68,7 @@ function CustomerLookupContent({
                 </div>
               ) : (
                 <div className="text-sm text-muted-foreground">
-                  {debouncedTerm && customers.length === 0 ? (
+                  {debouncedTerm && lookupCustomers.length === 0 ? (
                     "No results found"
                   ) : (
                     <div className="space-y-4">
@@ -88,7 +89,7 @@ function CustomerLookupContent({
             </CommandEmpty>
             <CommandGroup>
               {debouncedTerm &&
-                customers.map((c, i) => (
+                lookupCustomers.map((c, i) => (
                   <CommandItem
                     key={c.customerId}
                     onSelect={handleSelect}

@@ -7,14 +7,17 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatDate(date: string | number | Date | undefined) {
+export function formatDate(
+  date: string | number | Date | undefined,
+  formatStr: string = "MM/dd/yyyy",
+) {
   if (!date) return "N/A";
-  return new Date(Number(date)).toLocaleDateString();
+  return format(Number(date), formatStr);
 }
 
 export function formatDateTime(
   date: string | number | Date | null | undefined,
-  formatStr: string = "dd/MM/yyyy h:mm a",
+  formatStr: string = "MM/dd/yyyy h:mm a",
 ): string {
   if (date === null || date === undefined || date === "") return "N/A";
 
