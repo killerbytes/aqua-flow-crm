@@ -6,15 +6,16 @@ import { getInitials } from "@/lib/utils";
 import { useUIStore } from "@/store/uiStore";
 import { cx } from "class-variance-authority";
 import {
-  Droplet,
   LayoutDashboard,
   LogOut,
+  Receipt,
   Search,
   ShoppingCart,
   Tag,
   UserCog,
   Users,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import CustomerLookup from "../CustomerLookup";
@@ -70,6 +71,7 @@ export default function Sidebar() {
     { name: "Customers", href: "/customers", icon: Users },
     { name: "Orders", href: "/orders", icon: ShoppingCart },
     { name: "Products", href: "/products", icon: Tag },
+    { name: "Invoices", href: "/invoices", icon: Receipt },
   ];
 
   // if (user?.role === UserRole.CASHIER || user?.role === UserRole.ADMIN) {
@@ -97,14 +99,14 @@ export default function Sidebar() {
   }
 
   return (
-    <SidebarUI variant="inset">
+    <SidebarUI variant="inset" className="print:hidden">
       <SidebarHeader className="items-center">
-        <Droplet className="h-8 w-8 text-primary animate-pulse" />
-        <div className="text-center">
-          <h2 className="text-xl font-bold text-primary tracking-tight">
-            Crystal Clear
-          </h2>
-        </div>
+        <Image
+          src="/logo.jpg"
+          alt={process.env.NEXT_PUBLIC_APP_NAME || ""}
+          width={200}
+          height={200}
+        />
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>

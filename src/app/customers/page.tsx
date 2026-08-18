@@ -1,14 +1,13 @@
-import { initDatabase } from "@/backend/db/database";
 import { Customer } from "@/backend/models";
 import { CommonService } from "@/backend/services/commonService";
 import {
   CustomerQueryParams,
   CustomerService,
 } from "@/backend/services/customer.service";
-import { CustomerFormModalButton } from "@/components/ActionButtons";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import CustomerLookup from "@/components/CustomerLookup";
 import { CustomerFormModal } from "@/features/customers/components/CustomerFormModal";
+import { CustomerFormModalButton } from "@/features/customers/components/CustomerFormModalButton";
 import CustomerList from "@/features/customers/components/CustomerList";
 import { PAGINATION, UserRole } from "@/lib/definitions";
 import { Search, UserPlus, Users } from "lucide-react";
@@ -23,7 +22,6 @@ interface CustomersPageProps {
 export default async function CustomersPage({
   searchParams,
 }: CustomersPageProps) {
-  await initDatabase();
   const params = await searchParams;
 
   const page = Number(params?.page) || PAGINATION.PAGE;

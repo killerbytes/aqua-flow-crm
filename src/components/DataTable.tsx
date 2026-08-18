@@ -4,6 +4,8 @@ import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
+  OnChangeFn,
+  RowSelectionState,
   useReactTable,
 } from "@tanstack/react-table";
 
@@ -16,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cx } from "class-variance-authority";
+import React from "react";
 
 interface DataTableProps<TData> {
   columns: ColumnDef<TData, any>[];
@@ -24,6 +27,9 @@ interface DataTableProps<TData> {
   emptyMessage?: string;
   className?: string;
   onRowClick?: (row: TData) => void;
+  rowSelection?: RowSelectionState;
+  onRowSelectionChange?: OnChangeFn<RowSelectionState>;
+  getRowId?: (row: TData, index: number) => string;
 }
 
 export function DataTable<TData>({
@@ -33,10 +39,22 @@ export function DataTable<TData>({
   emptyMessage = "No data available",
   className = "",
   onRowClick,
+  rowSelection,
+  onRowSelectionChange,
+  getRowId,
 }: DataTableProps<TData>) {
+  const [internalRowSelection, setInternalRowSelection] =
+    React.useState<RowSelectionState>({});
+
   const table = useReactTable({
     data: data || [],
     columns,
+    state: {
+      rowSelection: rowSelection ?? internalRowSelection,
+    },
+    enableRowSelection: true,
+    onRowSelectionChange: onRowSelectionChange ?? setInternalRowSelection,
+    getRowId,
     getCoreRowModel: getCoreRowModel(),
   });
 
@@ -60,7 +78,11 @@ export function DataTable<TData>({
                       : "text-left";
 
                 return (
-                  <TableHead key={header.id} className={`p-4 ${alignClass}`}>
+                  <TableHead
+                    key={header.id}
+                    style={{ width: `${header.getSize()}px` }}
+                    className={`p-4 ${alignClass}`}
+                  >
                     {header.isPlaceholder
                       ? null
                       : flexRender(

@@ -4,6 +4,9 @@ import { Customer } from "./Customer";
 import { CustomerEquipmentBalance } from "./CustomerEquipmentBalance";
 import { CustomerSpecialPricing } from "./CustomerSpecialPricing";
 import { EquipmentLedgerEntry } from "./EquipmentLedgerEntry";
+import { Invoice } from "./Invoice";
+import { InvoiceDetail } from "./InvoiceDetail";
+import { InvoicePayment } from "./InvoicePayment";
 import { Order } from "./Order";
 import { OrderDetail } from "./OrderDetail";
 import { ProductInventory } from "./ProductInventory";
@@ -57,6 +60,28 @@ OrderDetail.belongsTo(Order, { foreignKey: "orderId", as: "order" });
 
 Order.belongsTo(User, { foreignKey: "createdBy", as: "user" });
 User.hasMany(Order, { foreignKey: "createdBy", as: "orders" });
+
+Customer.hasMany(Invoice, { foreignKey: "customerId", as: "invoices" });
+Invoice.belongsTo(Customer, { foreignKey: "customerId", as: "customer" });
+
+Invoice.hasMany(InvoiceDetail, {
+  foreignKey: "invoiceId",
+  as: "invoiceDetails",
+});
+InvoiceDetail.belongsTo(Invoice, { foreignKey: "invoiceId", as: "invoice" });
+InvoiceDetail.belongsTo(Order, { foreignKey: "orderId", as: "order" });
+
+Invoice.hasMany(InvoicePayment, {
+  foreignKey: "invoiceId",
+  as: "invoicePayments",
+});
+InvoicePayment.belongsTo(Invoice, { foreignKey: "invoiceId", as: "invoice" });
+
+InvoicePayment.belongsTo(User, { foreignKey: "loggedBy", as: "user" });
+User.hasMany(InvoicePayment, { foreignKey: "loggedBy", as: "invoicePayments" });
+
+Invoice.belongsTo(User, { foreignKey: "loggedBy", as: "user" });
+User.hasMany(Invoice, { foreignKey: "loggedBy", as: "invoices" });
 
 ProductInventory.hasMany(OrderDetail, {
   foreignKey: "productId",
@@ -222,6 +247,9 @@ export {
   CustomerEquipmentBalance,
   CustomerSpecialPricing,
   EquipmentLedgerEntry,
+  Invoice,
+  InvoiceDetail,
+  InvoicePayment,
   Order,
   OrderDetail,
   ProductInventory,

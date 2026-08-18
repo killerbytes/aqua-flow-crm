@@ -1,4 +1,10 @@
-import { Customer, Order, ProductInventory, User } from "@/backend/models";
+import {
+  Customer,
+  Invoice,
+  Order,
+  ProductInventory,
+  User,
+} from "@/backend/models";
 import { UserRole } from "@/lib/definitions";
 import { create } from "zustand";
 
@@ -10,6 +16,7 @@ interface ToastNotification {
 
 interface UIState {
   currentRole: UserRole;
+  lookupCustomers: Customer[];
   isCustomerFormModalOpen: boolean;
   editingCustomer?: Customer | null;
   isEquipmentLogModalOpen: boolean;
@@ -27,9 +34,13 @@ interface UIState {
   isSpecialPricingModalOpen: boolean;
   isPaymentModalOpen: boolean;
   editingOrder?: Order | null;
+  isInvoiceFormModalOpen: boolean;
+  isPaymentFormModalOpen: boolean;
+  editingInvoice?: Invoice | null;
 
   setRole: (role: UserRole) => void;
   setProducts: (products: ProductInventory[]) => void;
+  setLookupCustomers: (lookupCustomers: Customer[]) => void;
   setCustomerFormModalOpen: (open: boolean, customer?: Customer | null) => void;
   setEquipmentLogModalOpen: (
     open: boolean,
@@ -54,10 +65,13 @@ interface UIState {
   ) => void;
 
   setPaymentModalOpen: (open: boolean, order: Order | null) => void;
+  setInvoiceFormModalOpen: (open: boolean, customer?: Customer | null) => void;
+  setPaymentFormModalOpen: (open: boolean, invoice?: Invoice | null) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
   currentRole: UserRole.ADMIN,
+  lookupCustomers: [],
   isCustomerFormModalOpen: false,
   editingCustomer: null,
   isEquipmentLogModalOpen: false,
@@ -75,9 +89,12 @@ export const useUIStore = create<UIState>((set) => ({
   isSpecialPricingModalOpen: false,
   isPaymentModalOpen: false,
   editingOrder: null,
+  isInvoiceFormModalOpen: false,
+  isPaymentFormModalOpen: false,
 
   setRole: (role) => set({ currentRole: role }),
   setProducts: (products) => set({ products }),
+  setLookupCustomers: (lookupCustomers) => set({ lookupCustomers }),
   setCustomerFormModalOpen: (open, customer = null) =>
     set({ isCustomerFormModalOpen: open, editingCustomer: customer }),
   setEquipmentLogModalOpen: (open, customerId, productId) =>
@@ -104,4 +121,8 @@ export const useUIStore = create<UIState>((set) => ({
     }),
   setPaymentModalOpen: (open, order = null) =>
     set({ isPaymentModalOpen: open, editingOrder: order }),
+  setInvoiceFormModalOpen: (open, customer = null) =>
+    set({ isInvoiceFormModalOpen: open, editingCustomer: customer }),
+  setPaymentFormModalOpen: (open, invoice = null) =>
+    set({ isPaymentFormModalOpen: open, editingInvoice: invoice }),
 }));

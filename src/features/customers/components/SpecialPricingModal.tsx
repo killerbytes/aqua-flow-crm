@@ -8,7 +8,12 @@ import {
 } from "@/backend/schemas/zodSchemas";
 import Modal from "@/components/Modal";
 import { Button } from "@/components/ui/button";
-import { DialogFooter } from "@/components/ui/dialog";
+import {
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
@@ -44,7 +49,7 @@ function SpecialPricingModalContent({
     defaultValues: {
       customerId: Number(editingCustomer?.customerId),
       productId: 0,
-      discountAmount: 0,
+      discountAmount: 5,
     },
   });
 
@@ -79,20 +84,19 @@ function SpecialPricingModalContent({
   };
 
   return (
-    <Modal
-      isOpen
-      onClose={onClose}
-      title="Special Pricing"
-      description={
-        <>
+    <>
+      <DialogHeader>
+        <DialogTitle className="flex flex-row gap-3">
+          Special Pricing{" "}
+        </DialogTitle>
+        <DialogDescription>
           Set special pricing for{" "}
           <span className="font-bold text-accent-foreground">
             {editingCustomer?.name}
           </span>
-        </>
-      }
-      maxWidth="md"
-    >
+        </DialogDescription>
+      </DialogHeader>
+
       <form onSubmit={handleSubmit(handleSave)} className="space-y-4">
         <Controller
           name="productId"
@@ -140,6 +144,7 @@ function SpecialPricingModalContent({
               <Input
                 type="number"
                 placeholder="0"
+                step="5"
                 {...field}
                 onChange={(e) => field.onChange(Number(e.target.value))}
               />
@@ -160,7 +165,7 @@ function SpecialPricingModalContent({
           </Button>
         </DialogFooter>
       </form>
-    </Modal>
+    </>
   );
 }
 

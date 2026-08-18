@@ -237,6 +237,19 @@ export const CustomerStatus = {
 export type CustomerStatus =
   (typeof CustomerStatus)[keyof typeof CustomerStatus];
 
+export const InvoiceStatus = {
+  PAID: "PAID",
+  PARTIAL: "PARTIAL",
+  UNPAID: "UNPAID",
+} as const;
+export type InvoiceStatus = (typeof InvoiceStatus)[keyof typeof InvoiceStatus];
+
+export const INVOICE_STATUS_BADGE_COLOR: Record<InvoiceStatus, string> = {
+  [InvoiceStatus.UNPAID]: "bg-red-100 text-black border-red-500",
+  [InvoiceStatus.PARTIAL]: "bg-yellow-100 text-black border-yellow-500",
+  [InvoiceStatus.PAID]: "bg-green-100 text-black border-green-500",
+};
+
 export const EQUIPMENT_BADGE_COLOR: Record<EquipmentActionType, string> = {
   [EquipmentActionType.ISSUE]: "bg-green-100 text-black border-green-500",
   [EquipmentActionType.RETURNED]: "bg-white text-black border-black",

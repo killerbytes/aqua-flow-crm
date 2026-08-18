@@ -1,10 +1,6 @@
 import { initDatabase } from "@/backend/db/database";
 import { ProductInventory } from "@/backend/models";
 import { EquipmentService, ProductService } from "@/backend/services";
-import {
-  InventoryAdjustmentModalButton,
-  ProductFormModalButton,
-} from "@/components/ActionButtons";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import {
   Card,
@@ -18,7 +14,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import EquipmentLedgerReports from "@/features/products/components/EquipmentLedgerReports";
 import EquipmentLogs from "@/features/products/components/EquipmentLogs";
 import { InventoryAdjustmentModal } from "@/features/products/components/InventoryAdjustmentModal";
+import { InventoryAdjustmentModalButton } from "@/features/products/components/InventoryAdjustmentModalButton";
 import { ProductFormModal } from "@/features/products/components/ProductFormModal";
+import { ProductFormModalButton } from "@/features/products/components/ProductFormModalButton";
 import { PAGINATION, UserRole } from "@/lib/definitions";
 import { formatCurrency } from "@/lib/utils";
 import { Paginated } from "@/types";

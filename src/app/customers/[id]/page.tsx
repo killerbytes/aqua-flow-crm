@@ -2,6 +2,7 @@ import {
   ArrowLeft,
   ArrowRightLeft,
   ClockAlert,
+  DollarSign,
   Edit,
   Package,
   Tag,
@@ -20,11 +21,6 @@ import {
   ProductService,
 } from "@/backend/services";
 import { CommonService } from "@/backend/services/commonService";
-import {
-  CustomerFormModalButton,
-  LogEquipmentButton,
-  SpecialPricingModalButton,
-} from "@/components/ActionButtons";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { ColorBadge } from "@/components/presentation";
 import TabWrapper from "@/components/TabWrapper";
@@ -37,8 +33,13 @@ import {
 } from "@/components/ui/card";
 import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CustomerFormModal } from "@/features/customers/components/CustomerFormModal";
+import { CustomerFormModalButton } from "@/features/customers/components/CustomerFormModalButton";
 import { LogEquipmentModal } from "@/features/customers/components/LogEquipmentModal";
+import { LogEquipmentModalButton } from "@/features/customers/components/LogEquipmentModalButton";
 import { SpecialPricingModal } from "@/features/customers/components/SpecialPricingModal";
+import { SpecialPricingModalButton } from "@/features/customers/components/SpecialPricingModalButton";
+import { InvoiceFormModal } from "@/features/invoices/components/InvoiceFormModal";
+import { InvoiceFormModalButton } from "@/features/invoices/components/InvoiceFormModalButton";
 import OrderList from "@/features/orders/components/OrderList";
 import EquipmentLogs from "@/features/products/components/EquipmentLogs";
 import { CUSTOMER_STATUS_BADGE_COLOR, UserRole } from "@/lib/definitions";
@@ -92,6 +93,11 @@ export default async function CustomerPage({
       customerId: Number(id),
     },
   });
+  //   const invoiceOrders =  getOrdersAction({
+  //   query: {
+  //     customerId: Number(id),
+  //   },
+  // });
   const barangays = CommonService.getBarangays();
 
   const activeRegularBalances =
@@ -132,14 +138,21 @@ export default async function CustomerPage({
                 <Edit className="w-4 h-4" />
                 Edit Customer
               </CustomerFormModalButton>
+              <InvoiceFormModalButton customer={customer} variant="outline">
+                <DollarSign className="w-4 h-4" />
+                Create Invoice
+              </InvoiceFormModalButton>
               <SpecialPricingModalButton customer={customer} variant="outline">
                 <Tag className="w-4 h-4 text-orange-500" />
                 Special Discount
               </SpecialPricingModalButton>
 
-              <LogEquipmentButton customer={customer} variant="secondary">
+              <LogEquipmentModalButton
+                customerId={customer.customerId}
+                variant="secondary"
+              >
                 <ArrowRightLeft size={16} /> Log Equipment
-              </LogEquipmentButton>
+              </LogEquipmentModalButton>
             </div>
           </RoleGuard>
         </div>
@@ -184,13 +197,13 @@ export default async function CustomerPage({
                           <RoleGuard
                             allowedRoles={[UserRole.ADMIN, UserRole.CASHIER]}
                           >
-                            <LogEquipmentButton
+                            <LogEquipmentModalButton
                               customer={customer}
                               productId={balance.productId}
                               variant="secondary"
                             >
                               <ArrowRightLeft size={16} />
-                            </LogEquipmentButton>
+                            </LogEquipmentModalButton>
                           </RoleGuard>
                         </div>
                       </div>
@@ -287,6 +300,7 @@ export default async function CustomerPage({
       <CustomerFormModal barangays={barangays} />
       <LogEquipmentModal products={products} />
       <SpecialPricingModal products={products} />
+      <InvoiceFormModal />
     </>
   );
 }

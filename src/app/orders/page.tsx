@@ -1,6 +1,5 @@
 import { initDatabase } from "@/backend/db/database";
 import { OrderService } from "@/backend/services";
-import { OrderFormModalButton } from "@/components/ActionButtons";
 import {
   Card,
   CardDescription,
@@ -8,6 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { OrderFormModal } from "@/features/orders/components/OrderFormModal";
+import { OrderFormModalButton } from "@/features/orders/components/OrderFormModalButton";
 import OrderList from "@/features/orders/components/OrderList";
 import OrderListFilter from "@/features/orders/components/OrderListFilter";
 import { PAGINATION, PaymentStatus } from "@/lib/definitions";

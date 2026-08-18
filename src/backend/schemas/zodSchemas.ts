@@ -2,6 +2,7 @@ import {
   CustomerStatus,
   EquipmentActionType,
   InventoryAdjustmentType,
+  InvoiceStatus,
   OrderStatus,
   PaymentMethod,
   PaymentStatus,
@@ -63,7 +64,7 @@ export const EquipmentLedgerSchema = z.object({
   notes: z.string().optional(),
 });
 
-export const OrderItems = z
+export const OrderItemsSchema = z
   .array(
     z.object({
       productId: z.number().int().positive("Product is required"),
@@ -79,7 +80,7 @@ export const OrderSchema = z.object({
   status: z.nativeEnum(OrderStatus),
   paymentStatus: z.nativeEnum(PaymentStatus),
   createdAt: z.union([z.date(), z.string()]).optional(),
-  items: OrderItems,
+  items: OrderItemsSchema,
 });
 
 export const PaymentSchema = OrderSchema.omit({
@@ -141,6 +142,23 @@ export const AdjustmentSchema = z.object({
   reason: z.string().optional(),
 });
 
+export const InvoiceSchema = z.object({
+  customerId: z.number().int().positive("Customer is required"),
+  dateIssued: z.union([z.date(), z.string()]).optional(),
+  dueDate: z.union([z.date(), z.string()]).optional(),
+  paymentDate: z.union([z.date(), z.string()]).optional(),
+  status: z.nativeEnum(InvoiceStatus),
+  items: z.array(z.number()).min(1, "At least one order is required"),
+});
+
+export const InvoicePaymentSchema = z.object({
+  invoiceId: z.number().int().positive("Invoice is required"),
+  paymentAmount: z.number().positive("Payment amount is required"),
+  paymentMethod: z.nativeEnum(PaymentMethod),
+  paymentNotes: z.string().optional(),
+  paymentDate: z.union([z.date(), z.string()]).optional(),
+});
+
 export type AdjustmentFormData = z.infer<typeof AdjustmentSchema>;
 export type ProductFormData = z.infer<typeof ProductInventorySchema>;
 export type CustomerFormData = z.infer<typeof CustomerSchema>;
@@ -152,4 +170,6 @@ export type EquipmentLogFormData = z.infer<typeof EquipmentLogSchema>;
 export type SpecialPricingFormData = z.infer<typeof SpecialPricingSchema>;
 export type PaymentFormData = z.infer<typeof PaymentSchema>;
 export type OrderFormData = z.infer<typeof OrderSchema>;
-export type OrderItemsFormData = z.infer<typeof OrderItems>;
+export type OrderItemsFormData = z.infer<typeof OrderItemsSchema>;
+export type InvoiceFormData = z.infer<typeof InvoiceSchema>;
+export type InvoicePaymentFormData = z.infer<typeof InvoicePaymentSchema>;

@@ -106,51 +106,51 @@ export function generateSeedData(refDate: Date = new Date()): SeedDataResult {
       barangayId: "034903020",
       status: CustomerStatus.ACTIVE,
     },
-    // {
-    //   name: "Golden Bay Restaurant",
-    //   address: "12 Roxas Blvd, Pasay City",
-    //   phone: "09165554444",
-    //   barangayId: "034903020",
-    //   status: CustomerStatus.ACTIVE,
-    // },
-    // {
-    //   name: "Roberto Garcia",
-    //   address: "32 Commonwealth Ave, Fairview",
-    //   phone: "09204567890",
-    //   barangayId: "034903002",
-    //   status: CustomerStatus.ACTIVE,
-    // },
-    // {
-    //   name: "Bright Minds Academy",
-    //   address: "15 Teachers Village, Diliman",
-    //   phone: "287774321",
-    //   barangayId: "034903002",
-    //   status: CustomerStatus.ACTIVE,
-    // },
-    // {
-    //   name: "Ana Lim",
-    //   address: "88 Timog Ave, South Triangle",
-    //   phone: "09215678901",
-    //   barangayId: "034903002",
-    //   status: CustomerStatus.ACTIVE,
-    // },
-    // {
-    //   name: "St. Jude Clinic",
-    //   address: "54 Banawe St, Sta. Mesa Heights",
-    //   phone: "84443322",
-    //   barangayId: "034903002",
-    //   status: CustomerStatus.ACTIVE,
-    // },
-    // {
-    //   name: "Carlos Reyes",
-    //   address: "21 E. Rodriguez Sr. Ave, New Manila",
-    //   phone: "09226789012",
-    //   barangayId: "034903002",
-    //   status: CustomerStatus.ACTIVE,
-    // },
+    {
+      name: "Golden Bay Restaurant",
+      address: "12 Roxas Blvd, Pasay City",
+      phone: "09165554444",
+      barangayId: "034903020",
+      status: CustomerStatus.ACTIVE,
+    },
+    {
+      name: "Roberto Garcia",
+      address: "32 Commonwealth Ave, Fairview",
+      phone: "09204567890",
+      barangayId: "034903002",
+      status: CustomerStatus.ACTIVE,
+    },
+    {
+      name: "Bright Minds Academy",
+      address: "15 Teachers Village, Diliman",
+      phone: "09217774321",
+      barangayId: "034903002",
+      status: CustomerStatus.ACTIVE,
+    },
+    {
+      name: "Ana Lim",
+      address: "88 Timog Ave, South Triangle",
+      phone: "09215678901",
+      barangayId: "034903002",
+      status: CustomerStatus.ACTIVE,
+    },
+    {
+      name: "St. Jude Clinic",
+      address: "54 Banawe St, Sta. Mesa Heights",
+      phone: "09174443322",
+      barangayId: "034903002",
+      status: CustomerStatus.ACTIVE,
+    },
+    {
+      name: "Carlos Reyes",
+      address: "21 E. Rodriguez Sr. Ave, New Manila",
+      phone: "09226789012",
+      barangayId: "034903002",
+      status: CustomerStatus.ACTIVE,
+    },
   ];
 
-  const orders: OrderFormData[] = [];
+  const orders: (OrderFormData & { createdAt?: Date })[] = [];
   const statuses = [
     OrderStatus.DELIVERED,
     OrderStatus.DELIVERED,
@@ -199,7 +199,7 @@ export function generateSeedData(refDate: Date = new Date()): SeedDataResult {
 
     const totalAmount = details.reduce(
       (sum, d) => sum + d.quantity * d.unitPrice,
-      0
+      0,
     );
 
     orders.push({
@@ -207,6 +207,7 @@ export function generateSeedData(refDate: Date = new Date()): SeedDataResult {
       status: statuses[i % statuses.length],
       paymentStatus: paymentStatuses[i % paymentStatuses.length],
       items: details,
+      createdAt,
     });
   }
 
@@ -232,7 +233,7 @@ export async function seedDatabase(options?: {
     if (!isTest && sequelize.getDialect() === "postgres") {
       try {
         await sequelize.query(
-          "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+          "DROP SCHEMA public CASCADE; CREATE SCHEMA public;",
         );
       } catch (dropErr) {
         console.warn("PostgreSQL schema drop fallback warning:", dropErr);
@@ -279,7 +280,7 @@ export async function seedDatabase(options?: {
   await seedForTest(options);
 
   console.log(
-    "Database seeded successfully with 3 products, 10 customers, and 50 orders!"
+    "Database seeded successfully with 3 products, 10 customers, and 50 orders!",
   );
   markDbInitialized();
 }
@@ -334,7 +335,7 @@ async function seedForTest(options: any) {
       actionType: EquipmentActionType.ISSUE,
       quantity: 1,
     },
-    1
+    1,
   );
 
   await EquipmentService.logEquipment(
@@ -344,7 +345,7 @@ async function seedForTest(options: any) {
       actionType: EquipmentActionType.TEMPORARY,
       quantity: 1,
     },
-    1
+    1,
   );
 
   await InventoryService.createAdjustment({
@@ -361,7 +362,7 @@ async function seedForTest(options: any) {
       actionType: EquipmentActionType.TEMPORARY_RETURNED,
       quantity: 1,
     },
-    1
+    1,
   );
 
   await EquipmentService.logEquipment(
@@ -371,7 +372,7 @@ async function seedForTest(options: any) {
       actionType: EquipmentActionType.DAMAGED,
       quantity: 1,
     },
-    1
+    1,
   );
 
   // await EquipmentService.logEquipment(

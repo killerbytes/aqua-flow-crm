@@ -145,12 +145,12 @@ function CustomerFormModalContent({
         </DialogTitle>
         <DialogDescription>
           {isEditing ? (
-            <div>
+            <>
               Update profile details for{" "}
               <span className="font-bold text-accent-foreground">
                 {editingCustomer?.name}
               </span>
-            </div>
+            </>
           ) : (
             "Add a new customer to AquaFlow CRM"
           )}

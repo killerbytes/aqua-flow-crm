@@ -1,0 +1,33 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { createProtectedAction } from "../lib/safe-action";
+import {
+  InvoiceFormData,
+  InvoicePaymentFormData,
+  InvoiceSchema,
+} from "../schemas/zodSchemas";
+import { InvoiceService } from "../services/invoice.service";
+
+export const createInvoiceAction = createProtectedAction({
+  permission: "CREATE_INVOICE",
+  schema: InvoiceSchema,
+  handler: async (ctx, input: InvoiceFormData) => {
+    const result = await InvoiceService.create(input, ctx.user.userId);
+    revalidatePath("/orders");
+    return result;
+  },
+});
+
+export const makeInvoicePaymentAction = createProtectedAction({
+  permission: "PAY_INVOICE",
+  handler: async (ctx, input: InvoicePaymentFormData) => {
+    const result = await InvoiceService.payInvoice(input, ctx.user.userId);
+    revalidatePath("/orders");
+    revalidatePath("/invoices");
+    if (input.invoiceId) {
+      revalidatePath(`/invoices/${input.invoiceId}`);
+    }
+    return result;
+  },
+});

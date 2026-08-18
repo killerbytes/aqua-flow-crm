@@ -6,30 +6,29 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+const maxWidthMap = {
+  sm: "w-[95%] sm:w-[500px]",
+  md: "w-[95%] max-w-[800px]!",
+  lg: "w-[95%] max-w-[1200px]!",
+  xl: "w-[95%] max-w-[1600px]!",
+};
+
 export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string | React.ReactNode;
   description?: string | React.ReactNode;
-  maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl";
+  maxWidth?: keyof typeof maxWidthMap;
   children: React.ReactNode;
   className?: string;
 }
-
-const maxWidthMap = {
-  sm: "sm:max-w-sm",
-  md: "sm:max-w-md",
-  lg: "sm:max-w-lg",
-  xl: "sm:max-w-xl",
-  "2xl": "sm:max-w-2xl",
-};
 
 export function Modal({
   isOpen,
   onClose,
   title,
   description,
-  maxWidth = "md",
+  maxWidth = "sm",
   children,
   className = "",
 }: ModalProps) {
@@ -37,7 +36,7 @@ export function Modal({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         data-testid="modal-container"
-        className={`${maxWidthMap[maxWidth]} max-h-[90vh] flex flex-col ${className}`}
+        className={`${maxWidthMap[maxWidth]} w-full max-h-[90vh] flex flex-col ${className}`}
       >
         <div data-testid="modal-box" className="hidden" />
         {(title || description) && (
