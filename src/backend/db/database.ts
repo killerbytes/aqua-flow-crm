@@ -18,12 +18,25 @@ export function getDatabaseUrl(
   return `postgres://${encodeURIComponent(dbUser)}:${encodeURIComponent(dbPassword)}@${dbHost}:${dbPort}/${dbName}`;
 }
 
+export const poolOptions = {
+  max: 5,
+  min: 0,
+  acquire: 30000,
+  idle: 10000,
+  evict: 1000,
+};
+
+export function getSequelizePoolOptions() {
+  return poolOptions;
+}
+
 const isTest = process.env.NODE_ENV === "test" || process.env.VITEST === "true";
 
 export const sequelize = isTest
   ? new Sequelize("sqlite::memory:", {
       logging: false,
       dialectModule: require("sqlite3"),
+      pool: poolOptions,
     })
   : new Sequelize(getDatabaseUrl(), {
       dialect: "postgres",
@@ -32,6 +45,7 @@ export const sequelize = isTest
       define: {
         underscored: true,
       },
+      pool: poolOptions,
     });
 
 let isDbInitialized = false;
