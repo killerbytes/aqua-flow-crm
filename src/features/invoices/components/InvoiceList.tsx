@@ -26,6 +26,8 @@ export default function InvoiceList({ invoices }: InvoiceListProps) {
     () => [
       columnHelper.accessor("invoiceId", {
         header: "ID",
+        size: 50,
+
         cell: (info) => <MonoText>#{info.getValue()}</MonoText>,
       }),
       columnHelper.accessor("customer.name", {

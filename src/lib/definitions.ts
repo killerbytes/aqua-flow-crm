@@ -177,7 +177,6 @@ export const INVENTORY_ADJUSTMENT_OPTIONS = [
 // Order Status & Payment Status
 export const OrderStatus = {
   PENDING: "PENDING",
-  DELETED: "DELETED",
   OUT_FOR_DELIVERY: "OUT_FOR_DELIVERY",
   DELIVERED: "DELIVERED",
   CANCELLED: "CANCELLED",
@@ -189,11 +188,6 @@ export const ORDER_STATUS_OPTIONS = [
     value: OrderStatus.PENDING,
     label: "Pending",
     color: "text-amber-400 border-amber-500/30",
-  },
-  {
-    value: OrderStatus.DELETED,
-    label: "Deleted",
-    color: "text-blue-400 border-blue-500/30",
   },
   {
     value: OrderStatus.OUT_FOR_DELIVERY,
@@ -241,6 +235,7 @@ export const InvoiceStatus = {
   PAID: "PAID",
   PARTIAL: "PARTIAL",
   UNPAID: "UNPAID",
+  VOID: "VOID",
 } as const;
 export type InvoiceStatus = (typeof InvoiceStatus)[keyof typeof InvoiceStatus];
 
@@ -248,6 +243,7 @@ export const INVOICE_STATUS_BADGE_COLOR: Record<InvoiceStatus, string> = {
   [InvoiceStatus.UNPAID]: "bg-red-100 text-black border-red-500",
   [InvoiceStatus.PARTIAL]: "bg-yellow-100 text-black border-yellow-500",
   [InvoiceStatus.PAID]: "bg-green-100 text-black border-green-500",
+  [InvoiceStatus.VOID]: "bg-black text-white border-black",
 };
 
 export const EQUIPMENT_BADGE_COLOR: Record<EquipmentActionType, string> = {

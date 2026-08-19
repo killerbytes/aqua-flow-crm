@@ -16,6 +16,7 @@ export default function OrderDetailList({
     () => [
       columnHelper.accessor("detailId", {
         header: "ID",
+        size: 50,
         cell: (info) => <span className="font-mono">#{info.getValue()}</span>,
       }),
 

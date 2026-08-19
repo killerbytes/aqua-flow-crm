@@ -26,6 +26,8 @@ export default function EquipmentLogs({ logsPromise }: EquipmentLogsProps) {
   const columns = [
     columnHelper.accessor("logId", {
       header: "Log ID",
+      size: 50,
+
       cell: (info) => <MonoText>#{info.getValue()}</MonoText>,
     }),
     columnHelper.accessor("customer.name", {

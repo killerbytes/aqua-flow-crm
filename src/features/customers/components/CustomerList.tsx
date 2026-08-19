@@ -23,6 +23,8 @@ export default function CustomerList({ customers }: CustomerListProps) {
     () => [
       columnHelper.accessor("customerId", {
         header: "ID",
+        size: 50,
+
         cell: (info) => <MonoText>#{info.getValue()}</MonoText>,
       }),
       columnHelper.accessor("name", {

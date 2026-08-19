@@ -34,6 +34,7 @@ export default function OrderList({ orders }: OrderListProps) {
       [
         columnHelper.accessor("orderId", {
           header: "Order ID",
+          size: 50,
           cell: (info) => <MonoText>#{info.getValue()}</MonoText>,
         }),
         !pathname.startsWith("/customers") &&
