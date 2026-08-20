@@ -11,26 +11,6 @@ describe("Integration - Customer Service & Queries", () => {
   });
 
   describe("Customer CRUD & Unique Constraints", () => {
-    it("should throw a user-friendly error when creating customer with duplicate phone number", async () => {
-      const customer1 = await CustomerService.create({
-        name: "Phone Test User 1",
-        address: "123 Unique Street",
-        phone: "+639991112233",
-        status: CustomerStatus.ACTIVE,
-      });
-
-      expect(customer1).toBeDefined();
-
-      await expect(
-        CustomerService.create({
-          name: "Phone Test User 2",
-          address: "456 Unique Street",
-          phone: "+639991112233",
-          status: CustomerStatus.ACTIVE,
-        }),
-      ).rejects.toThrow(/phone number already exists/i);
-    });
-
     it("should edit existing customer details successfully", async () => {
       const customer = await CustomerService.create({
         name: "Editable Customer",

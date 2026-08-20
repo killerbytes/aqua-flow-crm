@@ -46,16 +46,13 @@ export default function OrderList({ orders }: OrderListProps) {
               const order = info.row.original;
               const customerId = order.customerId;
 
-              const hasSpecialPricing =
-                (order.customer?.specialPricings?.length ?? 0) > 0;
-
               return (
                 <Link
                   onClick={(e) => e.stopPropagation()}
                   href={`/customers/${customerId}`}
                   className={cx(
                     "font-medium text-primary",
-                    order.customer.status === CustomerStatus.INACTIVE
+                    order.customer?.status === CustomerStatus.INACTIVE
                       ? "opacity-60"
                       : "opacity-100",
                   )}

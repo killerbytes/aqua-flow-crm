@@ -23,6 +23,7 @@ export class Customer extends Model {
   declare searchText?: string;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
+  declare deletedAt?: CreationOptional<Date> | null;
 
   declare equipmentBalances?: NonAttribute<CustomerEquipmentBalance>[];
   declare specialPricings?: NonAttribute<CustomerSpecialPricing>[];
@@ -53,7 +54,7 @@ Customer.init(
     },
     name: { type: DataTypes.STRING, allowNull: false },
     address: { type: DataTypes.STRING, allowNull: false },
-    phone: { type: DataTypes.STRING, allowNull: true, unique: true },
+    phone: { type: DataTypes.STRING, allowNull: true },
     notes: { type: DataTypes.TEXT, allowNull: true },
     status: {
       type: DataTypes.ENUM(...Object.values(CustomerStatus)),
@@ -80,6 +81,7 @@ Customer.init(
     modelName: "Customer",
     tableName: "customers",
     timestamps: true,
+    paranoid: true,
     hooks: {
       beforeSave: (customer: Customer) => {
         customer.searchText = generateCustomerSearchText(customer);
@@ -90,5 +92,5 @@ Customer.init(
         }
       },
     },
-  }
+  },
 );

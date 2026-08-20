@@ -9,7 +9,7 @@ export class OrderDetail extends Model {
   declare quantity: number;
   declare unitPrice: number;
   declare discount: number;
-  declare product: NonAttribute<ProductInventory>;
+  declare product?: NonAttribute<ProductInventory>;
   declare order?: NonAttribute<Order>;
 }
 OrderDetail.init(

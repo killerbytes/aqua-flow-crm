@@ -1,4 +1,4 @@
-import { DataTypes, Model } from "sequelize";
+import { CreationOptional, DataTypes, Model } from "sequelize";
 import { sequelize } from "../db/database";
 
 export class ProductInventory extends Model {
@@ -11,6 +11,9 @@ export class ProductInventory extends Model {
   declare unitPrice: number;
   declare isLendOnly: boolean;
   declare isDefault: boolean;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
+  declare deletedAt?: CreationOptional<Date> | null;
 }
 ProductInventory.init(
   {
@@ -27,11 +30,13 @@ ProductInventory.init(
     unitPrice: { type: DataTypes.FLOAT, defaultValue: 0 },
     isLendOnly: { type: DataTypes.BOOLEAN, defaultValue: false },
     isDefault: { type: DataTypes.BOOLEAN, defaultValue: false },
+    deletedAt: DataTypes.DATE,
   },
   {
     sequelize,
     modelName: "ProductInventory",
     tableName: "product_inventories",
     timestamps: true,
+    paranoid: true,
   },
 );

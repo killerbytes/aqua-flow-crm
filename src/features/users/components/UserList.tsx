@@ -18,6 +18,7 @@ export default function UserList({ users }: { users: User[] }) {
     () => [
       columnHelper.accessor("userId", {
         header: "User ID",
+        size: 50,
       }),
       columnHelper.accessor("name", {
         header: "Name",

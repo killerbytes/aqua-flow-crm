@@ -272,7 +272,6 @@ export const PAYMENT_METHOD_BADGE_COLOR: Record<PaymentMethod, string> = {
 
 export const ORDER_STATUS_BADGE_COLOR: Record<OrderStatus, string> = {
   [OrderStatus.PENDING]: "bg-yellow-100 text-black border-yellow-500",
-  [OrderStatus.DELETED]: "bg-gray-100 text-black border-gray-500",
   [OrderStatus.OUT_FOR_DELIVERY]: "bg-purple-100 text-black border-purple-500",
   [OrderStatus.DELIVERED]: "bg-green-100 text-black border-green-500",
   [OrderStatus.CANCELLED]: "bg-red-100 text-black border-red-500",

@@ -258,10 +258,7 @@ export class OrderService {
       return order.get({ plain: true });
     }
 
-    if (
-      currentStatus === OrderStatus.CANCELLED ||
-      currentStatus === OrderStatus.DELETED
-    ) {
+    if (currentStatus === OrderStatus.CANCELLED) {
       throw new Error(
         `Cannot change status of a ${currentStatus.toLowerCase()} order`,
       );
@@ -272,16 +269,13 @@ export class OrderService {
         OrderStatus.OUT_FOR_DELIVERY,
         OrderStatus.DELIVERED,
         OrderStatus.CANCELLED,
-        OrderStatus.DELETED,
       ],
       [OrderStatus.OUT_FOR_DELIVERY]: [
         OrderStatus.DELIVERED,
         OrderStatus.CANCELLED,
-        OrderStatus.DELETED,
       ],
-      [OrderStatus.DELIVERED]: [OrderStatus.CANCELLED, OrderStatus.DELETED],
+      [OrderStatus.DELIVERED]: [OrderStatus.CANCELLED],
       [OrderStatus.CANCELLED]: [],
-      [OrderStatus.DELETED]: [],
     };
 
     const allowed = allowedTransitions[currentStatus] || [];
@@ -293,18 +287,6 @@ export class OrderService {
 
     await order.update({ status: targetStatus });
     return order.get({ plain: true });
-  }
-
-  static async update(id: number | string, input: any) {
-    if (typeof input === "string") {
-      return this.updateStatus(id, input as OrderStatus);
-    }
-    const order = await Order.findByPk(Number(id));
-    if (!order) {
-      throw new Error(`Order with ID ${id} not found`);
-    }
-    await order.update(input);
-    return order?.get({ plain: true });
   }
 
   static async delete(id: number | string) {
@@ -325,10 +307,7 @@ export class OrderService {
       throw new Error("Order is already marked as PAID");
     }
 
-    if (
-      order.status === OrderStatus.CANCELLED ||
-      order.status === OrderStatus.DELETED
-    ) {
+    if (order.status === OrderStatus.CANCELLED) {
       throw new Error(
         `Cannot process payment for a ${order.status.toLowerCase()} order`,
       );

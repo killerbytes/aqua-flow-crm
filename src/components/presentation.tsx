@@ -51,19 +51,19 @@ export function ColorBadge({
 
 export default ColorBadge;
 
-export function CustomerName({ customer }: { customer: Customer }) {
-  const hasSpecialPricing = (customer.specialPricings?.length ?? 0) > 0;
+export function CustomerName({ customer }: { customer?: Customer }) {
+  const hasSpecialPricing = (customer?.specialPricings?.length ?? 0) > 0;
 
   return (
     <div
       className={cx(
         "font-medium inline-flex items-center gap-1",
-        customer.status === CustomerStatus.INACTIVE
+        customer?.status === CustomerStatus.INACTIVE
           ? "opacity-60"
           : "opacity-100",
       )}
     >
-      {customer.name}
+      {customer?.name || "[Deleted]"}
       {hasSpecialPricing && <Tag className="w-4 h-4 text-orange-500" />}
     </div>
   );

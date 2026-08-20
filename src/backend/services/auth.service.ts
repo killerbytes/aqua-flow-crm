@@ -82,11 +82,6 @@ export class AuthService {
     return user?.get({ plain: true });
   }
 
-  static async deleteUser(id: number | string) {
-    const count = await User.destroy({ where: { user_id: Number(id) } });
-    return count > 0;
-  }
-
   static async changePassword(id: number, input: ChangePasswordData) {
     const validatedData = ChangePasswordSchema.parse(input);
     const user = await User.findByPk(id);

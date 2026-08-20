@@ -22,6 +22,7 @@ export default function OrderDetailList({
 
       columnHelper.accessor("product.name", {
         header: "Product",
+        cell: (info) => info.getValue() || "[Deleted]",
       }),
       columnHelper.accessor("quantity", {
         header: "Quantity",

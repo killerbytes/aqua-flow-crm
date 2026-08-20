@@ -11,6 +11,7 @@ export class User extends Model {
   declare isActive: boolean;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
+  declare deletedAt?: CreationOptional<Date> | null;
 }
 User.init(
   {
@@ -34,5 +35,11 @@ User.init(
       defaultValue: true,
     },
   },
-  { sequelize, modelName: "User", tableName: "users", timestamps: true },
+  {
+    sequelize,
+    modelName: "User",
+    tableName: "users",
+    timestamps: true,
+    paranoid: true,
+  },
 );

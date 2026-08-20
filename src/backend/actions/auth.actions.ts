@@ -59,15 +59,6 @@ export const updateUserAction = createProtectedAction({
   },
 });
 
-export const deleteUserAction = createProtectedAction({
-  permission: "MANAGE_USERS",
-  handler: async (_ctx, id: number | string) => {
-    const result = await AuthService.deleteUser(id);
-    revalidatePath("/users");
-    return result;
-  },
-});
-
 export const changePasswordAction = createProtectedAction({
   permission: "MANAGE_USERS",
   schema: ChangePasswordSchema,

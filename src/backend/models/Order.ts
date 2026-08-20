@@ -19,7 +19,7 @@ export class Order extends Model {
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
 
-  declare customer: NonAttribute<Customer>;
+  declare customer?: NonAttribute<Customer>;
   declare user: NonAttribute<User>;
   declare orderDetails: NonAttribute<OrderDetail[]>;
 }
