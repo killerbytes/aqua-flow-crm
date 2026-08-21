@@ -92,7 +92,7 @@ export default async function ProductsPage({ searchParams }: ProductPageProps) {
             inventory audit reports.
           </p>
         </div>
-        <RoleGuard allowedRoles={[UserRole.ADMIN, UserRole.CASHIER]}>
+        <RoleGuard allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]}>
           <ProductFormModalButton>
             <Plus className="w-4 h-4" />
             Add Product
@@ -117,19 +117,29 @@ export default async function ProductsPage({ searchParams }: ProductPageProps) {
                   {formatCurrency(prod.unitPrice)}
                 </CardTitle>
                 <CardAction>
-                  <RoleGuard allowedRoles={[UserRole.ADMIN, UserRole.CASHIER]}>
-                    <div className="flex gap-2">
+                  <div className="flex gap-2">
+                    <RoleGuard
+                      allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]}
+                    >
                       <ProductFormModalButton product={prod} variant="outline">
                         <Edit />
                       </ProductFormModalButton>
+                    </RoleGuard>
+                    <RoleGuard
+                      allowedRoles={[
+                        UserRole.ADMIN,
+                        UserRole.MANAGER,
+                        UserRole.CASHIER,
+                      ]}
+                    >
                       <InventoryAdjustmentModalButton
                         product={prod}
                         variant="outline"
                       >
                         <CogIcon />
                       </InventoryAdjustmentModalButton>
-                    </div>
-                  </RoleGuard>
+                    </RoleGuard>
+                  </div>
                 </CardAction>
               </CardHeader>
 

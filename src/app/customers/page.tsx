@@ -5,7 +5,7 @@ import {
   CustomerService,
 } from "@/backend/services/customer.service";
 import { RoleGuard } from "@/components/auth/RoleGuard";
-import CustomerLookup from "@/components/CustomerLookup";
+import { CustomerLookupButton } from "@/components/CustomerLookupButton";
 import { CustomerFormModal } from "@/features/customers/components/CustomerFormModal";
 import { CustomerFormModalButton } from "@/features/customers/components/CustomerFormModalButton";
 import CustomerList from "@/features/customers/components/CustomerList";
@@ -60,7 +60,7 @@ export default async function CustomersPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="md:flex justify-between items-center space-y-2">
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             <Users />
@@ -72,10 +72,12 @@ export default async function CustomersPage({
           </p>
         </div>
         <div className="flex items-center gap-1">
-          <CustomerLookup>
+          <CustomerLookupButton variant="outline">
             <Search />
-          </CustomerLookup>
-          <RoleGuard allowedRoles={[UserRole.ADMIN, UserRole.CASHIER]}>
+          </CustomerLookupButton>
+          <RoleGuard
+            allowedRoles={[UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER]}
+          >
             <CustomerFormModalButton>
               <UserPlus className="w-4 h-4" />
               Add Customer

@@ -30,6 +30,7 @@ interface UIState {
   selectedProductId?: number | null;
   products: ProductInventory[];
   isCustomerLookupModalOpen: boolean;
+  onSelectCustomer?: (id: number) => void;
   isChangePasswordModalOpen: boolean;
   isSpecialPricingModalOpen: boolean;
   isPaymentModalOpen: boolean;
@@ -57,7 +58,10 @@ interface UIState {
     open: boolean,
     product?: ProductInventory | null,
   ) => void;
-  setCustomerLookupModalOpen: (open: boolean) => void;
+  setCustomerLookupModalOpen: (
+    open: boolean,
+    onSelect?: (id: number) => void,
+  ) => void;
   setChangePasswordModalOpen: (open: boolean, user: User | null) => void;
   setSpecialPricingModalOpen: (
     open: boolean,
@@ -110,8 +114,8 @@ export const useUIStore = create<UIState>((set) => ({
     set({ isUserModalOpen: open, editingUser: user }),
   setInventoryAdjustmentModalOpen: (open, product = null) =>
     set({ isInventoryAdjustmentModalOpen: open, editingProduct: product }),
-  setCustomerLookupModalOpen: (open) =>
-    set({ isCustomerLookupModalOpen: open }),
+  setCustomerLookupModalOpen: (open, onSelect) =>
+    set({ isCustomerLookupModalOpen: open, onSelectCustomer: onSelect }),
   setChangePasswordModalOpen: (open, user = null) =>
     set({ isChangePasswordModalOpen: open, editingUser: user }),
   setSpecialPricingModalOpen: (open, customer = null) =>

@@ -44,7 +44,6 @@ export default async function InvoicesPage({ searchParams }: InvoicePageProps) {
       pagination: { total: 0, currentPage: 1, totalPages: 1 },
     };
   }
-  console.log(invoices);
 
   return (
     <div className="space-y-6">

@@ -7,6 +7,7 @@ import {
 } from "@/backend/actions";
 import { CustomerFormData, CustomerSchema } from "@/backend/schemas/zodSchemas";
 import { Barangay } from "@/backend/services/commonService";
+import { RoleGuard } from "@/components/auth/RoleGuard";
 import Modal from "@/components/Modal";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,7 +35,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
-import { CustomerStatus } from "@/lib/definitions";
+import { CustomerStatus, UserRole } from "@/lib/definitions";
 import { useUIStore } from "@/store/uiStore";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Trash, UserCheck, UserPlus } from "lucide-react";
@@ -295,14 +296,16 @@ function CustomerFormModalContent({
         </div>
         <DialogFooter>
           {isEditing && (
-            <Button
-              variant="destructive"
-              size="icon"
-              className="mr-auto"
-              onClick={onDelete}
-            >
-              <Trash />
-            </Button>
+            <RoleGuard allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]}>
+              <Button
+                variant="destructive"
+                size="icon"
+                className="mr-auto"
+                onClick={onDelete}
+              >
+                <Trash />
+              </Button>
+            </RoleGuard>
           )}
           <Button
             type="button"

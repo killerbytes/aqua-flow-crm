@@ -9,6 +9,7 @@ import {
   ProductFormData,
   ProductInventorySchema,
 } from "@/backend/schemas/zodSchemas";
+import { RoleGuard } from "@/components/auth/RoleGuard";
 import Modal from "@/components/Modal";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +22,7 @@ import { Field, FieldError, FieldLabel, FieldSet } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toast";
+import { UserRole } from "@/lib/definitions";
 import { useUIStore } from "@/store/uiStore";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PackagePlus, Tag, Trash } from "lucide-react";
@@ -215,15 +217,17 @@ export const ProductFormModalContent = ({}) => {
         </FieldSet>
 
         <DialogFooter>
-          <Button
-            type="button"
-            variant="destructive"
-            size="icon"
-            className="mr-auto"
-            onClick={onDelete}
-          >
-            <Trash />
-          </Button>
+          <RoleGuard allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]}>
+            <Button
+              type="button"
+              variant="destructive"
+              size="icon"
+              className="mr-auto"
+              onClick={onDelete}
+            >
+              <Trash />
+            </Button>
+          </RoleGuard>
           <Button
             type="button"
             variant="ghost"

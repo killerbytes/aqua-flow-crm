@@ -2,11 +2,10 @@
 import { lookupCustomerAction } from "@/backend/actions";
 import useDebounce from "@/hooks/useDebounce";
 import { useUIStore } from "@/store/uiStore";
-import { VariantProps } from "class-variance-authority";
 import { Loader2, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
-import { Button, buttonVariants } from "./ui/button";
+import { Button } from "./ui/button";
 import {
   Command,
   CommandDialog,
@@ -19,14 +18,13 @@ import {
 
 function CustomerLookupContent({
   onClose,
-  onSelect,
   isActiveOnly = false,
 }: {
   onClose: () => void;
-  onSelect: (e: string) => void;
   isActiveOnly?: boolean;
 }) {
-  const { lookupCustomers, setLookupCustomers } = useUIStore();
+  const { lookupCustomers, setLookupCustomers, onSelectCustomer } =
+    useUIStore();
 
   const [term, setTerm] = useState<string>();
   const debouncedTerm = useDebounce(term, 500);
@@ -48,7 +46,7 @@ function CustomerLookupContent({
 
   const handleSelect = (id: string) => {
     onClose();
-    onSelect(id);
+    onSelectCustomer?.(Number(id));
   };
 
   return (
@@ -116,32 +114,19 @@ function CustomerLookupContent({
 
 export default function CustomerLookup({
   isActiveOnly,
-  onSelect,
-  children,
-  variant = "outline",
 }: {
   isActiveOnly?: boolean;
-  onSelect?: (id: string) => void;
-  children?: React.ReactNode;
-  variant?: VariantProps<typeof buttonVariants>["variant"];
 }) {
-  const [isOpen, setIsOpen] = React.useState(false);
-  const router = useRouter();
+  const { isCustomerLookupModalOpen, setCustomerLookupModalOpen } =
+    useUIStore();
 
-  const handleSelect = (id: string) => {
-    setIsOpen(false);
-    onSelect ? onSelect(id) : router.push(`/customers/${id}`);
-  };
+  if (!isCustomerLookupModalOpen) return null;
 
   return (
     <>
-      <Button onClick={() => setIsOpen(true)} variant={variant}>
-        {children}
-      </Button>
-      {isOpen && (
+      {isCustomerLookupModalOpen && (
         <CustomerLookupContent
-          onSelect={handleSelect}
-          onClose={() => setIsOpen(false)}
+          onClose={() => setCustomerLookupModalOpen(false, undefined)}
           isActiveOnly={isActiveOnly}
         />
       )}

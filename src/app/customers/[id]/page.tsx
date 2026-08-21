@@ -132,7 +132,9 @@ export default async function CustomerPage({
             </h1>
           </div>
 
-          <RoleGuard allowedRoles={[UserRole.ADMIN, UserRole.CASHIER]}>
+          <RoleGuard
+            allowedRoles={[UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER]}
+          >
             <div className="flex gap-2">
               <CustomerFormModalButton customer={customer} variant="outline">
                 <Edit className="w-4 h-4" />
@@ -195,7 +197,11 @@ export default async function CustomerPage({
                             {balance.quantityTemporaryOwed} temp
                           </span>
                           <RoleGuard
-                            allowedRoles={[UserRole.ADMIN, UserRole.CASHIER]}
+                            allowedRoles={[
+                              UserRole.ADMIN,
+                              UserRole.MANAGER,
+                              UserRole.CASHIER,
+                            ]}
                           >
                             <LogEquipmentModalButton
                               customer={customer}

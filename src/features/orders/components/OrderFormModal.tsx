@@ -3,7 +3,6 @@
 import { createOrderAction, getProductsAction } from "@/backend/actions";
 import { ProductInventory } from "@/backend/models";
 import { OrderFormData, OrderSchema } from "@/backend/schemas/zodSchemas";
-import CustomerLookup from "@/components/CustomerLookup";
 import Modal from "@/components/Modal";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +34,7 @@ import { Plus, Search, ShoppingBag, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useTransition } from "react";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
+import { OrderCustomerLookupButton } from "./OrderCustomerLookupButton";
 
 export const OrderFormModalContent = () => {
   const router = useRouter();
@@ -140,11 +140,7 @@ export const OrderFormModalContent = () => {
             render={({ field }) => (
               <Field data-invalid={!!errors.customerId?.message}>
                 <FieldLabel>Customer</FieldLabel>
-                <CustomerLookup
-                  onSelect={(e) => {
-                    form.setValue("customerId", Number(e));
-                  }}
-                >
+                <OrderCustomerLookupButton form={form}>
                   <FieldLabel className="w-full cursor-pointer justify-start">
                     {lookupCustomers.find((c) => c.customerId === field.value)
                       ?.name || (
@@ -155,7 +151,7 @@ export const OrderFormModalContent = () => {
                       </div>
                     )}
                   </FieldLabel>
-                </CustomerLookup>
+                </OrderCustomerLookupButton>
               </Field>
             )}
           />

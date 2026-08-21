@@ -1,5 +1,5 @@
 import { getAuthContext } from "@/backend/auth/context";
-import { SidebarProvider } from "../ui/sidebar";
+import { SidebarInset, SidebarProvider } from "../ui/sidebar";
 import { Toaster } from "../ui/toast";
 import MainLayout from "./MainLayout";
 import Sidebar from "./Sidebar";
@@ -15,7 +15,9 @@ export default async function Providers({
     <>
       <SidebarProvider>
         <Sidebar />
-        <MainLayout serverUser={context.user}>{children}</MainLayout>
+        <SidebarInset>
+          <MainLayout serverUser={context.user}>{children}</MainLayout>
+        </SidebarInset>
         <Toaster />
       </SidebarProvider>
     </>
