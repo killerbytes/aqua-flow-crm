@@ -197,11 +197,6 @@ export function generateSeedData(refDate: Date = new Date()): SeedDataResult {
       });
     }
 
-    const totalAmount = details.reduce(
-      (sum, d) => sum + d.quantity * d.unitPrice,
-      0,
-    );
-
     orders.push({
       customerId: customerId,
       status: statuses[i % statuses.length],

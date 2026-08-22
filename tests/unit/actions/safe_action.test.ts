@@ -71,7 +71,7 @@ describe("Unit - safeAction Pipeline Builder", () => {
 
   it("should return forbidden error when user role lacks required permission", async () => {
     vi.spyOn(authContext, "getAuthContext").mockResolvedValue({
-      user: { userId: 2, name: "Driver", role: UserRole.DRIVER },
+      user: { userId: 2, name: "Driver", role: UserRole.DELIVERY },
     } as any);
 
     const action = createProtectedAction({

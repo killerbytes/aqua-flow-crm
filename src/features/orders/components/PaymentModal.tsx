@@ -52,7 +52,7 @@ export function PaymentModalContent({ onClose }: { onClose: () => void }) {
   const onSubmit = (data: PaymentFormData) => {
     startTransition(async () => {
       try {
-        const res = await makePaymentAction(editingOrder.orderId, data);
+        const res = await makePaymentAction(data, editingOrder.orderId);
         if (!res.success) {
           throw new Error(res.error);
         }

@@ -69,7 +69,7 @@ export const OrderItemsSchema = z
     z.object({
       productId: z.number().int().positive("Product is required"),
       quantity: z.number().int().positive(),
-      unitPrice: z.number().positive(),
+      unitPrice: z.number().optional(),
       discount: z.number().min(0).optional().default(0),
     }),
   )

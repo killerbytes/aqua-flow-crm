@@ -294,7 +294,7 @@ export class OrderService {
     return count > 0;
   }
 
-  static async makePayment(id: number, input: PaymentFormData) {
+  static async makePayment(input: PaymentFormData, id: number) {
     const validatedData = PaymentSchema.parse(input);
     const order = await Order.findByPk(Number(id), {
       include: [{ model: OrderDetail, as: "orderDetails" }],
@@ -312,13 +312,16 @@ export class OrderService {
         `Cannot process payment for a ${order.status.toLowerCase()} order`,
       );
     }
-
-    await order.update({
-      paymentStatus: PaymentStatus.PAID,
-      paymentMethod: validatedData.paymentMethod,
-      paymentNotes: validatedData.paymentNotes,
-    });
-    return order.get({ plain: true });
+    try {
+      await order.update({
+        paymentStatus: PaymentStatus.PAID,
+        paymentMethod: validatedData.paymentMethod,
+        paymentNotes: validatedData.paymentNotes,
+      });
+      return order.get({ plain: true });
+    } catch (error) {
+      throw error;
+    }
   }
 }
 

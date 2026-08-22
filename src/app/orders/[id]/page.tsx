@@ -48,9 +48,16 @@ export default async function OrderDetailsPage({
             <ShoppingBag />
             Order Details
           </h1>
-          <p className="text-muted-foreground">
-            Viewing order details for order ID: #{order.orderId}
-          </p>
+          <div className="text-muted-foreground">
+            Viewing order details of{" "}
+            <Link
+              className="text-primary hover:underline hover:cursor-pointer"
+              href={`/customers/${order.customer?.customerId}`}
+            >
+              <CustomerName customer={order.customer} />
+            </Link>{" "}
+            for order ID: #{order.orderId}
+          </div>
         </div>
         <div className="flex gap-2 items-center">
           <ColorBadge colorMap={ORDER_STATUS_BADGE_COLOR}>
@@ -59,9 +66,11 @@ export default async function OrderDetailsPage({
           <ColorBadge colorMap={PAYMENT_STATUS_BADGE_COLOR}>
             {order.paymentStatus}
           </ColorBadge>
-          <ColorBadge colorMap={PAYMENT_METHOD_BADGE_COLOR}>
-            {order.paymentMethod}
-          </ColorBadge>
+          {order.paymentMethod && (
+            <ColorBadge colorMap={PAYMENT_METHOD_BADGE_COLOR}>
+              {order.paymentMethod}
+            </ColorBadge>
+          )}
           <div className="text-3xl text-primary font-bold ml-4">
             {formatCurrency(order.totalAmount)}
           </div>
@@ -72,12 +81,6 @@ export default async function OrderDetailsPage({
           <div className="space-y-2">
             <div>
               <strong>Name:</strong>{" "}
-              <Link
-                className="text-primary hover:underline hover:cursor-pointer"
-                href={`/customers/${order.customer?.customerId}`}
-              >
-                <CustomerName customer={order.customer} />
-              </Link>
             </div>
             <p>
               <strong>Address:</strong> {order.customer?.address}

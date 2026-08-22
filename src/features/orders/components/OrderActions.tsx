@@ -42,11 +42,12 @@ export default function OrderActions({ order }: { order: Order }) {
         allowedRoles={[UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER]}
       >
         <div className="ml-auto flex gap-2">
-          {order.paymentStatus !== PaymentStatus.PAID && (
-            <Button onClick={() => setPaymentModalOpen(true, order)}>
-              <Banknote /> Payment
-            </Button>
-          )}
+          {order.paymentStatus !== PaymentStatus.PAID &&
+            order.status !== OrderStatus.CANCELLED && (
+              <Button onClick={() => setPaymentModalOpen(true, order)}>
+                <Banknote /> Payment
+              </Button>
+            )}
           {order.status === OrderStatus.PENDING && (
             <ConfirmDialog
               isLoading={isPending}

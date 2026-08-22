@@ -1,0 +1,112 @@
+import { describe, expect, it, vi } from "vitest";
+import * as authContext from "../../../src/backend/auth/context";
+import { OrderService } from "../../../src/backend/services/order.service";
+import { OrderStatus, PaymentMethod, PaymentStatus, UserRole } from "../../../src/lib/definitions";
+import {
+  createOrderAction,
+  deleteOrderAction,
+  getOrdersAction,
+  makePaymentAction,
+  updateOrderStatusAction,
+} from "../../../src/backend/actions/order.actions";
+
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+}));
+
+vi.mock("../../../src/backend/db/database", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../src/backend/db/database")>();
+  return {
+    ...actual,
+    initDatabase: vi.fn().mockResolvedValue(undefined),
+  };
+});
+
+describe("Unit - Order Server Actions", () => {
+  it("should fail getOrdersAction if user is unauthenticated", async () => {
+    vi.spyOn(authContext, "getAuthContext").mockResolvedValue(null);
+
+    const res = await getOrdersAction({});
+    expect(res.success).toBe(false);
+    if (!res.success) {
+      expect(res.error).toMatch(/Unauthorized/i);
+    }
+  });
+
+  it("should execute getOrdersAction when user has VIEW_ORDERS permission", async () => {
+    vi.spyOn(authContext, "getAuthContext").mockResolvedValue({
+      user: { userId: 1, name: "Admin", role: UserRole.ADMIN },
+    } as any);
+    vi.spyOn(OrderService, "getAll").mockResolvedValue({ orders: [], total: 0 } as any);
+
+    const res = await getOrdersAction({});
+    expect(res.success).toBe(true);
+    if (res.success) {
+      expect(res.data).toEqual({ orders: [], total: 0 });
+    }
+  });
+
+  it("should fail createOrderAction when user lacks CREATE_ORDER permission", async () => {
+    vi.spyOn(authContext, "getAuthContext").mockResolvedValue({
+      user: { userId: 2, name: "Delivery", role: UserRole.DELIVERY },
+    } as any);
+
+    const res = await createOrderAction({
+      customerId: 1,
+      status: OrderStatus.PENDING,
+      paymentStatus: PaymentStatus.UNPAID,
+      items: [{ productId: 1, quantity: 2 }],
+    });
+
+    expect(res.success).toBe(false);
+    if (!res.success) {
+      expect(res.error).toMatch(/Forbidden/i);
+    }
+  });
+
+  it("should successfully create order via createOrderAction for authorized user", async () => {
+    vi.spyOn(authContext, "getAuthContext").mockResolvedValue({
+      user: { userId: 1, name: "Admin", role: UserRole.ADMIN },
+    } as any);
+    vi.spyOn(OrderService, "create").mockResolvedValue({ orderId: 101, totalAmount: 100 } as any);
+
+    const res = await createOrderAction({
+      customerId: 1,
+      status: OrderStatus.PENDING,
+      paymentStatus: PaymentStatus.UNPAID,
+      items: [{ productId: 1, quantity: 2, unitPrice: 50 }],
+    });
+
+    expect(res.success).toBe(true);
+    if (res.success) {
+      expect(res.data).toEqual({ orderId: 101, totalAmount: 100 });
+    }
+  });
+
+  it("should fail makePaymentAction when input fails PaymentSchema", async () => {
+    vi.spyOn(authContext, "getAuthContext").mockResolvedValue({
+      user: { userId: 1, name: "Admin", role: UserRole.ADMIN },
+    } as any);
+
+    const res = await makePaymentAction({ paymentMethod: "INVALID_METHOD" as any }, 101);
+    expect(res.success).toBe(false);
+  });
+
+  it("should call OrderService.makePayment in makePaymentAction on valid input", async () => {
+    vi.spyOn(authContext, "getAuthContext").mockResolvedValue({
+      user: { userId: 1, name: "Admin", role: UserRole.ADMIN },
+    } as any);
+    vi.spyOn(OrderService, "makePayment").mockResolvedValue({ success: true, paymentStatus: PaymentStatus.PAID } as any);
+
+    const res = await makePaymentAction(
+      { paymentMethod: PaymentMethod.CASH, paymentNotes: "Paid" },
+      101,
+    );
+
+    expect(res.success).toBe(true);
+    expect(OrderService.makePayment).toHaveBeenCalledWith(
+      { paymentMethod: PaymentMethod.CASH, paymentNotes: "Paid" },
+      101,
+    );
+  });
+});

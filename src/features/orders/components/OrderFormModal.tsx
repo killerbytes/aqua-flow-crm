@@ -95,7 +95,7 @@ export const OrderFormModalContent = () => {
 
   const calculateTotal = () => {
     return watchFields.reduce(
-      (sum, item) => sum + item.quantity * item.unitPrice,
+      (sum, item) => sum + item.quantity * (item.unitPrice ?? 0),
       0,
     );
   };
@@ -157,52 +157,9 @@ export const OrderFormModalContent = () => {
           />
         </FieldGroup>
 
-        {/* <div className="grid grid-cols-2 gap-4">
-          <FieldSet>
-            <Controller
-              name="paymentStatus"
-              control={control}
-              render={({ field }) => (
-                <Field>
-                  <FieldLabel>Payment Status</FieldLabel>
-                  <Select
-                    {...field}
-                    value={field.value}
-                    onValueChange={field.onChange}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-
-                    <SelectContent>
-                      {Object.values(PaymentStatus).map((pst) => (
-                        <SelectItem key={pst} value={pst}>
-                          {pst}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <FieldError>{errors.paymentStatus?.message}</FieldError>
-                </Field>
-              )}
-            />
-          </FieldSet>
-        </div> */}
-
         <div>
           <div className="flex justify-between items-center mb-2">
             <FieldLabel>Order Items</FieldLabel>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                append({ productId: 0, quantity: 1, unitPrice: 0 })
-              }
-            >
-              <Plus size={14} /> Add Item
-            </Button>
           </div>
 
           <div className="space-y-3">
@@ -307,6 +264,16 @@ export const OrderFormModalContent = () => {
               </div>
             ))}
           </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-2"
+            onClick={() => append({ productId: 0, quantity: 1, unitPrice: 0 })}
+          >
+            <Plus size={14} /> Add Item
+          </Button>
         </div>
         <div className="flex items-center justify-between pt-4 border-t border-slate-800">
           <span className="text-xs text-muted-foreground">Total Amount:</span>

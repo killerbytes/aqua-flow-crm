@@ -6,6 +6,7 @@ import { createProtectedAction } from "../lib/safe-action";
 import {
   OrderFormData,
   OrderSchema,
+  PaymentFormData,
   PaymentSchema,
 } from "../schemas/zodSchemas";
 import { OrderQueryParams, OrderService } from "../services/order.service";
@@ -48,8 +49,8 @@ export const deleteOrderAction = createProtectedAction({
 export const makePaymentAction = createProtectedAction({
   permission: "UPDATE_ORDER",
   schema: PaymentSchema,
-  handler: async (_ctx, id: number | string, input: any) => {
-    const result = await OrderService.makePayment(Number(id), input);
+  handler: async (_ctx, input: PaymentFormData, id: number | string) => {
+    const result = await OrderService.makePayment(input, Number(id));
     revalidatePath("/orders");
     return result;
   },
