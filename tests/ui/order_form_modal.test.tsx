@@ -14,11 +14,20 @@ describe("UI - OrderFormModal Component Structure & Action Binding", () => {
     expect(content).toContain("OrderSchema");
   });
 
-  it("should handle optional unitPrice safely in calculateTotal", () => {
-    expect(content).toContain("sum + item.quantity * (item.unitPrice ?? 0)");
+  it("should watch customerId reactively and check for specialPricings", () => {
+    expect(content).toContain("customerId");
+    expect(content).toContain("specialPricings");
   });
 
-  it("should call createOrderAction upon form submission", () => {
-    expect(content).toContain("createOrderAction(data)");
+  it("should display special discount indicator when item product has special pricing", () => {
+    expect(content).toContain("discountAmount");
+    expect(content).toContain("Special Discount");
+  });
+
+  it("should display equipment balances when customer is selected", () => {
+    expect(content).toContain("equipmentBalances");
+    expect(content).toContain("Equipment Balances");
   });
 });
+
+

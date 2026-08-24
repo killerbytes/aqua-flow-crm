@@ -9,12 +9,20 @@ import {
   PaymentFormData,
   PaymentSchema,
 } from "../schemas/zodSchemas";
+import { CustomerService } from "../services/customer.service";
 import { OrderQueryParams, OrderService } from "../services/order.service";
 
 export const getOrdersAction = createProtectedAction({
   permission: "VIEW_ORDERS",
   handler: async (ctx, input: OrderQueryParams) => {
     return await OrderService.getAll(input);
+  },
+});
+
+export const getWalkInCustomerAction = createProtectedAction({
+  permission: "CREATE_ORDER",
+  handler: async () => {
+    return await CustomerService.getOrCreateWalkIn();
   },
 });
 

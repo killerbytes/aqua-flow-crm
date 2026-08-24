@@ -179,6 +179,18 @@ export class CustomerService {
     const customers = await Customer.findAll({
       where,
       limit: 10,
+      include: [
+        {
+          model: CustomerEquipmentBalance,
+          include: [{ model: ProductInventory, as: "product" }],
+          as: "equipmentBalances",
+        },
+        {
+          model: CustomerSpecialPricing,
+          include: [{ model: ProductInventory, as: "product" }],
+          as: "specialPricings",
+        },
+      ],
     });
     return customers.map((c) => c.get({ plain: true }));
   }
@@ -230,5 +242,24 @@ export class CustomerService {
     } catch (error) {
       handleServiceError(error);
     }
+  }
+
+  static async getOrCreateWalkIn() {
+    const WALK_IN_NAME = "Walk-In / Counter Sales";
+    let customer = await Customer.findOne({
+      where: { name: WALK_IN_NAME },
+    });
+
+    if (!customer) {
+      customer = await Customer.create({
+        name: WALK_IN_NAME,
+        address: "Over the counter",
+        phone: "",
+        status: CustomerStatus.ACTIVE,
+        notes: "Default system account for daily counter / walk-in sales",
+      });
+    }
+
+    return customer.get({ plain: true });
   }
 }

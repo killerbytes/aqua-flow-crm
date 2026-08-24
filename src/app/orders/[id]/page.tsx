@@ -79,9 +79,6 @@ export default async function OrderDetailsPage({
       {order && (
         <div className="grid grid-cols-2 gap-4 pt-4 border-t space-y-2 text-sm">
           <div className="space-y-2">
-            <div>
-              <strong>Name:</strong>{" "}
-            </div>
             <p>
               <strong>Address:</strong> {order.customer?.address}
             </p>
