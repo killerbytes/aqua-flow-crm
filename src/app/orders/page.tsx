@@ -10,10 +10,12 @@ import { OrderFormModal } from "@/features/orders/components/OrderFormModal";
 import { OrderFormModalButton } from "@/features/orders/components/OrderFormModalButton";
 import OrderList from "@/features/orders/components/OrderList";
 import OrderListFilter from "@/features/orders/components/OrderListFilter";
+import { WalkInSalesModal } from "@/features/orders/components/WalkInSalesModal";
+import { WalkInSalesModalButton } from "@/features/orders/components/WalkInSalesModalButton";
 import { PAGINATION, PaymentStatus } from "@/lib/definitions";
 import { formatCurrency } from "@/lib/utils";
 import { Paginated } from "@/types";
-import { Plus, ShoppingBag } from "lucide-react";
+import { Plus, ShoppingBag, Store } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -77,10 +79,16 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
             items.
           </p>
         </div>
-        <OrderFormModalButton>
-          <Plus />
-          Create Order
-        </OrderFormModalButton>
+        <div className="flex items-center gap-2">
+          <WalkInSalesModalButton variant="outline">
+            <Store size={16} />
+            Walk-In Sales
+          </WalkInSalesModalButton>
+          <OrderFormModalButton>
+            <Plus size={16} />
+            Create Order
+          </OrderFormModalButton>
+        </div>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
@@ -140,6 +148,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
       </div>
 
       <OrderFormModal />
+      <WalkInSalesModal />
     </div>
   );
 }

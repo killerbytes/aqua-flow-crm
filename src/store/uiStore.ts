@@ -39,6 +39,7 @@ interface UIState {
   isPaymentFormModalOpen: boolean;
   editingInvoice?: Invoice | null;
 
+  isWalkInModalOpen: boolean;
   setRole: (role: UserRole) => void;
   setProducts: (products: ProductInventory[]) => void;
   setLookupCustomers: (lookupCustomers: Customer[]) => void;
@@ -49,6 +50,7 @@ interface UIState {
     productId?: number | null,
   ) => void;
   setOrderFormModalOpen: (open: boolean) => void;
+  setWalkInModalOpen: (open: boolean) => void;
   setProductFormModalOpen: (
     open: boolean,
     product?: ProductInventory | null,
@@ -95,6 +97,7 @@ export const useUIStore = create<UIState>((set) => ({
   editingOrder: null,
   isInvoiceFormModalOpen: false,
   isPaymentFormModalOpen: false,
+  isWalkInModalOpen: false,
 
   setRole: (role) => set({ currentRole: role }),
   setProducts: (products) => set({ products }),
@@ -108,6 +111,7 @@ export const useUIStore = create<UIState>((set) => ({
       selectedProductId: productId,
     }),
   setOrderFormModalOpen: (open) => set({ isOrderModalOpen: open }),
+  setWalkInModalOpen: (open) => set({ isWalkInModalOpen: open }),
   setProductFormModalOpen: (open, product = null) =>
     set({ isProductModalOpen: open, editingProduct: product }),
   setUserModalOpen: (open, user = null) =>
