@@ -102,12 +102,12 @@ export default async function CustomerPage({
 
   const activeRegularBalances =
     customer?.equipmentBalances?.filter(
-      (b: CustomerEquipmentBalance) => (b.quantityOwed ?? 0) > 0,
+      (b: CustomerEquipmentBalance) => (b.quantityOwed ?? 0) > 0
     ) || [];
 
   const activeTemporaryBalances =
     customer?.equipmentBalances?.filter(
-      (b: CustomerEquipmentBalance) => (b.quantityTemporaryOwed ?? 0) > 0,
+      (b: CustomerEquipmentBalance) => (b.quantityTemporaryOwed ?? 0) > 0
     ) || [];
 
   return (
@@ -120,22 +120,20 @@ export default async function CustomerPage({
       </Link>
       {/* <CustomerDetailsActions customer={customer} /> */}
       <div className="bg-card p-6 rounded-2xl border shadow-sm space-y-4">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className=" flex items-center gap-2">
-              <span className="text-2xl font-bold tracking-tight">
-                {customer?.name || "Customer Profile"}
-              </span>
-              <ColorBadge colorMap={CUSTOMER_STATUS_BADGE_COLOR}>
-                {customer.status}
-              </ColorBadge>
-            </h1>
-          </div>
+        <div className="md:flex space-y-4 justify-between items-center">
+          <h1 className=" flex items-center gap-2">
+            <span className="text-2xl font-bold tracking-tight">
+              {customer?.name || "Customer Profile"}
+            </span>
+            <ColorBadge colorMap={CUSTOMER_STATUS_BADGE_COLOR}>
+              {customer.status}
+            </ColorBadge>
+          </h1>
 
           <RoleGuard
             allowedRoles={[UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER]}
           >
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <CustomerFormModalButton customer={customer} variant="outline">
                 <Edit className="w-4 h-4" />
                 Edit Customer
@@ -213,7 +211,7 @@ export default async function CustomerPage({
                           </RoleGuard>
                         </div>
                       </div>
-                    ),
+                    )
                   )}
                 </div>
               </div>
@@ -242,7 +240,7 @@ export default async function CustomerPage({
                           {balance.quantityOwed} owed
                         </span>
                       </div>
-                    ),
+                    )
                   )}
                 </div>
               )}
@@ -266,7 +264,7 @@ export default async function CustomerPage({
                           {formatCurrency(pricing.discountAmount)}
                         </span>
                       </div>
-                    ),
+                    )
                   )}
                 </div>
               </div>

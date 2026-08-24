@@ -30,7 +30,6 @@ import {
   SidebarMenuItem,
   SidebarMenuSub,
   SidebarRail,
-  SidebarTrigger,
   Sidebar as SidebarUI,
   useSidebar,
 } from "../ui/sidebar";
@@ -91,11 +90,10 @@ export default function Sidebar() {
           <Image
             src="/logo.jpg"
             alt={process.env.NEXT_PUBLIC_APP_NAME || ""}
-            width={160}
+            width={260}
             height={160}
             className={cx(open ? "" : "hidden")}
           />
-          <SidebarTrigger />
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -118,7 +116,7 @@ export default function Sidebar() {
                         "hover:bg-primary/90 hover:text-primary-foreground ",
                         {
                           "bg-primary text-primary-foreground": isActive,
-                        },
+                        }
                       )}
                       render={<Link href={item.href} />}
                     >
@@ -142,7 +140,7 @@ export default function Sidebar() {
                                   {
                                     "bg-primary text-primary-foreground":
                                       isSubActive,
-                                  },
+                                  }
                                 )}
                                 render={<Link href={subItem.href} />}
                               >
@@ -228,7 +226,10 @@ export default function Sidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   render={
-                    <CustomerLookupButton variant="ghost">
+                    <CustomerLookupButton
+                      variant="ghost"
+                      className="w-full justify-start"
+                    >
                       <Search /> Search
                     </CustomerLookupButton>
                   }
