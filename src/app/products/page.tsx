@@ -2,6 +2,7 @@ import { initDatabase } from "@/backend/db/database";
 import { ProductInventory } from "@/backend/models";
 import { EquipmentService, ProductService } from "@/backend/services";
 import { RoleGuard } from "@/components/auth/RoleGuard";
+import PageHeader from "@/components/shared/PageHeader";
 import {
   Card,
   CardAction,
@@ -81,12 +82,12 @@ export default async function ProductsPage({ searchParams }: ProductPageProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="md:flex space-y-4 justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+          <PageHeader>
             <Package />
             Product Catalog & Equipment Ledger
-          </h1>
+          </PageHeader>
           <p className="text-muted-foreground">
             Manage refill products, double-entry equipment ledger transfers, and
             inventory audit reports.

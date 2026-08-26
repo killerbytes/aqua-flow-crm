@@ -86,8 +86,8 @@ function SpecialPricingModalContent({
   return (
     <>
       <DialogHeader>
-        <DialogTitle className="flex flex-row gap-3">
-          Special Pricing{" "}
+        <DialogTitle className="flex flex-row gap-3 font-semibold text-primary">
+          Special Pricing
         </DialogTitle>
         <DialogDescription>
           Set special pricing for{" "}

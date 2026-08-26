@@ -136,7 +136,7 @@ function CustomerFormModalContent({
   return (
     <>
       <DialogHeader>
-        <DialogTitle className="flex flex-row gap-3">
+        <DialogTitle className="font-semibold text-primary flex flex-row gap-3 items-center">
           {isEditing ? (
             <UserCheck className="w-5 h-5" />
           ) : (

@@ -2,7 +2,9 @@ import { initDatabase } from "@/backend/db/database";
 import { Invoice } from "@/backend/models";
 import { InvoiceService } from "@/backend/services";
 import { ColorBadge } from "@/components/presentation";
+import PageHeader from "@/components/shared/PageHeader";
 import TabWrapper from "@/components/TabWrapper";
+import { Button } from "@/components/ui/button";
 import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InvoiceDetailList from "@/features/invoices/components/InvoiceDetailList";
 import { PaymentFormModal } from "@/features/invoices/components/PaymentFormModal";
@@ -10,7 +12,6 @@ import { PaymentFormModalButton } from "@/features/invoices/components/PaymentFo
 import PaymentList from "@/features/invoices/components/PaymentList";
 import { INVOICE_STATUS_BADGE_COLOR, InvoiceStatus } from "@/lib/definitions";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { ArrowLeft, Printer } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -57,16 +58,15 @@ export default async function InvoiceDetailPage({
       </Link>
 
       <div className="bg-card p-6 rounded-2xl border shadow-sm space-y-4">
-        <div className="flex justify-between items-center">
+        <div className="md:flex justify-between items-center space-y-4">
           <div>
-            <h1 className=" flex items-center gap-2">
-              <span className="text-2xl font-bold tracking-tight">
-                Invoice for {invoice.customer.name || ""}
-              </span>
-            </h1>
+            <PageHeader>Invoice for {invoice.customer.name || ""}</PageHeader>
           </div>
           <Link href={`/invoices/${invoice.invoiceId}/print`} target="_blank">
-            <Button variant="outline" className="inline-flex items-center gap-2">
+            <Button
+              variant="outline"
+              className="inline-flex items-center gap-2"
+            >
               <Printer size={16} /> Print Statement
             </Button>
           </Link>

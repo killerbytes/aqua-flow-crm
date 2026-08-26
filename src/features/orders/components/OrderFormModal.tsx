@@ -6,11 +6,6 @@ import { OrderFormData, OrderSchema } from "@/backend/schemas/zodSchemas";
 import Modal from "@/components/Modal";
 import { Button } from "@/components/ui/button";
 import {
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Field,
   FieldError,
   FieldGroup,
@@ -148,13 +143,6 @@ export const OrderFormModalContent = () => {
 
   return (
     <>
-      <DialogHeader>
-        <DialogTitle className="flex flex-row gap-2 items-center">
-          <ShoppingBag className="w-5 h-5" />
-          Create Order
-        </DialogTitle>
-        <DialogDescription>Place a new water refill order</DialogDescription>
-      </DialogHeader>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <FieldGroup className="gap-2">
           <Controller
@@ -405,6 +393,13 @@ export function OrderFormModal() {
 
   return (
     <Modal
+      title={
+        <>
+          <ShoppingBag />
+          Create Order
+        </>
+      }
+      description="Place a new water refill order"
       isOpen={isOrderModalOpen}
       onClose={() => setOrderFormModalOpen(false)}
     >

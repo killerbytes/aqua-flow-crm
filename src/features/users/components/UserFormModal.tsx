@@ -117,7 +117,7 @@ export const OrderFormModalContent = () => {
   return (
     <>
       <DialogHeader>
-        <DialogTitle className="flex flex-row gap-3">
+        <DialogTitle className="font-semibold text-primary items-center flex flex-row gap-2">
           {isEditing ? (
             <UserCog className="w-5 h-5" />
           ) : (

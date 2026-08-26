@@ -83,8 +83,8 @@ export default function Pager({ initial }: { initial: PaginationType }) {
     return visiblePages;
   };
   return (
-    <Pagination className="relative flex-col md:flex-row gap-2">
-      <div className="md:absolute left-0">
+    <Pagination className="relative md:flex-col md:flex-row gap-2">
+      <div className="md:absolute left-0 w-full md:w-auto">
         <Select value={limit} onValueChange={handlePageLimit}>
           <SelectTrigger>
             <SelectValue placeholder="Select status" />

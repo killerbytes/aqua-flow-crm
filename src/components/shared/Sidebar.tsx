@@ -116,9 +116,14 @@ export default function Sidebar() {
                         "hover:bg-primary/90 hover:text-primary-foreground ",
                         {
                           "bg-primary text-primary-foreground": isActive,
-                        }
+                        },
                       )}
-                      render={<Link href={item.href} />}
+                      render={
+                        <Link
+                          href={item.href}
+                          onClick={() => setOpenMobile(false)}
+                        />
+                      }
                     >
                       <Icon />
                       {item.name}
@@ -140,7 +145,7 @@ export default function Sidebar() {
                                   {
                                     "bg-primary text-primary-foreground":
                                       isSubActive,
-                                  }
+                                  },
                                 )}
                                 render={<Link href={subItem.href} />}
                               >

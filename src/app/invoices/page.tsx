@@ -1,5 +1,6 @@
 import { Invoice } from "@/backend/models";
 import { InvoiceQueryParams, InvoiceService } from "@/backend/services";
+import PageHeader from "@/components/shared/PageHeader";
 import {
   Card,
   CardDescription,
@@ -49,10 +50,10 @@ export default async function InvoicesPage({ searchParams }: InvoicePageProps) {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+          <PageHeader>
             <Receipt />
             Invoices
-          </h1>
+          </PageHeader>
           <p className="text-muted-foreground">
             View invoices, owed container balances, and temporary loan status.
           </p>

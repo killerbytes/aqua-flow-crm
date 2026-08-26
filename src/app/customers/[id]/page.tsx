@@ -6,6 +6,7 @@ import {
   Edit,
   Package,
   Tag,
+  User,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -23,6 +24,7 @@ import {
 import { CommonService } from "@/backend/services/commonService";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { ColorBadge } from "@/components/presentation";
+import PageHeader from "@/components/shared/PageHeader";
 import TabWrapper from "@/components/TabWrapper";
 import {
   Card,
@@ -102,12 +104,12 @@ export default async function CustomerPage({
 
   const activeRegularBalances =
     customer?.equipmentBalances?.filter(
-      (b: CustomerEquipmentBalance) => (b.quantityOwed ?? 0) > 0
+      (b: CustomerEquipmentBalance) => (b.quantityOwed ?? 0) > 0,
     ) || [];
 
   const activeTemporaryBalances =
     customer?.equipmentBalances?.filter(
-      (b: CustomerEquipmentBalance) => (b.quantityTemporaryOwed ?? 0) > 0
+      (b: CustomerEquipmentBalance) => (b.quantityTemporaryOwed ?? 0) > 0,
     ) || [];
 
   return (
@@ -121,19 +123,18 @@ export default async function CustomerPage({
       {/* <CustomerDetailsActions customer={customer} /> */}
       <div className="bg-card p-6 rounded-2xl border shadow-sm space-y-4">
         <div className="md:flex space-y-4 justify-between items-center">
-          <h1 className=" flex items-center gap-2">
-            <span className="text-2xl font-bold tracking-tight">
-              {customer?.name || "Customer Profile"}
-            </span>
+          <PageHeader>
+            <User />
+            {customer?.name || "Customer Profile"}
             <ColorBadge colorMap={CUSTOMER_STATUS_BADGE_COLOR}>
               {customer.status}
             </ColorBadge>
-          </h1>
+          </PageHeader>
 
           <RoleGuard
             allowedRoles={[UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER]}
           >
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               <CustomerFormModalButton customer={customer} variant="outline">
                 <Edit className="w-4 h-4" />
                 Edit Customer
@@ -194,7 +195,7 @@ export default async function CustomerPage({
                           <span className="text-sm font-bold text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-md bg-amber-200/60 dark:bg-amber-900/60">
                             {balance.quantityTemporaryOwed} temp
                           </span>
-                          <RoleGuard
+                          {/* <RoleGuard
                             allowedRoles={[
                               UserRole.ADMIN,
                               UserRole.MANAGER,
@@ -208,10 +209,10 @@ export default async function CustomerPage({
                             >
                               <ArrowRightLeft size={16} />
                             </LogEquipmentModalButton>
-                          </RoleGuard>
+                          </RoleGuard> */}
                         </div>
                       </div>
-                    )
+                    ),
                   )}
                 </div>
               </div>
@@ -240,7 +241,7 @@ export default async function CustomerPage({
                           {balance.quantityOwed} owed
                         </span>
                       </div>
-                    )
+                    ),
                   )}
                 </div>
               )}
@@ -264,7 +265,7 @@ export default async function CustomerPage({
                           {formatCurrency(pricing.discountAmount)}
                         </span>
                       </div>
-                    )
+                    ),
                   )}
                 </div>
               </div>
@@ -273,10 +274,10 @@ export default async function CustomerPage({
         )}
       </div>
 
-      <TabWrapper defaultValue="logs">
+      <TabWrapper defaultValue="history">
         <TabsList>
-          <TabsTrigger value="logs">Equipment Logs</TabsTrigger>
           <TabsTrigger value="history">Order History</TabsTrigger>
+          <TabsTrigger value="logs">Equipment Logs</TabsTrigger>
         </TabsList>
         <TabsContent value="logs">
           <Card>

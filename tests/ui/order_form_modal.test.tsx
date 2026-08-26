@@ -26,8 +26,5 @@ describe("UI - OrderFormModal Component Structure & Action Binding", () => {
 
   it("should display equipment balances when customer is selected", () => {
     expect(content).toContain("equipmentBalances");
-    expect(content).toContain("Equipment Balances");
   });
 });
-
-

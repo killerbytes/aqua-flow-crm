@@ -1,5 +1,6 @@
 import { initDatabase } from "@/backend/db/database";
 import { AuthService } from "@/backend/services";
+import PageHeader from "@/components/shared/PageHeader";
 import { ChangePasswordModal } from "@/features/users/components/ChangePasswordModal";
 import { UserFormModal } from "@/features/users/components/UserFormModal";
 import UserList from "@/features/users/components/UserList";
@@ -20,12 +21,12 @@ export default async function UsersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="md:flex justify-between items-center space-y-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+          <PageHeader>
             <Users />
             User & RBAC Administration
-          </h1>
+          </PageHeader>
           <p className="text-muted-foreground">
             Manage staff user accounts, role permissions, and access privileges.
           </p>

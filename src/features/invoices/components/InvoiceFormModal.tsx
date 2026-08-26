@@ -224,7 +224,7 @@ function InvoiceFormModalContent({ onClose }: InvoiceFormModalProps) {
   return (
     <>
       <DialogHeader>
-        <DialogTitle className="flex flex-row gap-3">
+        <DialogTitle className="flex flex-row gap-3 font-semibold text-primary">
           Create Invoice
         </DialogTitle>
         <DialogDescription>
