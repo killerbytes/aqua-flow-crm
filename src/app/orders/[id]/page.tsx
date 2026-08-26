@@ -5,6 +5,7 @@ import { initDatabase } from "@/backend/db/database";
 import { Order } from "@/backend/models";
 import { OrderService } from "@/backend/services";
 import { ColorBadge, CustomerName } from "@/components/presentation";
+import PageHeader from "@/components/shared/PageHeader";
 import OrderActions from "@/features/orders/components/OrderActions";
 import OrderDetailList from "@/features/orders/components/OrderDetailList";
 import { PaymentModal } from "@/features/orders/components/PaymentModal";
@@ -42,12 +43,12 @@ export default async function OrderDetailsPage({
         <ArrowLeft className="w-4 h-4" />
         Back to Orders List
       </Link>
-      <div className="flex justify-between items-center">
+      <div className="md:flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+          <PageHeader>
             <ShoppingBag />
             Order Details
-          </h1>
+          </PageHeader>
           <div className="text-muted-foreground">
             Viewing order details of{" "}
             <Link
@@ -55,8 +56,7 @@ export default async function OrderDetailsPage({
               href={`/customers/${order.customer?.customerId}`}
             >
               <CustomerName customer={order.customer} />
-            </Link>{" "}
-            for order ID: #{order.orderId}
+            </Link>
           </div>
         </div>
         <div className="flex gap-2 items-center">

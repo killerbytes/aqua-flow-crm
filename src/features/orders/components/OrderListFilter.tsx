@@ -17,10 +17,10 @@ export default function OrderListFilter() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const startDate = new Date(
-    Number(searchParams.get("startDate") ?? startOfMonth(new Date())),
+    Number(searchParams.get("startDate") ?? startOfMonth(new Date()))
   );
   const endDate = new Date(
-    Number(searchParams.get("endDate") ?? endOfMonth(new Date())),
+    Number(searchParams.get("endDate") ?? endOfMonth(new Date()))
   );
 
   const isToday = startDate.toDateString() === endDate.toDateString();
@@ -30,11 +30,11 @@ export default function OrderListFilter() {
     const params = new URLSearchParams(searchParams);
     params.set(
       "startDate",
-      isToday ? String(startOfMonth(today).getTime()) : String(today.getTime()),
+      isToday ? String(startOfMonth(today).getTime()) : String(today.getTime())
     );
     params.set(
       "endDate",
-      isToday ? String(endOfMonth(today).getTime()) : String(today.getTime()),
+      isToday ? String(endOfMonth(today).getTime()) : String(today.getTime())
     );
     router.push(`?${params.toString()}`);
   };
@@ -59,12 +59,12 @@ export default function OrderListFilter() {
     router.push(`?${params.toString()}`);
   };
   return (
-    <div className="flex gap-4">
+    <div className="flex flex-wrap gap-4">
       <div className="flex items-center gap-2">
         <DatePicker
           onSelect={(range) => {
             router.push(
-              `?startDate=${range?.from?.getTime()}&endDate=${range?.to?.getTime()}`,
+              `?startDate=${range?.from?.getTime()}&endDate=${range?.to?.getTime()}`
             );
           }}
           from={new Date(Number(startDate ?? startOfMonth(new Date())))}

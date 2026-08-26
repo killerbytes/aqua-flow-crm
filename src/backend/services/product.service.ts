@@ -18,6 +18,17 @@ export class ProductService {
   static async create(input: any) {
     const validatedData = ProductInventorySchema.parse(input);
     try {
+      if (validatedData.isDefault) {
+        const existingDefault = await ProductInventory.findOne({
+          where: {
+            isDefault: true,
+          },
+        });
+        if (existingDefault) {
+          existingDefault.isDefault = false;
+          await existingDefault.save();
+        }
+      }
       const product = await ProductInventory.create(validatedData);
       return product?.get({ plain: true });
     } catch (error) {
@@ -31,6 +42,18 @@ export class ProductService {
     if (!product) throw new Error("Product not found");
 
     try {
+      if (validatedData.isDefault) {
+        const existingDefault = await ProductInventory.findOne({
+          where: {
+            isDefault: true,
+          },
+        });
+        if (existingDefault && existingDefault.productId !== id) {
+          existingDefault.isDefault = false;
+          await existingDefault.save();
+        }
+      }
+
       await product.update(validatedData);
       return product?.get({ plain: true });
     } catch (error) {

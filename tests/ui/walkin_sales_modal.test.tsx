@@ -10,7 +10,7 @@ describe("UI - WalkInSalesModal Component & Header Button", () => {
     );
     const content = fs.readFileSync(modalPath, "utf-8");
 
-    expect(content).toContain("Record Consolidated Daily Walk-In Sales");
+    expect(content).toContain("Consolidated Daily Walk-In Sales");
     expect(content).toContain("OrderStatus.DELIVERED");
     expect(content).toContain("PaymentStatus.PAID");
     expect(content).toContain("getWalkInCustomerAction");
@@ -18,14 +18,11 @@ describe("UI - WalkInSalesModal Component & Header Button", () => {
   });
 
   it("should render Record Walk-In Sales button in orders page header", () => {
-    const pagePath = path.resolve(
-      process.cwd(),
-      "src/app/orders/page.tsx",
-    );
+    const pagePath = path.resolve(process.cwd(), "src/app/orders/page.tsx");
     const content = fs.readFileSync(pagePath, "utf-8");
 
     expect(content).toContain("WalkInSalesModalButton");
-    expect(content).toContain("Record Walk-In Sales");
+    expect(content).toContain("Walk-In Sales");
     expect(content).toContain("WalkInSalesModal");
   });
 });

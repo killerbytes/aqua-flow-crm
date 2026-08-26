@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useUIStore } from "@/store/uiStore";
+import clsx from "clsx";
 import { useRouter } from "next/navigation";
 
 interface CustomerLookupButtonProps extends React.ComponentProps<
@@ -12,10 +13,11 @@ interface CustomerLookupButtonProps extends React.ComponentProps<
 
 export const CustomerLookupButton = ({
   children,
+  className,
   ...props
 }: CustomerLookupButtonProps) => {
   const setCustomerLookupModalOpen = useUIStore(
-    (state) => state.setCustomerLookupModalOpen,
+    (state) => state.setCustomerLookupModalOpen
   );
   const router = useRouter();
 
@@ -27,7 +29,7 @@ export const CustomerLookupButton = ({
         })
       }
       {...props}
-      className="w-full justify-start "
+      className={clsx("", className)}
     >
       {children}
     </Button>

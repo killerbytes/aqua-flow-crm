@@ -36,16 +36,20 @@ export function Modal({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         data-testid="modal-container"
-        className={`${maxWidthMap[maxWidth]} w-full max-h-[90vh] flex flex-col ${className}`}
+        className={`${maxWidthMap[maxWidth]} w-full flex flex-col ${className}`}
       >
         <div data-testid="modal-box" className="hidden" />
         {(title || description) && (
           <DialogHeader>
             {title &&
               (typeof title === "string" ? (
-                <DialogTitle>{title}</DialogTitle>
+                <DialogTitle className="font-semibold text-primary">
+                  {title}
+                </DialogTitle>
               ) : (
-                <div className="font-semibold text-lg">{title}</div>
+                <div className="font-semibold flex gap-2 items-center text-primary">
+                  {title}
+                </div>
               ))}
             {description && (
               <DialogDescription>
@@ -58,7 +62,9 @@ export function Modal({
             )}
           </DialogHeader>
         )}
-        {children}
+        <div className="-mx-4 no-scrollbar max-h-[90vh] overflow-y-auto px-4">
+          {children}
+        </div>
       </DialogContent>
     </Dialog>
   );

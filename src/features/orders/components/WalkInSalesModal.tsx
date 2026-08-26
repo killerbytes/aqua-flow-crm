@@ -10,11 +10,6 @@ import { OrderFormData, OrderSchema } from "@/backend/schemas/zodSchemas";
 import Modal from "@/components/Modal";
 import { Button } from "@/components/ui/button";
 import {
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Field,
   FieldError,
   FieldGroup,
@@ -161,15 +156,6 @@ export const WalkInSalesModalContent = () => {
 
   return (
     <>
-      <DialogHeader>
-        <DialogTitle className="flex flex-row gap-2 items-center">
-          <Store />
-          Consolidated Daily Walk-In Sales
-        </DialogTitle>
-        <DialogDescription>
-          Record over-the-counter daily cash sales for walk-in customers.
-        </DialogDescription>
-      </DialogHeader>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-2">
         <FieldGroup>
           <Controller
@@ -346,7 +332,17 @@ export const WalkInSalesModal = () => {
   if (!isWalkInModalOpen) return null;
 
   return (
-    <Modal isOpen={isWalkInModalOpen} onClose={() => setWalkInModalOpen(false)}>
+    <Modal
+      title={
+        <>
+          <Store />
+          Consolidated Daily Walk-In Sales
+        </>
+      }
+      description="Record over-the-counter daily cash sales for walk-in customers."
+      isOpen={isWalkInModalOpen}
+      onClose={() => setWalkInModalOpen(false)}
+    >
       <WalkInSalesModalContent />
     </Modal>
   );

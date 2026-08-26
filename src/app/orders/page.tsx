@@ -1,5 +1,6 @@
 import { initDatabase } from "@/backend/db/database";
 import { OrderService } from "@/backend/services";
+import PageHeader from "@/components/shared/PageHeader";
 import {
   Card,
   CardDescription,
@@ -68,12 +69,12 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="md:flex space-y-4 justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+          <PageHeader>
             <ShoppingBag />
             Order Transactions & Dispatch
-          </h1>
+          </PageHeader>
           <p className="text-muted-foreground">
             Water refill orders, status tracking, payment verification, and line
             items.

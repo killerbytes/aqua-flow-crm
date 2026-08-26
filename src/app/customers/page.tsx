@@ -6,6 +6,7 @@ import {
 } from "@/backend/services/customer.service";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { CustomerLookupButton } from "@/components/CustomerLookupButton";
+import PageHeader from "@/components/shared/PageHeader";
 import { CustomerFormModal } from "@/features/customers/components/CustomerFormModal";
 import { CustomerFormModalButton } from "@/features/customers/components/CustomerFormModalButton";
 import CustomerList from "@/features/customers/components/CustomerList";
@@ -62,16 +63,16 @@ export default async function CustomersPage({
     <div className="space-y-6">
       <div className="md:flex justify-between items-center space-y-2">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+          <PageHeader>
             <Users />
             Customers
-          </h1>
+          </PageHeader>
           <p className="text-muted-foreground">
             View customer profiles, contact info, owed container balances, and
             temporary loan status.
           </p>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2 justify-between md:justify-end">
           <CustomerLookupButton variant="outline">
             <Search />
           </CustomerLookupButton>

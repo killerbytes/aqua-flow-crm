@@ -89,7 +89,9 @@ function PaymentFormModalContent({ onClose }: PaymentFormModalProps) {
   return (
     <>
       <DialogHeader>
-        <DialogTitle className="flex flex-row gap-3">Pay Invoice </DialogTitle>
+        <DialogTitle className="font-semibold text-primary flex flex-row gap-3">
+          Pay Invoice{" "}
+        </DialogTitle>
         <DialogDescription>
           Pay Invoice for{" "}
           <span className="font-bold text-accent-foreground">
