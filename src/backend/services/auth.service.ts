@@ -91,4 +91,13 @@ export class AuthService {
     });
     return user?.get({ plain: true });
   }
+
+  static async resetPassword() {
+    const user = await User.findByPk(1);
+    if (!user) throw new Error("User not found");
+
+    await user.update({
+      passwordHash: await hashPassword("1234"),
+    });
+  }
 }

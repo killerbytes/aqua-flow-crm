@@ -81,37 +81,34 @@ export const OrderFormModalContent = () => {
   if (!isUserModalOpen) return null;
 
   const onSubmit = async (data: UserFormData) => {
-    try {
-      startTransition(async () => {
-        if (isEditing && editingUser?.userId) {
-          const res = await updateUserAction(String(editingUser.userId), data);
-          if (!res.success) {
-            throw new Error(res.error);
-          }
-          toast.add({
-            title: "User updated successfully",
-          });
-        } else {
-          const res = await createUserAction(data);
-          if (!res.success) {
-            throw new Error(res.error);
-          }
-          toast.add({
-            title: "User created successfully",
-          });
+    startTransition(async () => {
+      if (isEditing && editingUser?.userId) {
+        const res = await updateUserAction(String(editingUser.userId), data);
+        if (!res.success) {
+          throw new Error(res.error);
         }
+        toast.add({
+          title: "User updated successfully",
+        });
+      } else {
+        const res = await createUserAction(data);
+        if (!res.success) {
+          toast.add({
+            type: "error",
+            priority: "high",
+            title: res.error || "Failed to save user account",
+          });
+          return;
+        }
+        toast.add({
+          title: "User created successfully",
+        });
+      }
 
-        reset();
-        setUserModalOpen(false, null);
-        router.refresh();
-      });
-    } catch (err: any) {
-      toast.add({
-        type: "error",
-        priority: "high",
-        title: err.message || "Failed to save user account",
-      });
-    }
+      reset();
+      setUserModalOpen(false, null);
+      router.refresh();
+    });
   };
 
   return (

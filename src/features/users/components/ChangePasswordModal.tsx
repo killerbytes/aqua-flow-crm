@@ -53,29 +53,27 @@ const ChangePasswordModalContent = () => {
   if (!isChangePasswordModalOpen) return null;
 
   const onSubmit = async (data: ChangePasswordData) => {
-    try {
-      startTransition(async () => {
-        if (editingUser?.userId) {
-          const res = await changePasswordAction(editingUser.userId, data);
-          if (!res.success) {
-            throw new Error(res.error);
-          }
-          toast.add({
-            title: "Password updated successfully",
-          });
-        }
+    startTransition(async () => {
+      if (editingUser?.userId) {
+        const res = await changePasswordAction(editingUser.userId, data);
 
-        reset();
-        setChangePasswordModalOpen(false, null);
-        router.refresh();
-      });
-    } catch (err: any) {
-      toast.add({
-        type: "error",
-        priority: "high",
-        title: err.message || "Failed to change password",
-      });
-    }
+        if (!res.success) {
+          toast.add({
+            type: "error",
+            priority: "high",
+            title: res.error || "Failed to change password",
+          });
+          return;
+        }
+        toast.add({
+          title: "Password updated successfully",
+        });
+      }
+
+      reset();
+      setChangePasswordModalOpen(false, null);
+      router.refresh();
+    });
   };
 
   return (

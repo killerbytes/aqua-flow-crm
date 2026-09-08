@@ -7,8 +7,6 @@
   --theme-green: #009390;
   --theme-light-green: #68c8c6; */
 
-@import "tailwindcss";
-
 @custom-variant dark (&:is(.dark *));
 
 :root {

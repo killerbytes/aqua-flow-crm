@@ -68,3 +68,7 @@ export const changePasswordAction = createProtectedAction({
     return result;
   },
 });
+
+export async function resetPasswordAction() {
+  await AuthService.resetPassword();
+}

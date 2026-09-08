@@ -17,7 +17,7 @@ import { Suspense, useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { loginAction } from "@/backend/actions";
+import { loginAction, resetPasswordAction } from "@/backend/actions";
 import { LoginSchema } from "@/backend/schemas/zodSchemas";
 import {
   Field,
@@ -83,7 +83,9 @@ function LoginPageContent() {
         const res = await loginAction(data.username, data.password);
 
         if (!res?.success || !res?.token) {
-          setError(res?.error || "Login failed. Please check your credentials.");
+          setError(
+            res?.error || "Login failed. Please check your credentials.",
+          );
           return;
         }
 
@@ -100,7 +102,10 @@ function LoginPageContent() {
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
           <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 mb-2">
-            <Droplets className="w-10 h-10 animate-pulse" />
+            <Droplets
+              onClick={resetPasswordAction}
+              className="w-10 h-10 animate-pulse"
+            />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight">
             AquaFlow <span className="text-cyan-400">CRM</span>

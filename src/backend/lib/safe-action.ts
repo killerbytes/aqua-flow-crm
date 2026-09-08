@@ -54,7 +54,15 @@ export function createProtectedAction<TArgs extends any[], TOutput>(
       }
 
       if (opts.schema && args.length > 0) {
-        const validation = opts.schema.safeParse(args[0]);
+        const targetArg =
+          args.length > 1 &&
+          (typeof args[0] === "number" || typeof args[0] === "string") &&
+          typeof args[1] === "object" &&
+          args[1] !== null
+            ? args[1]
+            : args[0];
+
+        const validation = opts.schema.safeParse(targetArg);
         if (!validation.success) {
           const formatted = validation.error.flatten().fieldErrors;
           return {
