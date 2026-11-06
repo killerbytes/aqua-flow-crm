@@ -23,13 +23,17 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Install PostgreSQL 17 Client
+      - name: Install PostgreSQL Client
         run: |
-          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo $VERSION_CODENAME)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-          wget -qO - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+          sudo install -d -m 0755 /etc/apt/keyrings
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor --yes -o /etc/apt/keyrings/postgresql.gpg
+          sudo chmod a+r /etc/apt/keyrings/postgresql.gpg
+
+          echo "deb [signed-by=/etc/apt/keyrings/postgresql.gpg] https://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo $VERSION_CODENAME)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+
           sudo apt-get update
           sudo apt-get install -y postgresql-client-18
-
+          
       - name: Run Backup
         run: node backup.js backup
         env:
