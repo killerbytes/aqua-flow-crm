@@ -1,4 +1,4 @@
-import { withSentryConfig } from "@sentry/nextjs";
+import { withSentryConfig } from "@sentry/nextjs/config";
 
 // No script-src or default-src on purpose: Next.js needs inline scripts unless
 // every page uses nonces. These directives add protection without that risk.

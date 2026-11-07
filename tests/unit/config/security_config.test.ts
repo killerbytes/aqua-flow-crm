@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { UserSchema } from "../../../src/backend/schemas/zodSchemas";
 
-vi.mock("@sentry/nextjs", () => ({
+vi.mock("@sentry/nextjs/config", () => ({
   withSentryConfig: (config: unknown) => config,
 }));
 

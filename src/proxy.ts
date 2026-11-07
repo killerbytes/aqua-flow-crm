@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 // Files served from public/. Root level only, so no route can match this pattern.
 const PUBLIC_FILE = /^\/[^/]+\.(?:jpe?g|png|gif|svg|webp|ico|txt|xml|webmanifest)$/;
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow framework assets, api routes, public files, and the login page

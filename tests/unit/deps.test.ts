@@ -12,13 +12,13 @@ describe('Unit - Package Dependencies Validation', () => {
     expect(pkgContent.optionalDependencies['@tailwindcss/oxide-linux-x64-musl']).toBeDefined();
   });
 
-  it('should specify engines.node >= 20.0.0 in package.json and .nvmrc for Nixpacks Node 20 runtime', () => {
+  it('should specify engines.node >= 20.9.0, which Next.js 16 requires, in package.json and .nvmrc for Nixpacks Node 20 runtime', () => {
     const pkgPath = path.resolve(process.cwd(), 'package.json');
     const pkgContent = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
     const nvmrcPath = path.resolve(process.cwd(), '.nvmrc');
 
     expect(pkgContent.engines).toBeDefined();
-    expect(pkgContent.engines.node).toBe('>=20.0.0');
+    expect(pkgContent.engines.node).toBe('>=20.9.0');
 
     expect(fs.existsSync(nvmrcPath)).toBe(true);
     expect(fs.readFileSync(nvmrcPath, 'utf8').trim()).toBe('20');

@@ -30,16 +30,16 @@ export const CustomerSchema = z.object({
 export const SpecialPricingSchema = z.object({
   customerId: z.number().int().positive(),
   productId: z.number().int().positive("Product is required"),
-  discountAmount: z.coerce.number().positive("Discount amount is required"),
+  discountAmount: z.coerce.number<number>().positive("Discount amount is required"),
 });
 
 export const ProductInventorySchema = z.object({
   name: z.string().min(2, "Product name required"),
-  unitPrice: z.coerce.number().nonnegative(),
-  stockInStation: z.coerce.number().optional(),
-  stockWithCustomers: z.coerce.number().optional(),
-  stockDamaged: z.coerce.number().optional(),
-  stockLost: z.coerce.number().optional(),
+  unitPrice: z.coerce.number<number>().nonnegative(),
+  stockInStation: z.coerce.number<number>().optional(),
+  stockWithCustomers: z.coerce.number<number>().optional(),
+  stockDamaged: z.coerce.number<number>().optional(),
+  stockLost: z.coerce.number<number>().optional(),
   isLendOnly: z.boolean().optional(),
   isDefault: z.boolean().optional(),
 });
