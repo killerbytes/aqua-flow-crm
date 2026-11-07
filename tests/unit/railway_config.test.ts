@@ -10,4 +10,12 @@ describe('Unit - Railway Configuration Validation', () => {
     const railwayConfig = JSON.parse(fs.readFileSync(railwayPath, 'utf8'));
     expect(railwayConfig.deploy?.env?.HOSTNAME).toBe('0.0.0.0');
   });
+
+  it('should run migrations before deploying and wait for the health check', () => {
+    const railwayPath = path.resolve(process.cwd(), 'railway.json');
+    const railwayConfig = JSON.parse(fs.readFileSync(railwayPath, 'utf8'));
+
+    expect(railwayConfig.deploy?.preDeployCommand).toEqual(['npm run db:migrate']);
+    expect(railwayConfig.deploy?.healthcheckPath).toBe('/api/health');
+  });
 });

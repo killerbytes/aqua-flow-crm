@@ -23,9 +23,9 @@ npm run db:migrate           # Also: db:migrate:undo, db:migrate:status
 npm run db:migration:create -- --name add-something
 ```
 
-There is no lint step: ESLint is not installed, so `.eslintrc.json` is not enforced. CI only runs the nightly database backup, so run `npm test` and `npm run type-check` locally before finishing a change.
+There is no lint step: ESLint is not installed, so `.eslintrc.json` is not enforced. CI (`.github/workflows/ci.yml`) runs the type-check, tests, and build, and applies and rolls back all migrations on PostgreSQL. The nightly backup is a separate workflow.
 
-Production runs `node .next/standalone/server.js`, not `npm start`.
+Production runs `node .next/standalone/server.js`, not `npm start`. Railway runs `npm run db:migrate` before each deploy and waits for `/api/health` before sending traffic.
 
 ## Commands that can destroy data
 
@@ -33,7 +33,7 @@ The active database comes from `NODE_ENV`: `.env.<NODE_ENV>` overrides `.env.loc
 
 - `npm run seed` **drops the whole `public` schema** on PostgreSQL by default, then rebuilds it with fake data.
 - `npm run restore` overwrites the database from a backup.
-- `npm run db:migrate` and `db:migrate:undo` change the schema of the targeted database.
+- `npm run db:migrate` and `db:migrate:undo` change the schema of the targeted database. Migrations merged to `main` run against production on the next deploy, so they must be safe to apply while the old version is still serving.
 
 ## Architecture
 

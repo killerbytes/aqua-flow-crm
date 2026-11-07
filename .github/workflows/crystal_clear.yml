@@ -5,10 +5,29 @@ on:
     - cron: "0 20 * * *"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   backup:
     runs-on: ubuntu-latest
     environment: production
+    timeout-minutes: 30
+
+    services:
+      # Empty database each backup is test-restored into. It's discarded with the run.
+      restore-check:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: restore-check
+          POSTGRES_DB: restore_check
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
       - name: Checkout Repo
@@ -33,13 +52,16 @@ jobs:
 
           sudo apt-get update
           sudo apt-get install -y postgresql-client-18
-          
+
       - name: Run Backup
         run: node backup.js backup
         env:
           NODE_ENV: production
+          REQUIRE_UPLOAD: "true"
+          BACKUP_VERIFY_DATABASE_URL: postgres://postgres:restore-check@localhost:5432/restore_check
+
           DB_HOST: ${{ secrets.DB_HOST }}
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_USER: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_PORT: ${{ secrets.DB_PORT }}
