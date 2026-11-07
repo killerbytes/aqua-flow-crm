@@ -101,6 +101,10 @@ export default function EquipmentLogs({ logsPromise }: EquipmentLogsProps) {
         );
       },
     }),
+    columnHelper.accessor((row) => row.user?.name ?? "", {
+      id: "loggedBy",
+      header: "Logged By",
+    }),
     columnHelper.accessor("quantity", {
       header: "Quantity",
       meta: {

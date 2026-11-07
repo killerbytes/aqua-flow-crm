@@ -60,8 +60,11 @@ export const getInventoryAction = createProtectedAction({
 export const createAdjustmentAction = createProtectedAction({
   permission: "ADJUST_INVENTORY",
   schema: AdjustmentSchema,
-  handler: async (_ctx, input: AdjustmentFormData) => {
-    const result = await InventoryService.createAdjustment(input);
+  handler: async (ctx, input: AdjustmentFormData) => {
+    const result = await InventoryService.createAdjustment(
+      input,
+      ctx.user.userId,
+    );
     revalidatePath("/products");
     return result;
   },

@@ -25,7 +25,7 @@ npm run db:migration:create -- --name add-something
 
 There is no lint step: ESLint is not installed, so `.eslintrc.json` is not enforced. CI (`.github/workflows/ci.yml`) runs the type-check, tests, and build, and applies and rolls back all migrations on PostgreSQL. The nightly backup is a separate workflow.
 
-Production runs `node .next/standalone/server.js`, not `npm start`. Railway runs `npm run db:migrate` before each deploy and waits for `/api/health` before sending traffic.
+Production runs `node .next/standalone/server.js`, not `npm start`. Security headers are set in `next.config.mjs`. The build needs dev dependencies, because `typescript` is what resolves the `@/` import paths. `sqlite3` is test-only, so production code must never import it. Railway runs `npm run db:migrate` before each deploy and waits for `/api/health` before sending traffic.
 
 ## Commands that can destroy data
 
@@ -58,7 +58,9 @@ There are three separate layers, and each covers something different:
 2. **`createProtectedAction`** enforces roles on Server Actions, using `src/backend/rbac/permissions.ts`.
 3. **Server Component pages** call `requirePagePermission("...")` (`src/backend/auth/context.ts`), which rejects missing sessions and deactivated users, since middleware can't reach the database, and checks the role. New pages must call it and be added to `tests/unit/auth/page_permissions.test.ts`. Call it outside any `try/catch`, because `redirect()` works by throwing. `RoleGuard` and the sidebar only hide things in the browser, so they never replace this check.
 
-Auth has two modules: `src/lib/auth.edge.ts` is for middleware and must stay free of ORM imports, while `src/lib/auth.ts` is for the Node runtime. The session is an httpOnly `token` cookie.
+Auth has two modules: `src/lib/auth.edge.ts` is for middleware and must stay free of ORM imports, while `src/lib/auth.ts` is for the Node runtime. The session is an httpOnly `token` cookie holding a 15-minute JWT that renews itself, for up to 30 days from login.
+
+Sessions are revoked with `AuthService.revokeSessions`, which increments `users.token_version` and so cancels all of that user's tokens at once. Logging out, changing a password, and changing an account's active status all call it. Only the Node check can see this, because middleware can't reach the database, which is why pages and actions must go through `requirePagePermission` and `createProtectedAction`.
 
 ### Database and tests
 
@@ -66,8 +68,10 @@ Auth has two modules: `src/lib/auth.edge.ts` is for middleware and must stay fre
 - **Tests run on in-memory SQLite, and production on PostgreSQL.** The test schema is built from the models with `sequelize.sync`, so passing tests don't prove a migration exists or works. `define: { underscored: true }` is also only set for PostgreSQL, so column names differ between the two, and raw SQL may behave differently.
 - **Money:** columns are `DECIMAL(10,2)` through `moneyColumn`, which reads them as numbers. Do arithmetic in centavos with `toCents` and `fromCents` (`src/lib/money.ts`). Order prices always come from the database, and any `unitPrice` or `discount` in a request is ignored.
 - **Billing rules:** an order can be on one active invoice only (partial unique index on `invoice_details` where `voided_at` is null). Cancelled or paid orders can't be invoiced, and invoiced orders can't be cancelled or paid directly. New invoices are always unpaid. Admins and Managers can void an invoice with no payments, which frees its orders but keeps the invoice and its `invoice_details` rows as a record, so queries asking whether an order is invoiced must filter on `voidedAt: null`. Requests create orders through `OrderService.createForStaff`, which only lets the walk-in customer set status, payment status, and date.
+- **Stock:** the `stock*` totals on `ProductInventory` change only through `EquipmentLedgerEntry` rows, whose `afterCreate` hook in `models/index.ts` updates them. `ProductService` refuses stock fields, and every ledger entry records `loggedBy`. The balance sheet report flags any product whose totals don't match its ledger.
 - **Row locks:** use `lock: t.LOCK.UPDATE` without an `include`, because PostgreSQL rejects `FOR UPDATE` on outer joins. SQLite ignores locks, so tests can't catch this or a race.
 - **Password hashes:** the `User` default scope excludes `passwordHash` from queries and includes. Only login uses `User.scope("withPassword")`. `User.create` and `update` results can still hold the hash, so return them through `toSafeUser`.
+- **Deleting products:** `ProductService.delete` refuses while units are with customers (regular or temporary) or an undelivered order includes the product. Stock still in the station doesn't block it.
 - **Deleting customers:** `CustomerService.delete` refuses while a customer has unpaid or undelivered orders, open invoices, or containers out, and always refuses the walk-in account. Includes on historical records use `paranoid: false` so deleted customers, products, and users still show their names.
 - **Soft deletes:** `Customer`, `CustomerSpecialPricing`, `ProductInventory`, and `User` are paranoid. Use `{ paranoid: false }` to include deleted rows.
 - **Date filtering** uses the `Asia/Manila` timezone via `moment-timezone`.

@@ -91,8 +91,23 @@ export class AuthService {
 
     const user = await User.findByPk(Number(id));
     if (!user) throw new Error("User not found");
+
+    // Old sessions shouldn't come back to life if the account is reactivated.
+    const activeChanged =
+      validatedData.isActive !== undefined &&
+      validatedData.isActive !== user.isActive;
+
     await user.update(validatedData);
-    return user?.get({ plain: true });
+    if (activeChanged) {
+      await AuthService.revokeSessions(user.userId);
+      await user.reload();
+    }
+    return user.get({ plain: true });
+  }
+
+  /** Cancels every session the user has, on every device. */
+  static async revokeSessions(userId: number) {
+    await User.increment("tokenVersion", { where: { userId } });
   }
 
   static async changePassword(id: number, input: ChangePasswordData) {
@@ -102,6 +117,7 @@ export class AuthService {
     await user.update({
       passwordHash: await hashPassword(validatedData.password),
     });
+    await AuthService.revokeSessions(user.userId);
     return toSafeUser(user);
   }
 }

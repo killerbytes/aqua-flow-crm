@@ -9,6 +9,7 @@ export class User extends Model {
   declare passwordHash: string;
   declare role: UserRole;
   declare isActive: boolean;
+  declare tokenVersion: number;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
   declare deletedAt?: CreationOptional<Date> | null;
@@ -33,6 +34,12 @@ User.init(
     isActive: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
+    },
+    // Tokens carry this. Incrementing it cancels all of a user's sessions.
+    tokenVersion: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
     },
   },
   {

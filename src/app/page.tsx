@@ -1,177 +1,211 @@
 import { requirePagePermission } from "@/backend/auth/context";
 import { initDatabase } from "@/backend/db/database";
-import { Customer, Order, ProductInventory } from "@/backend/models";
+import { checkPermission } from "@/backend/rbac/permissions";
+import { DashboardService } from "@/backend/services/dashboard.service";
 import { MotionCard } from "@/components/animations/MotionCard";
-import { Droplet, Package, ShoppingBag, TrendingUp, Users } from "lucide-react";
-import { Op } from "sequelize";
+import { OrderStatus } from "@/lib/definitions";
+import {
+  AlertTriangle,
+  Droplet,
+  Receipt,
+  Truck,
+  TrendingUp,
+  Users,
+} from "lucide-react";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
+const peso = (amount: number) =>
+  new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(
+    amount,
+  );
+
+const plural = (count: number, word: string) =>
+  `${count} ${word}${count === 1 ? "" : "s"}`;
+
+function StatCard({
+  title,
+  value,
+  note,
+  icon,
+  href,
+  tone = "default",
+  delay,
+}: {
+  title: string;
+  value: React.ReactNode;
+  note?: React.ReactNode;
+  icon: React.ReactNode;
+  href?: string;
+  tone?: "default" | "warning";
+  delay: number;
+}) {
+  const card = (
+    <MotionCard delay={delay} className="h-full">
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-xs font-medium">{title}</span>
+        <div
+          className={
+            tone === "warning"
+              ? "p-2.5 rounded-xl bg-rose-500/10 text-rose-500"
+              : "p-2.5 rounded-xl bg-primary/10 text-primary"
+          }
+        >
+          {icon}
+        </div>
+      </div>
+      <div
+        className={
+          tone === "warning"
+            ? "text-3xl font-bold tracking-tight text-rose-500"
+            : "text-3xl font-bold tracking-tight"
+        }
+      >
+        {value}
+      </div>
+      {note && <p className="text-xs text-muted-foreground mt-2">{note}</p>}
+    </MotionCard>
+  );
+
+  return href ? (
+    <Link href={href} className="block h-full">
+      {card}
+    </Link>
+  ) : (
+    card
+  );
+}
+
 export default async function DashboardPage() {
   await initDatabase();
-  await requirePagePermission("VIEW_DASHBOARD");
+  const user = await requirePagePermission("VIEW_DASHBOARD");
+  const canViewReports = checkPermission(user.role, "VIEW_REPORTS");
 
-  let customerCount = 0;
-  let orderCount = 0;
-  let todaySales = 0;
-  let totalStockInStation = 0;
-  let totalStockWithCustomers = 0;
-  let churnRiskCount = 0;
+  const { today, deliveries, receivables, customers, stock } =
+    await DashboardService.getSummary();
 
-  try {
-    customerCount = await Customer.count();
-    orderCount = await Order.count();
-    totalStockInStation = (await ProductInventory.sum("stock_in_station")) || 0;
-    totalStockWithCustomers =
-      (await ProductInventory.sum("stock_with_customers")) || 0;
-
-    // Today's Sales Calculation
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-
-    const todayOrders = await Order.findAll({
-      where: {
-        createdAt: {
-          [Op.gte]: startOfToday,
-        },
-      },
-    });
-    todaySales = todayOrders.reduce(
-      (sum, ord) => sum + (ord.totalAmount || 0),
-      0,
-    );
-
-    // Churn Risk (>7 Days without order)
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const recentOrderCustomers = await Order.findAll({
-      where: {
-        createdAt: {
-          [Op.gte]: sevenDaysAgo,
-        },
-      },
-      attributes: ["customer_id"],
-      group: ["customer_id"],
-    });
-
-    const activeCustomerIds = new Set(
-      recentOrderCustomers.map((o) => o.customerId),
-    );
-    const allCustomers = await Customer.findAll({
-      attributes: ["customer_id"],
-    });
-    churnRiskCount = allCustomers.filter(
-      (c) => !activeCustomerIds.has(c.customerId),
-    ).length;
-  } catch (err) {
-    // Fallback when DB is loading
-  }
-
-  const formattedSales = new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency: "PHP",
-  }).format(todaySales);
+  const toDeliver = deliveries.pending + deliveries.outForDelivery;
+  const driftedProducts = stock.products.filter((p) => !p.matchesLedger);
 
   return (
     <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            Dashboard Overview
-          </h1>
-          <p className="text-muted-foreground">
-            Monitor daily performance, revenue metrics, container balances, and
-            customer retention alerts.
-          </p>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard Overview</h1>
+        <p className="text-muted-foreground">
+          Today&apos;s sales, deliveries waiting, money owed, and customers to
+          follow up.
+        </p>
+      </div>
+
+      {driftedProducts.length > 0 && (
+        <Link
+          href="/products"
+          className="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive"
+        >
+          <AlertTriangle className="w-5 h-5 shrink-0" />
+          <span>
+            Stock totals don&apos;t match the ledger for{" "}
+            {driftedProducts.map((p) => p.name).join(", ")}. Check the balance
+            sheet on the products page.
+          </span>
+        </Link>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard
+          delay={0.1}
+          title="Today's Sales"
+          value={peso(today.sales)}
+          note={`${plural(today.orderCount, "delivered order")} placed today`}
+          icon={<TrendingUp className="w-5 h-5" />}
+        />
+        <StatCard
+          delay={0.15}
+          title="To Deliver"
+          value={toDeliver}
+          note={`${deliveries.pending} pending, ${deliveries.outForDelivery} out for delivery`}
+          icon={<Truck className="w-5 h-5" />}
+          href={`/orders?status=${OrderStatus.PENDING}`}
+        />
+        <StatCard
+          delay={0.2}
+          title="Money Owed"
+          value={peso(receivables.total)}
+          note={`${peso(receivables.unbilled.amount)} on ${plural(receivables.unbilled.count, "unbilled order")}, ${peso(receivables.openInvoices.amount)} on ${plural(receivables.openInvoices.count, "open invoice")}`}
+          icon={<Receipt className="w-5 h-5" />}
+          href="/invoices"
+        />
+        <StatCard
+          delay={0.25}
+          title="Overdue Invoices"
+          value={peso(receivables.overdueInvoices.amount)}
+          note={plural(receivables.overdueInvoices.count, "invoice") + " past due"}
+          icon={<AlertTriangle className="w-5 h-5" />}
+          tone={receivables.overdueInvoices.count > 0 ? "warning" : "default"}
+          href="/invoices"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <StatCard
+          delay={0.3}
+          title="Active Customers"
+          value={customers.active}
+          note="Not counting walk-in sales"
+          icon={<Users className="w-5 h-5" />}
+          href="/customers"
+        />
+        <StatCard
+          delay={0.35}
+          title={`No Order in ${customers.churnDays}+ Days`}
+          value={customers.noRecentOrder}
+          note="Active customers who have ordered before, worth a follow-up"
+          icon={<AlertTriangle className="w-5 h-5" />}
+          tone={customers.noRecentOrder > 0 ? "warning" : "default"}
+          href={
+            canViewReports
+              ? `/reports/customers?days=${customers.churnDays}`
+              : undefined
+          }
+        />
+      </div>
+
+      <MotionCard delay={0.4}>
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-xs font-medium">Stock by Product</span>
+          <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+            <Droplet className="w-5 h-5" />
+          </div>
         </div>
-        <div className="flex items-center gap-1"></div>
-      </div>
-
-      {/* Primary Metric KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Today's Sales */}
-        <MotionCard delay={0.1}>
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-medium ">Today&apos;s Sales</span>
-            <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400">
-              <TrendingUp className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="text-3xl font-bold  tracking-tight">
-            {formattedSales}
-          </div>
-          <p className="text-xs text-cyan-400/90 font-medium mt-2">
-            Real-time revenue update
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-muted-foreground border-b">
+              <th className="py-2 font-medium">Product</th>
+              <th className="py-2 font-medium text-right">In Station</th>
+              <th className="py-2 font-medium text-right">With Customers</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {stock.products.map((product) => (
+              <tr key={product.productId}>
+                <td className="py-2">{product.name}</td>
+                <td className="py-2 text-right font-mono">
+                  {product.inStation}
+                </td>
+                <td className="py-2 text-right font-mono">
+                  {product.withCustomers}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {stock.temporaryLoans > 0 && (
+          <p className="text-xs text-muted-foreground mt-3">
+            Includes {plural(stock.temporaryLoans, "temporary loan")}.
           </p>
-        </MotionCard>
-
-        {/* Total Customers */}
-        <MotionCard delay={0.2}>
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-medium ">Total Customers</span>
-            <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400">
-              <Users className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="text-3xl font-bold  tracking-tight">
-            {customerCount}
-          </div>
-          <p className="text-xs  font-medium mt-2">Active client accounts</p>
-        </MotionCard>
-
-        {/* Churn Risk Alert */}
-        {/* <MotionCard delay={0.3}>
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-medium ">
-              Churn Risk (&gt;7 days)
-            </span>
-            <div className="p-2.5 rounded-xl bg-rose-500/10 text-rose-400">
-              <AlertTriangle className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="text-3xl font-bold text-rose-400 tracking-tight">
-            {churnRiskCount}
-          </div>
-          <p className="text-xs text-rose-400/90 font-medium mt-2">
-            Requires immediate follow-up
-          </p>
-        </MotionCard> */}
-      </div>
-
-      {/* Secondary Operational Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <MotionCard delay={0.4}>
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-medium ">Stock in Station</span>
-            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
-              <Droplet className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold ">{totalStockInStation}</div>
-          <p className="text-xs  mt-1">Available 5-Gal / Refills</p>
-        </MotionCard>
-
-        <MotionCard delay={0.5}>
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-medium ">Containers Out</span>
-            <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400">
-              <Package className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold ">{totalStockWithCustomers}</div>
-          <p className="text-xs text-amber-400 mt-1">With Active Customers</p>
-        </MotionCard>
-
-        <MotionCard delay={0.6}>
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-medium ">Total Orders</span>
-            <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
-              <ShoppingBag className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold ">{orderCount}</div>
-          <p className="text-xs  mt-1">Processed Transactions</p>
-        </MotionCard>
-      </div>
+        )}
+      </MotionCard>
     </div>
   );
 }

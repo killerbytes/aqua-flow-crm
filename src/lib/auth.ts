@@ -1,6 +1,7 @@
 import { env } from "@/backend/db/env";
 import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
+import { isSessionTooOld } from "./auth.edge";
 
 const JWT_SECRET = env.JWT_SECRET;
 const secretKey = new TextEncoder().encode(JWT_SECRET);
@@ -31,7 +32,10 @@ export async function signToken(
 ): Promise<string> {
   const { exp, iat, nbf, jti, passwordHash, password_hash, ...cleanUser } =
     user || {};
-  return await new SignJWT(cleanUser)
+  return await new SignJWT({
+    ...cleanUser,
+    sessionStart: cleanUser.sessionStart ?? Math.floor(Date.now() / 1000),
+  })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(expiresIn)
@@ -63,10 +67,17 @@ async function checkUserActiveInDb(userId: number) {
       return { isActive: false, dbUser: null };
     }
   } catch {
-    // Uninitialized DB in simple unit tests
+    // Can't confirm the session, so production refuses it rather than letting a
+    // revoked token through during a database failure. Simple unit tests have no
+    // database.
+    return { isActive: process.env.NODE_ENV !== "production", dbUser: null };
   }
   return { isActive: true, dbUser: null };
 }
+
+/** A token issued before versions existed counts as version 0. */
+const isRevoked = (claims: { tokenVersion?: number }, dbUser: any) =>
+  !!dbUser && (dbUser.tokenVersion ?? 0) !== (claims.tokenVersion ?? 0);
 
 /**
  * Validates JWT token signature & active user state in DB.
@@ -86,9 +97,13 @@ export async function verifyOrRefreshToken(
       payload as any;
     const userId = userPayload?.userId || userPayload?.user_id;
 
+    if (isSessionTooOld(userPayload)) {
+      return null;
+    }
+
     if (userId) {
       const { isActive, dbUser } = await checkUserActiveInDb(userId);
-      if (!isActive) {
+      if (!isActive || isRevoked(userPayload, dbUser)) {
         return null;
       }
       if (dbUser) {
@@ -118,14 +133,21 @@ export async function verifyOrRefreshToken(
         const nowInSeconds = Math.floor(Date.now() / 1000);
 
         // Max 7 days after expiration
-        if (exp && nowInSeconds - exp <= 60 * 60 * 24 * 7) {
+        if (
+          exp &&
+          nowInSeconds - exp <= 60 * 60 * 24 * 7 &&
+          !isSessionTooOld(userPayload)
+        ) {
           if (userId) {
             const { isActive, dbUser } = await checkUserActiveInDb(userId);
-            if (!isActive) {
+            if (!isActive || isRevoked(userPayload, dbUser)) {
               return null;
             }
             if (dbUser) {
-              const newToken = await signToken(dbUser);
+              const newToken = await signToken({
+                ...dbUser,
+                sessionStart: userPayload.sessionStart,
+              });
               return { user: dbUser, newToken };
             }
           }

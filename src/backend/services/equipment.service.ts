@@ -12,6 +12,7 @@ import {
   Order,
   ProductInventory,
   sequelize,
+  User,
 } from "../models";
 import { EquipmentLogFormData, EquipmentLogSchema } from "../schemas/zodSchemas";
 
@@ -54,6 +55,7 @@ export class EquipmentService {
       include: [
         { model: Customer, as: "customer", paranoid: false },
         { model: ProductInventory, as: "product", paranoid: false },
+        { model: User, as: "user", paranoid: false },
       ],
     });
 
@@ -319,6 +321,20 @@ export class EquipmentService {
           totalProcured += e.quantity;
       }
 
+      // The stored totals are what the app shows. The ledger is the record of
+      // every movement, so any difference means the totals have drifted.
+      const ledger = {
+        stationStock,
+        customerOwed: customerOwed + customerTemp,
+        scrapDamaged,
+        scrapLost,
+      };
+      const matchesLedger =
+        ledger.stationStock === prod.stockInStation &&
+        ledger.customerOwed === prod.stockWithCustomers &&
+        ledger.scrapDamaged === prod.stockDamaged &&
+        ledger.scrapLost === prod.stockLost;
+
       report.push({
         productId: prod.productId,
         productName: prod.name,
@@ -331,6 +347,8 @@ export class EquipmentService {
           prod.stockWithCustomers +
           prod.stockDamaged +
           prod.stockLost,
+        ledger,
+        matchesLedger,
       });
     }
 

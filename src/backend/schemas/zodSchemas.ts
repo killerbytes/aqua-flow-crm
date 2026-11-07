@@ -44,6 +44,14 @@ export const ProductInventorySchema = z.object({
   isDefault: z.boolean().optional(),
 });
 
+/** What a product's own form may change. Stock moves only through the ledger. */
+export const ProductDetailsSchema = ProductInventorySchema.omit({
+  stockInStation: true,
+  stockWithCustomers: true,
+  stockDamaged: true,
+  stockLost: true,
+});
+
 export const EquipmentLogSchema = z.object({
   customerId: z.number().int().positive(),
   productId: z.number().int().positive("Equipment / Product is required"),
@@ -96,7 +104,7 @@ export const PaymentSchema = OrderSchema.omit({
 export const UserSchema = z.object({
   name: z.string().min(2),
   username: z.string().min(2),
-  password: z.string().min(4, "Password must be at least 6 characters"),
+  password: z.string().min(4, "Password must be at least 4 characters"),
   role: z.nativeEnum(UserRole),
   isActive: z.boolean().optional(),
 });

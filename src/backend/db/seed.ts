@@ -298,19 +298,19 @@ async function seedForTest(options: any) {
     adjustmentType: InventoryAdjustmentType.STOCK_IN,
     quantity: 10,
     reason: "Initial stock",
-  });
+  }, 1);
   await InventoryService.createAdjustment({
     productId: 2,
     adjustmentType: InventoryAdjustmentType.STOCK_IN,
     quantity: 10,
     reason: "Initial stock",
-  });
+  }, 1);
   await InventoryService.createAdjustment({
     productId: 3,
     adjustmentType: InventoryAdjustmentType.STOCK_IN,
     quantity: 10,
     reason: "Initial stock",
-  });
+  }, 1);
 
   await CustomerService.setSpecialPricing({
     customerId: 1,
@@ -348,7 +348,7 @@ async function seedForTest(options: any) {
     adjustmentType: InventoryAdjustmentType.DECLARED_LOST,
     quantity: 1,
     reason: "lost in space",
-  });
+  }, 1);
 
   await EquipmentService.logEquipment(
     {

@@ -70,7 +70,10 @@ export class InventoryService {
     };
   }
 
-  static async createAdjustment(input: AdjustmentFormData) {
+  static async createAdjustment(
+    input: AdjustmentFormData,
+    loggedByUserId: number,
+  ) {
     const validatedData = AdjustmentSchema.parse(input);
     const { productId, adjustmentType, quantity, reason } = validatedData;
 
@@ -115,6 +118,7 @@ export class InventoryService {
                 ? LedgerReferenceType.RESTOCK
                 : LedgerReferenceType.INVENTORY_ADJUSTMENT,
             notes: reason,
+            loggedBy: loggedByUserId,
           },
           { transaction: t },
         );

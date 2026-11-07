@@ -15,6 +15,20 @@ function getSecretKey(): Uint8Array {
 
 const JWT_EXPIRES_IN = "15m";
 const REFRESH_TOKEN_EXPIRES_IN = "7d";
+const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
+
+/**
+ * Tokens renew themselves, so without this limit a session in regular use would
+ * never end. Tokens issued before sessionStart existed have none, and get one
+ * when they next renew.
+ */
+export function isSessionTooOld(claims: { sessionStart?: number }): boolean {
+  return (
+    !!claims.sessionStart &&
+    Math.floor(Date.now() / 1000) - claims.sessionStart >
+      SESSION_MAX_AGE_SECONDS
+  );
+}
 
 export interface VerifyResult {
   user: any;
@@ -27,7 +41,10 @@ export async function signToken(
 ): Promise<string> {
   const { exp, iat, nbf, jti, passwordHash, password_hash, ...cleanUser } =
     user || {};
-  return await new SignJWT(cleanUser)
+  return await new SignJWT({
+    ...cleanUser,
+    sessionStart: cleanUser.sessionStart ?? Math.floor(Date.now() / 1000),
+  })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(expiresIn)
@@ -53,6 +70,7 @@ export async function verifyOrRefreshToken(
 
     const { exp, iat, nbf, jti, passwordHash, password_hash, ...userPayload } =
       payload as any;
+    if (isSessionTooOld(userPayload)) return null;
     return { user: userPayload };
   } catch (err: any) {
     // 2. Handle expired tokens within 7d refresh window
@@ -74,7 +92,11 @@ export async function verifyOrRefreshToken(
         const nowInSeconds = Math.floor(Date.now() / 1000);
 
         // Max 7 days after expiration
-        if (exp && nowInSeconds - exp <= 60 * 60 * 24 * 7) {
+        if (
+          exp &&
+          nowInSeconds - exp <= 60 * 60 * 24 * 7 &&
+          !isSessionTooOld(userPayload)
+        ) {
           const newToken = await signToken(userPayload);
           return { user: userPayload, newToken };
         }

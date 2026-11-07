@@ -21,6 +21,13 @@ interface ReportsData {
     scrapDamaged: number;
     scrapLost: number;
     totalFleet: number;
+    ledger: {
+      stationStock: number;
+      customerOwed: number;
+      scrapDamaged: number;
+      scrapLost: number;
+    };
+    matchesLedger: boolean;
   }>;
   agingReport: Array<{
     customerId: number;
@@ -50,7 +57,7 @@ export default function EquipmentLedgerReports({
   reportsPromise,
 }: EquipmentLedgerReportsProps) {
   const { balanceSheet, agingReport, shrinkageReport } = use(reportsPromise);
-  console.log(agingReport);
+  const drifted = balanceSheet.filter((row) => !row.matchesLedger);
 
   return (
     <div className="space-y-8">
@@ -67,6 +74,14 @@ export default function EquipmentLedgerReports({
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {drifted.length > 0 && (
+            <p className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              Stock totals don't match the ledger for{" "}
+              {drifted.map((row) => row.productName).join(", ")}. The ledger
+              shows every recorded movement, so these totals were changed some
+              other way.
+            </p>
+          )}
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left border-collapse">
               <thead>
@@ -81,6 +96,7 @@ export default function EquipmentLedgerReports({
                   <th className="p-3 font-semibold text-right">Damaged</th>
                   <th className="p-3 font-semibold text-right">Lost</th>
                   <th className="p-3 font-semibold text-right">Total Fleet</th>
+                  <th className="p-3 font-semibold text-right">Ledger</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -109,6 +125,18 @@ export default function EquipmentLedgerReports({
                     </td>
                     <td className="p-3 text-right font-bold text-cyan-400 font-mono">
                       {row.totalFleet} units
+                    </td>
+                    <td className="p-3 text-right">
+                      {row.matchesLedger ? (
+                        <Badge variant="outline">Matches</Badge>
+                      ) : (
+                        <Badge
+                          variant="destructive"
+                          title={`Ledger: station ${row.ledger.stationStock}, customers ${row.ledger.customerOwed}, damaged ${row.ledger.scrapDamaged}, lost ${row.ledger.scrapLost}`}
+                        >
+                          Doesn't match
+                        </Badge>
+                      )}
                     </td>
                   </tr>
                 ))}

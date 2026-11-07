@@ -9,11 +9,11 @@ export function getDatabaseUrl(
     return dbUrl;
   }
 
-  const dbUser = overrideEnv.DB_USER || env.DB_USER || "postgres";
-  const dbPassword = overrideEnv.DB_PASSWORD || env.DB_PASSWORD || "postgres";
-  const dbHost = overrideEnv.DB_HOST || env.DB_HOST || "localhost";
-  const dbPort = overrideEnv.DB_PORT || env.DB_PORT || "5432";
-  const dbName = overrideEnv.DB_NAME || env.DB_NAME || "aquaflow";
+  const dbUser = overrideEnv.DB_USER || env.DB_USER;
+  const dbPassword = overrideEnv.DB_PASSWORD || env.DB_PASSWORD;
+  const dbHost = overrideEnv.DB_HOST || env.DB_HOST;
+  const dbPort = overrideEnv.DB_PORT || env.DB_PORT;
+  const dbName = overrideEnv.DB_NAME || env.DB_NAME;
 
   return `postgres://${encodeURIComponent(dbUser)}:${encodeURIComponent(dbPassword)}@${dbHost}:${dbPort}/${dbName}`;
 }
@@ -35,7 +35,6 @@ const isTest = process.env.NODE_ENV === "test" || process.env.VITEST === "true";
 export const sequelize = isTest
   ? new Sequelize("sqlite::memory:", {
       logging: false,
-      dialectModule: require("sqlite3"),
       pool: poolOptions,
     })
   : new Sequelize(getDatabaseUrl(), {

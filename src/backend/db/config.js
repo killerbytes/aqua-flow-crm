@@ -25,10 +25,10 @@ if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("postgresql:
 }
 
 const dbUser = process.env.DB_USER || "postgres";
-const dbPassword = process.env.DB_PASSWORD || "postgres";
+const dbPassword = process.env.DB_PASSWORD || "secret";
 const dbHost = process.env.DB_HOST || "localhost";
 const dbPort = Number(process.env.DB_PORT) || 5432;
-const dbName = process.env.DB_NAME || "aquaflow";
+const dbName = process.env.DB_NAME || "crystal_clear_crm";
 const dbUrl = process.env.DATABASE_URL;
 
 const config = {
