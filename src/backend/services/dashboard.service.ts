@@ -101,6 +101,7 @@ export class DashboardService {
           attributes: ["invoiceId", "paymentAmount"],
           where: {
             invoiceId: openInvoices.map((invoice) => invoice.invoiceId),
+            reversedAt: null,
           },
         })
       : [];

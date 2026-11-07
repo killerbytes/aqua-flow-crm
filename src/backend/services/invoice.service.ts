@@ -19,6 +19,8 @@ import {
   InvoiceFormData,
   InvoicePaymentFormData,
   InvoicePaymentSchema,
+  ReversePaymentFormData,
+  ReversePaymentSchema,
   VoidInvoiceFormData,
   VoidInvoiceSchema,
 } from "../schemas/zodSchemas";
@@ -227,7 +229,7 @@ export class InvoiceService {
       }
 
       const existingPayments = await InvoicePayment.findAll({
-        where: { invoiceId: validatedData.invoiceId },
+        where: { invoiceId: validatedData.invoiceId, reversedAt: null },
         transaction: t,
       });
 
@@ -315,7 +317,7 @@ export class InvoiceService {
       }
 
       const payments = await InvoicePayment.count({
-        where: { invoiceId: invoice.invoiceId },
+        where: { invoiceId: invoice.invoiceId, reversedAt: null },
         transaction: t,
       });
       if (payments > 0) {
@@ -341,10 +343,90 @@ export class InvoiceService {
     });
   }
 
+  /**
+   * Undoes a payment logged by mistake. It stays on record, marked as reversed,
+   * and the invoice and its orders go back to what the remaining payments cover.
+   */
+  static async reversePayment(
+    paymentId: number | string,
+    input: ReversePaymentFormData,
+    userId: number,
+  ) {
+    const { reason } = ReversePaymentSchema.parse(input);
+
+    return await sequelize.transaction(async (t) => {
+      const found = await InvoicePayment.findByPk(Number(paymentId), {
+        transaction: t,
+      });
+      if (!found) throw new Error("Payment not found");
+
+      // The invoice lock is what serialises payments, reversals, and voids on it.
+      const invoice = await Invoice.findByPk(found.invoiceId, {
+        transaction: t,
+        lock: t.LOCK.UPDATE,
+      });
+      if (!invoice) throw new Error("Invoice not found");
+
+      // Read again under the lock, in case it was reversed meanwhile.
+      const payment = await InvoicePayment.findByPk(found.id, {
+        transaction: t,
+      });
+      if (payment!.reversedAt) {
+        throw new Error("This payment has already been reversed");
+      }
+
+      await payment!.update(
+        { reversedAt: new Date(), reversedBy: userId, reversalReason: reason },
+        { transaction: t },
+      );
+
+      const remaining = await InvoicePayment.findAll({
+        where: { invoiceId: invoice.invoiceId, reversedAt: null },
+        transaction: t,
+      });
+      const paidCents = remaining.reduce(
+        (sum, p) => sum + toCents(p.paymentAmount),
+        0,
+      );
+
+      const wasPaid = invoice.status === InvoiceStatus.PAID;
+      if (paidCents >= toCents(invoice.amount)) {
+        invoice.status = InvoiceStatus.PAID;
+      } else {
+        invoice.status =
+          paidCents > 0 ? InvoiceStatus.PARTIAL : InvoiceStatus.UNPAID;
+        invoice.paymentDate = null as any;
+      }
+      await invoice.save({ transaction: t });
+
+      if (wasPaid && invoice.status !== InvoiceStatus.PAID) {
+        const details = await InvoiceDetail.findAll({
+          where: { invoiceId: invoice.invoiceId, voidedAt: null },
+          transaction: t,
+        });
+        if (details.length > 0) {
+          await Order.update(
+            { paymentStatus: PaymentStatus.UNPAID },
+            {
+              where: { orderId: details.map((detail) => detail.orderId) },
+              transaction: t,
+            },
+          );
+        }
+      }
+
+      return payment!.get({ plain: true });
+    });
+  }
+
   static async getPayments(invoiceId: number) {
     const payments = await InvoicePayment.findAll({
       where: { invoiceId },
-      include: [{ model: User, as: "user", paranoid: false }],
+      include: [
+        { model: User, as: "user", paranoid: false },
+        { model: User, as: "reversedByUser", paranoid: false },
+      ],
+      order: [["paymentDate", "ASC"]],
     });
     return payments.map((p) => p.get({ plain: true }));
   }
@@ -370,7 +452,7 @@ const getSummary = async (where: any) => {
   if (openInvoiceIds.length > 0) {
     totalPaymentsOnOpenInvoices = Number(
       (await InvoicePayment.sum("paymentAmount", {
-        where: { invoiceId: { [Op.in]: openInvoiceIds } },
+        where: { invoiceId: { [Op.in]: openInvoiceIds }, reversedAt: null },
       })) || 0,
     );
   }

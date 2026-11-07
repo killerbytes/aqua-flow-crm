@@ -11,6 +11,10 @@ export class InvoicePayment extends Model {
   declare paymentAmount: number;
   declare paymentMethod: PaymentMethod;
   declare paymentNotes?: string;
+  declare loggedBy: number;
+  declare reversedAt: Date | null;
+  declare reversedBy: number | null;
+  declare reversalReason: string | null;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
 
@@ -55,6 +59,13 @@ InvoicePayment.init(
     },
 
     loggedBy: { type: DataTypes.INTEGER, allowNull: false },
+    reversedAt: { type: DataTypes.DATE, allowNull: true, field: "reversed_at" },
+    reversedBy: { type: DataTypes.INTEGER, allowNull: true, field: "reversed_by" },
+    reversalReason: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: "reversal_reason",
+    },
   },
   {
     sequelize,

@@ -6,13 +6,16 @@ import ColorBadge, { MonoText } from "@/components/presentation";
 import { PAYMENT_METHOD_BADGE_COLOR } from "@/lib/definitions";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { createColumnHelper } from "@tanstack/react-table";
+import { ReversePaymentButton } from "./ReversePaymentButton";
 import { motion } from "framer-motion";
 import React from "react";
 
 export default function PaymentList({
   payments,
+  canReverse = false,
 }: {
   payments: InvoicePayment[];
+  canReverse?: boolean;
 }) {
   const columnHelper = createColumnHelper<InvoicePayment>();
   const columns = React.useMemo(
@@ -49,13 +52,46 @@ export default function PaymentList({
           align: "right",
         },
         cell: (info) => (
-          <span className="font-mono font-semibold text-primary flex justify-end">
+          <span
+            className={
+              info.row.original.reversedAt
+                ? "font-mono text-muted-foreground line-through flex justify-end"
+                : "font-mono font-semibold text-primary flex justify-end"
+            }
+          >
             {formatCurrency(info.getValue())}
           </span>
         ),
       }),
+      columnHelper.display({
+        id: "status",
+        header: "Status",
+        meta: { align: "right" },
+        cell: (info) => {
+          const payment = info.row.original as any;
+          if (payment.reversedAt) {
+            return (
+              <div className="text-right text-xs">
+                <span className="font-semibold text-destructive">Reversed</span>
+                <div className="text-muted-foreground">
+                  {payment.reversedByUser?.name || "N/A"},{" "}
+                  {formatDate(payment.reversedAt)}: {payment.reversalReason}
+                </div>
+              </div>
+            );
+          }
+          return canReverse ? (
+            <div className="flex justify-end">
+              <ReversePaymentButton
+                paymentId={payment.id}
+                amount={payment.paymentAmount}
+              />
+            </div>
+          ) : null;
+        },
+      }),
     ],
-    [],
+    [canReverse],
   );
 
   return (

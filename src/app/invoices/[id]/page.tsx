@@ -45,13 +45,14 @@ export default async function InvoiceDetailPage({
   }
   if (!invoice || !invoice.invoiceId) redirect("/invoices");
   const payments = await InvoiceService.getPayments(Number(id));
-  const paidAmount = payments.reduce(
+  const activePayments = payments.filter((p) => !p.reversedAt);
+  const paidAmount = activePayments.reduce(
     (sum, p) => sum + Number(p.paymentAmount || 0),
     0,
   );
   const remainingAmount = Math.max(0, Number(invoice.amount) - paidAmount);
   const isVoid = invoice.status === InvoiceStatus.VOID;
-  const canVoid = !isVoid && payments.length === 0;
+  const canVoid = !isVoid && activePayments.length === 0;
 
   return (
     <>
@@ -161,7 +162,7 @@ export default async function InvoiceDetailPage({
             </div>
           </TabsContent>
           <TabsContent value="payments">
-            <PaymentList payments={payments} />
+            <PaymentList payments={payments} canReverse={!isVoid} />
           </TabsContent>
         </TabWrapper>
       </div>

@@ -6,6 +6,8 @@ import {
   InvoiceFormData,
   InvoicePaymentFormData,
   InvoiceSchema,
+  ReversePaymentFormData,
+  ReversePaymentSchema,
   VoidInvoiceFormData,
   VoidInvoiceSchema,
 } from "../schemas/zodSchemas";
@@ -30,6 +32,27 @@ export const voidInvoiceAction = createProtectedAction({
     revalidatePath("/orders");
     revalidatePath("/invoices");
     revalidatePath(`/invoices/${id}`);
+    return result;
+  },
+});
+
+export const reversePaymentAction = createProtectedAction({
+  permission: "REVERSE_PAYMENT",
+  schema: ReversePaymentSchema,
+  inputIndex: 1,
+  handler: async (
+    ctx,
+    paymentId: number | string,
+    input: ReversePaymentFormData,
+  ) => {
+    const result = await InvoiceService.reversePayment(
+      paymentId,
+      input,
+      ctx.user.userId,
+    );
+    revalidatePath("/orders");
+    revalidatePath("/invoices");
+    revalidatePath(`/invoices/${result.invoiceId}`);
     return result;
   },
 });

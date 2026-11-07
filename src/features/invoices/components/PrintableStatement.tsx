@@ -26,7 +26,9 @@ export default function PrintableStatement({
     setOpen(false);
   }, [setOpen]);
 
-  const paidAmount = payments.reduce(
+  // A customer's statement shows only payments that stand.
+  const activePayments = payments.filter((p) => !p.reversedAt);
+  const paidAmount = activePayments.reduce(
     (sum, p) => sum + Number(p.paymentAmount || 0),
     0,
   );
@@ -179,7 +181,7 @@ export default function PrintableStatement({
           </table>
         </div>
 
-        {payments.length > 0 && (
+        {activePayments.length > 0 && (
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
               Payment History Ledger
@@ -194,7 +196,7 @@ export default function PrintableStatement({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {payments.map((p, idx) => (
+                {activePayments.map((p, idx) => (
                   <tr key={p.id || idx} className="text-slate-700">
                     <td className="py-2 font-mono">
                       {formatDate(p.paymentDate)}

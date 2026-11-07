@@ -78,6 +78,10 @@ Invoice.hasMany(InvoicePayment, {
 InvoicePayment.belongsTo(Invoice, { foreignKey: "invoiceId", as: "invoice" });
 
 InvoicePayment.belongsTo(User, { foreignKey: "loggedBy", as: "user" });
+InvoicePayment.belongsTo(User, {
+  foreignKey: "reversedBy",
+  as: "reversedByUser",
+});
 User.hasMany(InvoicePayment, { foreignKey: "loggedBy", as: "invoicePayments" });
 
 Invoice.belongsTo(User, { foreignKey: "loggedBy", as: "user" });
