@@ -2,16 +2,18 @@ import { verifyOrRefreshToken } from "@/lib/auth.edge";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
+// Files served from public/. Root level only, so no route can match this pattern.
+const PUBLIC_FILE = /^\/[^/]+\.(?:jpe?g|png|gif|svg|webp|ico|txt|xml|webmanifest)$/;
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow static files, api routes, and login page
+  // Allow framework assets, api routes, public files, and the login page
   if (
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/api") ||
-    pathname.startsWith("/static") ||
+    pathname.startsWith("/_next/") ||
+    pathname.startsWith("/api/") ||
     pathname === "/login" ||
-    pathname.includes(".")
+    PUBLIC_FILE.test(pathname)
   ) {
     return NextResponse.next();
   }

@@ -18,12 +18,12 @@ describe("Sentry Next.js Configuration Unit Tests", () => {
     expect(instrumentation.onRequestError).toBeDefined();
   });
 
-  it("should initialize sentry server config with includeLocalVariables and enableLogs", async () => {
+  it("should initialize sentry server config without local variables and with enableLogs", async () => {
     await import("../../src/sentry.server.config");
     const Sentry = await import("@sentry/nextjs");
     expect(Sentry.init).toHaveBeenCalledWith(
       expect.objectContaining({
-        includeLocalVariables: true,
+        includeLocalVariables: false,
         enableLogs: true,
       })
     );

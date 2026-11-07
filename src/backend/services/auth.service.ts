@@ -7,27 +7,40 @@ import {
   UserSchema,
 } from "../schemas/zodSchemas";
 
+export class AuthenticationError extends Error {}
+
+const toSafeUser = (user: User) => {
+  const { passwordHash, ...safeUser } = user.get({ plain: true });
+  return safeUser;
+};
+
 export class AuthService {
   static async login(username: string, password: string) {
+    const UserWithPassword = User.scope("withPassword");
     const searchUsername = username.includes("@")
       ? username.split("@")[0]
       : username;
 
     const user =
-      (await User.findOne({ where: { username: searchUsername } })) ||
-      (await User.findOne({ where: { username } }));
+      (await UserWithPassword.findOne({ where: { username: searchUsername } })) ||
+      (await UserWithPassword.findOne({ where: { username } }));
 
     if (!user) {
-      throw new Error("Invalid email or password");
+      throw new AuthenticationError("Invalid email or password");
     }
 
     const hash = (user as any).passwordHash ?? (user as any).password_hash;
     const isValid = await comparePassword(password, hash);
     if (!isValid) {
-      throw new Error("Invalid email or password");
+      throw new AuthenticationError("Invalid email or password");
     }
 
-    const plainUser = user.get({ plain: true });
+    // Checked after the password so this can't reveal which usernames exist.
+    if (user.isActive === false) {
+      throw new AuthenticationError("This account has been deactivated");
+    }
+
+    const plainUser = toSafeUser(user);
     const userDTO = {
       ...plainUser,
       email: plainUser.email || username,
@@ -70,7 +83,7 @@ export class AuthService {
       ...validatedData,
       passwordHash: await hashPassword(validatedData.password),
     } as any);
-    return user?.get({ plain: true });
+    return toSafeUser(user);
   }
 
   static async updateUser(id: number | string, input: any) {
@@ -89,6 +102,6 @@ export class AuthService {
     await user.update({
       passwordHash: await hashPassword(validatedData.password),
     });
-    return user?.get({ plain: true });
+    return toSafeUser(user);
   }
 }

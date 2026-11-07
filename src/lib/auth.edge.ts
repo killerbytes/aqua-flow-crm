@@ -1,7 +1,17 @@
 import { SignJWT, jwtVerify } from "jose";
 
-const JWT_SECRET = process.env.JWT_SECRET || "super_secret_jwt_key";
-const secretKey = new TextEncoder().encode(JWT_SECRET);
+const DEV_FALLBACK_SECRET = "super_secret_jwt_key";
+
+function getSecretKey(): Uint8Array {
+  const secret = process.env.JWT_SECRET || DEV_FALLBACK_SECRET;
+  if (
+    secret === DEV_FALLBACK_SECRET &&
+    process.env.NODE_ENV === "production"
+  ) {
+    throw new Error("JWT_SECRET must be set in production");
+  }
+  return new TextEncoder().encode(secret);
+}
 
 const JWT_EXPIRES_IN = "15m";
 const REFRESH_TOKEN_EXPIRES_IN = "7d";
@@ -15,12 +25,13 @@ export async function signToken(
   user: any,
   expiresIn: string = JWT_EXPIRES_IN,
 ): Promise<string> {
-  const { exp, iat, nbf, jti, ...cleanUser } = user || {};
+  const { exp, iat, nbf, jti, passwordHash, password_hash, ...cleanUser } =
+    user || {};
   return await new SignJWT(cleanUser)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(expiresIn)
-    .sign(secretKey);
+    .sign(getSecretKey());
 }
 
 export async function signRefreshToken(user: any): Promise<string> {
@@ -36,21 +47,30 @@ export async function verifyOrRefreshToken(
 ): Promise<VerifyResult | null> {
   try {
     // 1. Verify token signature with standard clock tolerance (10s)
-    const { payload } = await jwtVerify(token, secretKey, {
+    const { payload } = await jwtVerify(token, getSecretKey(), {
       clockTolerance: "10s",
     });
 
-    const { exp, iat, nbf, jti, ...userPayload } = payload as any;
+    const { exp, iat, nbf, jti, passwordHash, password_hash, ...userPayload } =
+      payload as any;
     return { user: userPayload };
   } catch (err: any) {
     // 2. Handle expired tokens within 7d refresh window
     if (err?.code === "ERR_JWT_EXPIRED") {
       try {
-        const { payload } = await jwtVerify(token, secretKey, {
+        const { payload } = await jwtVerify(token, getSecretKey(), {
           currentDate: new Date(0), // Inspect payload ignoring expiration
         });
 
-        const { exp, iat, nbf, jti, ...userPayload } = payload as any;
+        const {
+          exp,
+          iat,
+          nbf,
+          jti,
+          passwordHash,
+          password_hash,
+          ...userPayload
+        } = payload as any;
         const nowInSeconds = Math.floor(Date.now() / 1000);
 
         // Max 7 days after expiration

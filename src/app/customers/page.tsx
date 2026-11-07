@@ -1,3 +1,4 @@
+import { requirePageUser } from "@/backend/auth/context";
 import { Customer } from "@/backend/models";
 import { CommonService } from "@/backend/services/commonService";
 import {
@@ -23,6 +24,7 @@ interface CustomersPageProps {
 export default async function CustomersPage({
   searchParams,
 }: CustomersPageProps) {
+  await requirePageUser();
   const params = await searchParams;
 
   const page = Number(params?.page) || PAGINATION.PAGE;

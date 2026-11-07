@@ -4,6 +4,8 @@ import ColumnSort from "@/components/ColumnSort";
 import DataTable from "@/components/DataTable";
 import Pager from "@/components/Pager";
 import { ColorBadge, CustomerName, MonoText } from "@/components/presentation";
+import OrderActions from "@/features/orders/components/OrderActions";
+import { PaymentModal } from "@/features/orders/components/PaymentModal";
 import {
   CustomerStatus,
   ORDER_STATUS_BADGE_COLOR,
@@ -38,46 +40,36 @@ export default function OrderList({ orders }: OrderListProps) {
           cell: (info) => <MonoText>#{info.getValue()}</MonoText>,
         }),
         !pathname.startsWith("/customers") &&
-          columnHelper.accessor("customer.name", {
-            header: ({ column }) => {
-              return <ColumnSort column={column}>Name</ColumnSort>;
-            },
-            cell: (info) => {
-              const order = info.row.original;
-              const customerId = order.customerId;
+        columnHelper.accessor("customer.name", {
+          header: ({ column }) => {
+            return <ColumnSort column={column}>Name</ColumnSort>;
+          },
+          cell: (info) => {
+            const order = info.row.original;
+            const customerId = order.customerId;
 
-              return (
-                <Link
-                  onClick={(e) => e.stopPropagation()}
-                  href={`/customers/${customerId}`}
-                  className={cx(
-                    "font-medium text-primary",
-                    order.customer?.status === CustomerStatus.INACTIVE
-                      ? "opacity-60"
-                      : "opacity-100",
-                  )}
-                >
-                  <CustomerName customer={order.customer} />
-                </Link>
-              );
-            },
-          }),
+            return (
+              <Link
+                onClick={(e) => e.stopPropagation()}
+                href={`/customers/${customerId}`}
+                className={cx(
+                  "font-medium text-primary",
+                  order.customer?.status === CustomerStatus.INACTIVE
+                    ? "opacity-60"
+                    : "opacity-100",
+                )}
+              >
+                <CustomerName customer={order.customer} />
+              </Link>
+            );
+          },
+        }),
         columnHelper.accessor("createdAt", {
           header: ({ column }) => {
             return <ColumnSort column={column}>Date Ordered</ColumnSort>;
           },
           cell: (info) => (
             <MonoText>{formatDateTime(info.getValue())}</MonoText>
-          ),
-        }),
-        columnHelper.accessor("status", {
-          header: ({ column }) => {
-            return <ColumnSort column={column}>Status</ColumnSort>;
-          },
-          cell: (info) => (
-            <ColorBadge colorMap={ORDER_STATUS_BADGE_COLOR}>
-              {info.getValue()}
-            </ColorBadge>
           ),
         }),
         columnHelper.accessor("paymentStatus", {
@@ -111,6 +103,31 @@ export default function OrderList({ orders }: OrderListProps) {
             </span>
           ),
         }),
+        columnHelper.accessor("status", {
+          header: ({ column }) => {
+            return <ColumnSort column={column}>Status</ColumnSort>;
+          },
+          cell: (info) => (
+            <ColorBadge colorMap={ORDER_STATUS_BADGE_COLOR}>
+              {info.getValue()}
+            </ColorBadge>
+          ),
+        }),
+        columnHelper.display({
+          id: "actions",
+          header: "Actions",
+          meta: {
+            align: "right",
+          },
+          cell: (info) => (
+            <div
+              className="flex items-center justify-end"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <OrderActions order={info.row.original} size="sm" />
+            </div>
+          ),
+        }),
       ].filter(Boolean) as any[],
     [pathname],
   );
@@ -133,6 +150,7 @@ export default function OrderList({ orders }: OrderListProps) {
           <Pager initial={orders.pagination} />
         )}
       </motion.div>
+      <PaymentModal />
     </>
   );
 }

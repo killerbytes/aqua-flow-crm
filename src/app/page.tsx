@@ -1,3 +1,4 @@
+import { requirePageUser } from "@/backend/auth/context";
 import { initDatabase } from "@/backend/db/database";
 import { Customer, Order, ProductInventory } from "@/backend/models";
 import { MotionCard } from "@/components/animations/MotionCard";
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   await initDatabase();
+  await requirePageUser();
 
   let customerCount = 0;
   let orderCount = 0;

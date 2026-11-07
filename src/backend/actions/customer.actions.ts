@@ -33,6 +33,7 @@ export const createCustomerAction = createProtectedAction({
 export const updateCustomerAction = createProtectedAction({
   permission: "CREATE_ORDER",
   schema: CustomerSchema,
+  inputIndex: 1,
   handler: async (_ctx, id: number | string, input: CustomerFormData) => {
     const result = await CustomerService.update(id, input);
     revalidatePath("/customers");

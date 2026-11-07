@@ -29,7 +29,8 @@ export async function signToken(
   user: any,
   expiresIn: string = JWT_EXPIRES_IN,
 ): Promise<string> {
-  const { exp, iat, nbf, jti, ...cleanUser } = user || {};
+  const { exp, iat, nbf, jti, passwordHash, password_hash, ...cleanUser } =
+    user || {};
   return await new SignJWT(cleanUser)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
@@ -81,7 +82,8 @@ export async function verifyOrRefreshToken(
       clockTolerance: "10s",
     });
 
-    const { exp, iat, nbf, jti, ...userPayload } = payload as any;
+    const { exp, iat, nbf, jti, passwordHash, password_hash, ...userPayload } =
+      payload as any;
     const userId = userPayload?.userId || userPayload?.user_id;
 
     if (userId) {
@@ -103,7 +105,15 @@ export async function verifyOrRefreshToken(
           currentDate: new Date(0), // Allows inspecting payload regardless of expiration date
         });
 
-        const { exp, iat, nbf, jti, ...userPayload } = payload as any;
+        const {
+          exp,
+          iat,
+          nbf,
+          jti,
+          passwordHash,
+          password_hash,
+          ...userPayload
+        } = payload as any;
         const userId = userPayload?.userId || userPayload?.user_id;
         const nowInSeconds = Math.floor(Date.now() / 1000);
 

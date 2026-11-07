@@ -1,3 +1,4 @@
+import { requirePageUser } from "@/backend/auth/context";
 import { ArrowLeft, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 
@@ -23,6 +24,7 @@ export default async function OrderDetailsPage({
   params: Promise<{ id: string }>;
 }) {
   await initDatabase();
+  await requirePageUser();
   const { id } = await params;
   let order: Order | null = null;
 
@@ -101,7 +103,7 @@ export default async function OrderDetailsPage({
       )}
 
       <OrderDetailList orderDetails={order.orderDetails} />
-      <OrderActions order={order} />
+      <OrderActions showPayment order={order} />
       <PaymentModal />
     </>
   );

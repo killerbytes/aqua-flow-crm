@@ -5,8 +5,8 @@ Sentry.init({
 
   tracesSampleRate: process.env.NODE_ENV === "development" ? 1.0 : 0.1,
 
-  // Attach local variable values to stack frames (Node.js server runtime)
-  includeLocalVariables: true,
+  // Keep off: local variables on the login path include plaintext passwords.
+  includeLocalVariables: false,
 
   enableLogs: true,
 });

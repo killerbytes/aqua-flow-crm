@@ -1,3 +1,4 @@
+import { requirePageUser } from "@/backend/auth/context";
 import { initDatabase } from "@/backend/db/database";
 import { OrderService } from "@/backend/services";
 import PageHeader from "@/components/shared/PageHeader";
@@ -36,6 +37,7 @@ interface OrdersPageProps {
 
 export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   await initDatabase();
+  await requirePageUser();
   const params = await searchParams;
 
   const page = Number(params?.page) || PAGINATION.PAGE;

@@ -29,4 +29,29 @@ describe("UI - Order Components & Theme Design System", () => {
     const content = fs.readFileSync(orderListPath, "utf-8");
     expect(content).toContain("totalAmount");
   });
+
+  it("should render OrderActions in OrderList actions column for quick status updates", () => {
+    const orderListPath = path.resolve(
+      process.cwd(),
+      "src/features/orders/components/OrderList.tsx",
+    );
+    const content = fs.readFileSync(orderListPath, "utf-8");
+    expect(content).toContain("OrderActions");
+    expect(content).toContain('id: "actions"');
+    expect(content).toContain('header: "Actions"');
+  });
+
+  it("should have order actions for status updates in OrderActions component", () => {
+    const orderActionsPath = path.resolve(
+      process.cwd(),
+      "src/features/orders/components/OrderActions.tsx",
+    );
+    const content = fs.readFileSync(orderActionsPath, "utf-8");
+    expect(content).toContain("updateOrderStatusAction");
+    expect(content).toContain("OrderStatus.OUT_FOR_DELIVERY");
+    expect(content).toContain("OrderStatus.DELIVERED");
+    expect(content).toContain("OrderStatus.CANCELLED");
+    expect(content).toContain("OrderStatus.PENDING");
+    expect(content).toContain("Back to Pending");
+  });
 });

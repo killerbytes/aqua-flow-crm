@@ -1,6 +1,7 @@
 import { verifyOrRefreshToken } from "@/lib/auth";
 import { UserRole } from "@/lib/definitions";
 import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 export interface UserSession {
   userId: number;
@@ -20,6 +21,17 @@ export function requireAuth(ctx: AuthContext): UserSession {
   if (!userId) {
     throw new Error("User not authenticated");
   }
+  return user;
+}
+
+/**
+ * Session check for Server Component pages. Middleware runs on the Edge runtime
+ * and cannot see the database, so this is what turns away deactivated users.
+ * Call it outside any try/catch, because redirect() works by throwing.
+ */
+export async function requirePageUser(): Promise<UserSession> {
+  const { user } = await getAuthContext();
+  if (!user) redirect("/login");
   return user;
 }
 

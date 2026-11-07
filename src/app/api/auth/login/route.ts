@@ -1,6 +1,5 @@
 import { initDatabase } from "@/backend/db/database";
-import { User } from "@/backend/models";
-import { comparePassword, signToken } from "@/lib/auth";
+import { AuthenticationError, AuthService } from "@/backend/services/auth.service";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
@@ -16,23 +15,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const user = await User.findOne({ where: { username } });
-    if (!user) {
-      return NextResponse.json(
-        { error: "Invalid username or password" },
-        { status: 401 },
-      );
-    }
-
-    const isValid = await comparePassword(password, user.passwordHash);
-    if (!isValid) {
-      return NextResponse.json(
-        { error: "Invalid username or password" },
-        { status: 401 },
-      );
-    }
-
-    const token = await signToken(user.get({ plain: true }));
+    const { token, user } = await AuthService.login(username, password);
 
     const response = NextResponse.json({
       message: "Login successful",
@@ -50,9 +33,12 @@ export async function POST(request: Request) {
     });
 
     return response;
-  } catch (err: any) {
+  } catch (err) {
+    if (err instanceof AuthenticationError) {
+      return NextResponse.json({ error: err.message }, { status: 401 });
+    }
     return NextResponse.json(
-      { error: err.message || "Internal server error" },
+      { error: "Internal server error" },
       { status: 500 },
     );
   }

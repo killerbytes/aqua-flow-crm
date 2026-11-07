@@ -109,4 +109,30 @@ describe("Unit - Order Server Actions", () => {
       101,
     );
   });
+
+  it("should update order status and log current user in updateOrderStatusAction", async () => {
+    const testUser = { userId: 1, name: "Admin", role: UserRole.ADMIN };
+    vi.spyOn(authContext, "getAuthContext").mockResolvedValue({
+      user: testUser,
+    } as any);
+    const consoleSpy = vi.spyOn(console, "log");
+    vi.spyOn(OrderService, "updateStatus").mockResolvedValue({
+      orderId: 101,
+      status: OrderStatus.PENDING,
+    } as any);
+
+    const res = await updateOrderStatusAction(101, OrderStatus.PENDING);
+
+    expect(res.success).toBe(true);
+    expect(OrderService.updateStatus).toHaveBeenCalledWith(
+      101,
+      OrderStatus.PENDING,
+      testUser,
+    );
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Updating order #101 status to PENDING by user:"),
+      testUser,
+    );
+    consoleSpy.mockRestore();
+  });
 });

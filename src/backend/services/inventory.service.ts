@@ -4,7 +4,7 @@ import {
   LedgerReferenceType,
   PAGINATION,
 } from "@/lib/definitions";
-import { handleServiceError } from ".";
+import { handleServiceError } from "./errorHandler";
 import { EquipmentLedgerEntry, ProductInventory } from "../models";
 import { AdjustmentFormData, AdjustmentSchema } from "../schemas/zodSchemas";
 

@@ -38,8 +38,12 @@ export const createOrderAction = createProtectedAction({
 
 export const updateOrderStatusAction = createProtectedAction({
   permission: "UPDATE_ORDER",
-  handler: async (_ctx, id: number | string, status: OrderStatus) => {
-    const result = await OrderService.updateStatus(id, status);
+  handler: async (ctx, id: number | string, status: OrderStatus) => {
+    console.log(
+      `[updateOrderStatusAction] Updating order #${id} status to ${status} by user:`,
+      ctx.user,
+    );
+    const result = await OrderService.updateStatus(id, status, ctx.user);
     revalidatePath("/orders");
     return result;
   },

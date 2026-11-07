@@ -1,4 +1,5 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+import { Order } from "../../src/backend/models";
 import { ProductService } from "../../src/backend/services";
 import { OrderService } from "../../src/backend/services/order.service";
 import { OrderStatus } from "../../src/lib/definitions";
@@ -7,6 +8,33 @@ import { setupTestDatabase } from "../helpers/db.setup";
 describe("Integration - Order Service & Workflows", () => {
   beforeAll(async () => {
     await setupTestDatabase();
+  });
+
+  describe("Order Filtering", () => {
+    it("should return only orders with the requested status", async () => {
+      const expected = await Order.count({
+        where: { status: OrderStatus.PENDING },
+      });
+      expect(expected).toBeGreaterThan(0);
+
+      const result = await OrderService.getAll({
+        query: { status: OrderStatus.PENDING },
+      });
+
+      expect(result.pagination.total).toBe(expected);
+      expect(
+        result.rows.every((order: any) => order.status === OrderStatus.PENDING),
+      ).toBe(true);
+    });
+
+    it("should combine a status filter with the invoice filter", async () => {
+      const result = await OrderService.getAll({
+        query: { status: OrderStatus.CANCELLED, isInvoice: true },
+      });
+
+      expect(result.rows).toEqual([]);
+      expect(result.pagination.total).toBe(0);
+    });
   });
 
   describe("Order Creation & Financial Totals", () => {
@@ -74,6 +102,38 @@ describe("Integration - Order Service & Workflows", () => {
         OrderStatus.CANCELLED,
       );
       expect(cancelled.status).toBe(OrderStatus.CANCELLED);
+    });
+
+    it("should allow status transition from OUT_FOR_DELIVERY back to PENDING and log current user", async () => {
+      const consoleSpy = vi.spyOn(console, "log");
+      const order = await OrderService.create(
+        {
+          customerId: 1,
+          status: OrderStatus.PENDING,
+          paymentStatus: "UNPAID",
+          items: [{ productId: 1, quantity: 2, unitPrice: 50.0 }],
+        },
+        1,
+      );
+
+      const outForDelivery = await OrderService.updateStatus(
+        order.orderId,
+        OrderStatus.OUT_FOR_DELIVERY,
+      );
+      expect(outForDelivery.status).toBe(OrderStatus.OUT_FOR_DELIVERY);
+
+      const testUser = { userId: 1, name: "Admin User", role: "Admin" };
+      const backToPending = await OrderService.updateStatus(
+        order.orderId,
+        OrderStatus.PENDING,
+        testUser,
+      );
+      expect(backToPending.status).toBe(OrderStatus.PENDING);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Order #" + order.orderId),
+        testUser,
+      );
+      consoleSpy.mockRestore();
     });
 
     it("should reject invalid status transitions", async () => {

@@ -1,6 +1,8 @@
 import { z } from "zod";
 
-const envSchema = z.object({
+const DEV_FALLBACK_SECRET = "super_secret_jwt_key";
+
+export const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "local", "production", "test"])
     .default("development"),
@@ -11,7 +13,7 @@ const envSchema = z.object({
   JWT_SECRET: z
     .string()
     .min(10, "JWT_SECRET must be at least 10 characters long")
-    .default("super_secret_jwt_key"),
+    .default(DEV_FALLBACK_SECRET),
   DB_NAME: z.string().default("crystal_clear_crm"),
   DB_USER: z.string().default("postgres"),
   DB_PASSWORD: z.string().default("secret"),
@@ -22,6 +24,20 @@ const envSchema = z.object({
     .transform((val) => parseInt(val, 10)),
   DATABASE_URL: z.string().default(""),
   NEXT_PUBLIC_CURRENCY: z.string().default("PHP"),
+}).superRefine((value, ctx) => {
+  // A known secret would let anyone forge a login. next build has no runtime
+  // secrets to check, so it is exempt.
+  if (
+    value.NODE_ENV === "production" &&
+    value.JWT_SECRET === DEV_FALLBACK_SECRET &&
+    process.env.NEXT_PHASE !== "phase-production-build"
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["JWT_SECRET"],
+      message: "JWT_SECRET must be set in production",
+    });
+  }
 });
 
 const parseEnv = () => {

@@ -18,6 +18,8 @@ export type ActionContext = {
 export interface CreateActionOptions<TArgs extends any[], TOutput> {
   permission?: PermissionAction;
   schema?: z.ZodSchema<any>;
+  /** Which argument the schema validates. Use 1 for (id, input) actions. */
+  inputIndex?: number;
   handler: (ctx: ActionContext, ...args: TArgs) => Promise<TOutput> | TOutput;
 }
 
@@ -54,7 +56,7 @@ export function createProtectedAction<TArgs extends any[], TOutput>(
       }
 
       if (opts.schema && args.length > 0) {
-        const validation = opts.schema.safeParse(args[0]);
+        const validation = opts.schema.safeParse(args[opts.inputIndex ?? 0]);
         if (!validation.success) {
           const formatted = validation.error.flatten().fieldErrors;
           return {

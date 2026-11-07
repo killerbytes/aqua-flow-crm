@@ -82,7 +82,7 @@ function LoginPageContent() {
       try {
         const res = await loginAction(data.username, data.password);
 
-        if (!res?.success || !res?.token) {
+        if (!res?.success) {
           setError(res?.error || "Login failed. Please check your credentials.");
           return;
         }

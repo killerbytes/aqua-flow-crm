@@ -30,7 +30,8 @@ export async function loginAction(username: string, password: string) {
       console.warn("Cookie set error (outside request context):", err);
     }
 
-    return { success: true as const, token, user };
+    // The token stays in the httpOnly cookie and is never sent to page scripts.
+    return { success: true as const, user };
   } catch (err: any) {
     return {
       success: false as const,
@@ -52,6 +53,7 @@ export const createUserAction = createProtectedAction({
 export const updateUserAction = createProtectedAction({
   permission: "MANAGE_USERS",
   schema: UserFormUpdateSchema,
+  inputIndex: 1,
   handler: async (_ctx, id: number | string, input: any) => {
     const result = await AuthService.updateUser(id, input);
     revalidatePath("/users");
@@ -62,6 +64,7 @@ export const updateUserAction = createProtectedAction({
 export const changePasswordAction = createProtectedAction({
   permission: "MANAGE_USERS",
   schema: ChangePasswordSchema,
+  inputIndex: 1,
   handler: async (_ctx, id: number, input: ChangePasswordData) => {
     const result = await AuthService.changePassword(id, input);
     revalidatePath("/users");

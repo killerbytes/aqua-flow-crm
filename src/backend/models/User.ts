@@ -41,5 +41,9 @@ User.init(
     tableName: "users",
     timestamps: true,
     paranoid: true,
+    // Keeps the hash out of every query and include. Only login should use
+    // User.scope("withPassword").
+    defaultScope: { attributes: { exclude: ["passwordHash"] } },
+    scopes: { withPassword: { attributes: { exclude: [] } } },
   },
 );

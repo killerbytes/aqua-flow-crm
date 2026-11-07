@@ -1,6 +1,7 @@
 import { OrderStatus, PAGINATION, PaymentStatus } from "@/lib/definitions";
 import moment from "moment-timezone";
 import { Op, OrderItem } from "sequelize";
+import { getAuthContext, UserSession } from "../auth/context";
 import {
   Customer,
   CustomerSpecialPricing,
@@ -59,7 +60,7 @@ export class OrderService {
       }
 
       if (status) {
-        where.status = { ...where.status, status };
+        where.status = { ...where.status, [Op.eq]: status };
       }
 
       if (customerId) where.customerId = customerId;
@@ -234,7 +235,11 @@ export class OrderService {
     return await this.get(plainOrder.orderId);
   }
 
-  static async updateStatus(id: number | string, status: OrderStatus | string) {
+  static async updateStatus(
+    id: number | string,
+    status: OrderStatus | string,
+    user?: UserSession | any,
+  ) {
     let targetStatus = status as OrderStatus;
     if ((status as string) === "COMPLETED") {
       targetStatus = OrderStatus.DELIVERED;
@@ -271,6 +276,7 @@ export class OrderService {
         OrderStatus.CANCELLED,
       ],
       [OrderStatus.OUT_FOR_DELIVERY]: [
+        OrderStatus.PENDING,
         OrderStatus.DELIVERED,
         OrderStatus.CANCELLED,
       ],
@@ -282,6 +288,15 @@ export class OrderService {
     if (!allowed.includes(targetStatus)) {
       throw new Error(
         `Invalid status transition from ${currentStatus} to ${targetStatus}`,
+      );
+    }
+
+    const currentUser =
+      user || (await getAuthContext().catch(() => null))?.user;
+    if (currentUser) {
+      console.log(
+        `[OrderService] Order #${id} status updating from ${currentStatus} to ${targetStatus} by user:`,
+        currentUser,
       );
     }
 

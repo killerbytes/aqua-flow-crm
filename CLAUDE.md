@@ -1,0 +1,89 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+@AGENTS.md
+
+## Project
+
+Aqua Flow is a CRM for a water refill business: customers, orders and dispatch, walk-in sales, invoices and payments, inventory, returnable-equipment tracking, and reports. It uses Next.js 15 (App Router), React 19, Sequelize 6 on PostgreSQL, Zod 3, Tailwind 4, and shadcn/ui. It deploys to Railway as a standalone build, with Sentry for monitoring.
+
+## Commands
+
+```bash
+npm run dev                  # Dev server (needs PostgreSQL)
+npm run build                # next build, then copies assets into .next/standalone
+npm run type-check           # tsc --noEmit
+npm test                     # Full Vitest suite (no PostgreSQL needed)
+
+npx vitest run tests/integration/order_service.test.ts          # One file
+npx vitest run tests/integration/order_service.test.ts -t "discounts"  # Tests matching a name
+
+npm run db:migrate           # Also: db:migrate:undo, db:migrate:status
+npm run db:migration:create -- --name add-something
+```
+
+There is no lint step: ESLint is not installed, so `.eslintrc.json` is not enforced. CI only runs the nightly database backup, so run `npm test` and `npm run type-check` locally before finishing a change.
+
+Production runs `node .next/standalone/server.js`, not `npm start`.
+
+## Commands that can destroy data
+
+The active database comes from `NODE_ENV`: `.env.<NODE_ENV>` overrides `.env.local`, which overrides `.env`. Check which database is targeted before running any of these, and don't run them with `NODE_ENV=production` unless explicitly asked.
+
+- `npm run seed` **drops the whole `public` schema** on PostgreSQL by default, then rebuilds it with fake data.
+- `npm run restore` overwrites the database from a backup.
+- `npm run db:migrate` and `db:migrate:undo` change the schema of the targeted database.
+
+## Architecture
+
+### Request flow
+
+```
+src/app (Server Components)  ── reads ──────────────────────► services ─► models
+src/features (Client Components) ─► src/backend/actions ─────► services ─► models
+```
+
+- **`src/app`** holds routes and fetches data. Data pages set `export const dynamic = "force-dynamic"`, call `await initDatabase()` and `await requirePageUser()`, and then call services directly.
+- **`src/features/<domain>/components`** holds domain UI. **`src/components`** holds shared UI, and `src/components/ui` is shadcn-generated.
+- **`src/backend/actions`** holds Server Actions, built with `createProtectedAction` (`src/backend/lib/safe-action.ts`). It initializes the database, authenticates, checks the RBAC permission, validates with Zod, and returns `ActionResponse<T>` (`{ success: true, data }` or `{ success: false, error, fieldErrors? }`). Errors become return values rather than throws, so callers must check `success`.
+- **`src/backend/services`** holds business logic as classes with static methods. This is the layer integration tests target.
+- **`src/backend/models`** holds Sequelize models. Associations are all declared in `models/index.ts`, so import models from there.
+
+### Authentication and permissions
+
+There are three separate layers, and each covers something different:
+
+1. **`src/middleware.ts`** (Edge runtime) redirects unauthenticated page requests to `/login` and refreshes the JWT. It skips `/api/*`, and it does not check roles.
+2. **`createProtectedAction`** is the only place roles are enforced, using `src/backend/rbac/permissions.ts`.
+3. **Server Component pages** call `requirePageUser()` (`src/backend/auth/context.ts`), which rejects missing sessions and deactivated users, since middleware can't reach the database. It doesn't check roles, so a page that shows role-restricted data has to do that itself. Call it outside any `try/catch`, because `redirect()` works by throwing.
+
+Auth has two modules: `src/lib/auth.edge.ts` is for middleware and must stay free of ORM imports, while `src/lib/auth.ts` is for the Node runtime. The session is an httpOnly `token` cookie.
+
+### Database and tests
+
+- **Schema changes need a migration** in `src/backend/migrations`. The app never runs `sync` against PostgreSQL at runtime.
+- **Tests run on in-memory SQLite, and production on PostgreSQL.** The test schema is built from the models with `sequelize.sync`, so passing tests don't prove a migration exists or works. `define: { underscored: true }` is also only set for PostgreSQL, so column names differ between the two, and raw SQL may behave differently.
+- **Password hashes:** the `User` default scope excludes `passwordHash` from queries and includes. Only login uses `User.scope("withPassword")`. `User.create` and `update` results can still hold the hash, so return them through `toSafeUser`.
+- **Soft deletes:** `Customer`, `CustomerSpecialPricing`, `ProductInventory`, and `User` are paranoid. Use `{ paranoid: false }` to include deleted rows.
+- **Date filtering** uses the `Asia/Manila` timezone via `moment-timezone`.
+
+### Test layout
+
+- `tests/integration`: services against seeded SQLite, using `setupTestDatabase()` from `tests/helpers/db.setup.ts`.
+- `tests/unit/actions`: Server Actions, with `next/cache`, `initDatabase`, and the auth context mocked.
+- `tests/ui`: runs in the `node` environment and jsdom is not installed, so these tests check source files and exports rather than rendered DOM. Adding DOM tests means adding a DOM environment first.
+
+## Next.js rules
+
+- Default to Server Components. Add `"use client"` only for state, effects, or browser APIs, and keep it as low in the tree as possible.
+- Client code must not import from `src/backend` at runtime, except for calling Server Actions. Use `import type` for model and service types.
+- Nothing reachable from `src/middleware.ts` may import Sequelize or other Node-only packages.
+- `params`, `searchParams`, `cookies()`, and `headers()` are async in Next 15, so always `await` them.
+- Cookies can only be written in Server Actions and Route Handlers, not while rendering.
+- Put mutations in Server Actions through `createProtectedAction`, with a `permission` and usually a `schema`, and call `revalidatePath` for affected routes. Don't add Route Handlers for internal mutations; `src/app/api` is only for login and logout.
+- `createProtectedAction` validates `args[0]`, so `(id, input)` actions must set `inputIndex: 1`. It passes the **original** arguments to the handler, so Zod defaults, transforms, and coercion are not applied to what the handler receives.
+- Wrap multi-table writes in `sequelize.transaction` and pass `{ transaction: t }` to every query inside it.
+- Read environment variables through `env` in `src/backend/db/env.ts`, and add new ones to its schema. Only `NEXT_PUBLIC_*` variables reach the browser, so never use that prefix for secrets.
+- Packages with native or dynamic loading that are used on the server belong in `serverExternalPackages` in `next.config.mjs`.
+- Use the `@/` alias for imports from `src`.

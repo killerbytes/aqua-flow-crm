@@ -1,3 +1,4 @@
+import { requirePageUser } from "@/backend/auth/context";
 import { initDatabase } from "@/backend/db/database";
 import {
   CustomersWithLastOrderParams,
@@ -15,6 +16,7 @@ export default async function CustomersPage({
   searchParams,
 }: CustomersPageProps) {
   await initDatabase();
+  await requirePageUser();
 
   const params = await searchParams;
   const page = Number(params?.page) || PAGINATION.PAGE;

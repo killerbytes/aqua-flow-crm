@@ -1,3 +1,4 @@
+import { requirePageUser } from "@/backend/auth/context";
 import { initDatabase } from "@/backend/db/database";
 import { AuthService } from "@/backend/services";
 import PageHeader from "@/components/shared/PageHeader";
@@ -11,6 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function UsersPage() {
   await initDatabase();
+  await requirePageUser();
 
   let users: any[] = [];
   try {
