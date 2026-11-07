@@ -11,6 +11,7 @@ import {
   Truck,
   TrendingUp,
   Users,
+  Wallet,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -82,8 +83,13 @@ export default async function DashboardPage() {
   const user = await requirePagePermission("VIEW_DASHBOARD");
   const canViewReports = checkPermission(user.role, "VIEW_REPORTS");
 
-  const { today, deliveries, receivables, customers, stock } =
+  const { today, cash, deliveries, receivables, customers, stock } =
     await DashboardService.getSummary();
+  const cashBreakdown = Object.entries(cash.byMethod)
+    .map(([method, amount]) =>
+      `${method === "NOT_RECORDED" ? "method not recorded" : method} ${peso(amount)}`,
+    )
+    .join(", ");
 
   const toDeliver = deliveries.pending + deliveries.outForDelivery;
   const driftedProducts = stock.products.filter((p) => !p.matchesLedger);
@@ -112,13 +118,24 @@ export default async function DashboardPage() {
         </Link>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         <StatCard
           delay={0.1}
           title="Today's Sales"
           value={peso(today.sales)}
-          note={`${plural(today.orderCount, "delivered order")} placed today`}
+          note={`${plural(today.orderCount, "order")} delivered today`}
           icon={<TrendingUp className="w-5 h-5" />}
+        />
+        <StatCard
+          delay={0.12}
+          title="Cash Collected Today"
+          value={peso(cash.total)}
+          note={
+            cash.paymentCount > 0
+              ? cashBreakdown
+              : "No payments taken yet today"
+          }
+          icon={<Wallet className="w-5 h-5" />}
         />
         <StatCard
           delay={0.15}

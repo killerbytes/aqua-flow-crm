@@ -14,6 +14,7 @@ import {
   InvoiceDetail,
   InvoicePayment,
   Order,
+  OrderPayment,
   ProductInventory,
 } from "../models";
 import { WALK_IN_CUSTOMER_NAME } from "./customer.service";
@@ -34,9 +35,13 @@ export class DashboardService {
     const startOfToday = moment.tz(now, BUSINESS_TIMEZONE).startOf("day");
     const startOfTomorrow = startOfToday.clone().add(1, "day");
 
-    const [today, deliveries, receivables, customers, stock] =
+    const [today, cash, deliveries, receivables, customers, stock] =
       await Promise.all([
         DashboardService.getTodaysSales(
+          startOfToday.toDate(),
+          startOfTomorrow.toDate(),
+        ),
+        DashboardService.getCashCollected(
           startOfToday.toDate(),
           startOfTomorrow.toDate(),
         ),
@@ -46,22 +51,58 @@ export class DashboardService {
         DashboardService.getStock(),
       ]);
 
-    return { today, deliveries, receivables, customers, stock };
+    return { today, cash, deliveries, receivables, customers, stock };
   }
 
-  /** Orders placed today and delivered, which is how the orders page counts sales. */
+  /** Orders delivered today, whenever they were placed. */
   static async getTodaysSales(start: Date, end: Date) {
     const orders = await Order.findAll({
       attributes: ["totalAmount"],
       where: {
         status: OrderStatus.DELIVERED,
-        createdAt: { [Op.gte]: start, [Op.lt]: end },
+        deliveredAt: { [Op.gte]: start, [Op.lt]: end },
       },
     });
 
     return {
       sales: sumCents(orders.map((order) => order.totalAmount)),
       orderCount: orders.length,
+    };
+  }
+
+  /**
+   * Money actually taken in today: direct order payments plus invoice payments,
+   * leaving out anything reversed. This is what the till should hold.
+   */
+  static async getCashCollected(start: Date, end: Date) {
+    const [orderPayments, invoicePayments] = await Promise.all([
+      OrderPayment.findAll({
+        attributes: ["amount", "paymentMethod"],
+        where: { paidAt: { [Op.gte]: start, [Op.lt]: end }, reversedAt: null },
+      }),
+      InvoicePayment.findAll({
+        attributes: ["paymentAmount", "paymentMethod"],
+        where: {
+          paymentDate: { [Op.gte]: start, [Op.lt]: end },
+          reversedAt: null,
+        },
+      }),
+    ]);
+
+    const byMethod = new Map<string, number>();
+    const add = (method: string | null, amount: number) => {
+      const key = method || "NOT_RECORDED";
+      byMethod.set(key, (byMethod.get(key) ?? 0) + toCents(amount));
+    };
+    orderPayments.forEach((p) => add(p.paymentMethod, p.amount));
+    invoicePayments.forEach((p) => add(p.paymentMethod, p.paymentAmount));
+
+    return {
+      total: fromCents([...byMethod.values()].reduce((a, b) => a + b, 0)),
+      paymentCount: orderPayments.length + invoicePayments.length,
+      byMethod: Object.fromEntries(
+        [...byMethod].map(([method, cents]) => [method, fromCents(cents)]),
+      ),
     };
   }
 

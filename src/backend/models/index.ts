@@ -9,6 +9,7 @@ import { InvoiceDetail } from "./InvoiceDetail";
 import { InvoicePayment } from "./InvoicePayment";
 import { Order } from "./Order";
 import { OrderDetail } from "./OrderDetail";
+import { OrderPayment } from "./OrderPayment";
 import { ProductInventory } from "./ProductInventory";
 import { User } from "./User";
 
@@ -59,6 +60,10 @@ Order.hasMany(OrderDetail, { foreignKey: "orderId", as: "orderDetails" });
 OrderDetail.belongsTo(Order, { foreignKey: "orderId", as: "order" });
 
 Order.belongsTo(User, { foreignKey: "createdBy", as: "user" });
+Order.hasMany(OrderPayment, { foreignKey: "orderId", as: "orderPayments" });
+OrderPayment.belongsTo(Order, { foreignKey: "orderId", as: "order" });
+OrderPayment.belongsTo(User, { foreignKey: "loggedBy", as: "user" });
+OrderPayment.belongsTo(User, { foreignKey: "reversedBy", as: "reversedByUser" });
 User.hasMany(Order, { foreignKey: "createdBy", as: "orders" });
 
 Customer.hasMany(Invoice, { foreignKey: "customerId", as: "invoices" });
@@ -257,6 +262,7 @@ export {
   InvoicePayment,
   Order,
   OrderDetail,
+  OrderPayment,
   ProductInventory,
   sequelize,
   User,

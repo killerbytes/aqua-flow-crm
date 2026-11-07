@@ -9,6 +9,8 @@ import {
   OrderSchema,
   PaymentFormData,
   PaymentSchema,
+  ReversePaymentFormData,
+  ReversePaymentSchema,
 } from "../schemas/zodSchemas";
 import { CustomerService } from "../services/customer.service";
 import { OrderQueryParams, OrderService } from "../services/order.service";
@@ -69,9 +71,33 @@ export const deleteOrderAction = createProtectedAction({
 export const makePaymentAction = createProtectedAction({
   permission: "UPDATE_ORDER",
   schema: PaymentSchema,
-  handler: async (_ctx, input: PaymentFormData, id: number | string) => {
-    const result = await OrderService.makePayment(input, Number(id));
+  handler: async (ctx, input: PaymentFormData, id: number | string) => {
+    const result = await OrderService.makePayment(
+      input,
+      Number(id),
+      ctx.user.userId,
+    );
     revalidatePath("/orders");
+    return result;
+  },
+});
+
+export const reverseOrderPaymentAction = createProtectedAction({
+  permission: "REVERSE_PAYMENT",
+  schema: ReversePaymentSchema,
+  inputIndex: 1,
+  handler: async (
+    ctx,
+    paymentId: number | string,
+    input: ReversePaymentFormData,
+  ) => {
+    const result = await OrderService.reversePayment(
+      paymentId,
+      input,
+      ctx.user.userId,
+    );
+    revalidatePath("/orders");
+    revalidatePath(`/orders/${result.orderId}`);
     return result;
   },
 });

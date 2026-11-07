@@ -1,6 +1,7 @@
 "use client";
 
 import { reversePaymentAction } from "@/backend/actions/invoice.actions";
+import { reverseOrderPaymentAction } from "@/backend/actions/order.actions";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import Modal from "@/components/Modal";
 import { Button } from "@/components/ui/button";
@@ -17,9 +18,11 @@ import { useState, useTransition } from "react";
 export function ReversePaymentButton({
   paymentId,
   amount,
+  kind = "invoice",
 }: {
   paymentId: number;
   amount: number;
+  kind?: "invoice" | "order";
 }) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
@@ -36,7 +39,9 @@ export function ReversePaymentButton({
   const onSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     startTransition(async () => {
-      const res = await reversePaymentAction(paymentId, { reason });
+      const reverse =
+        kind === "order" ? reverseOrderPaymentAction : reversePaymentAction;
+      const res = await reverse(paymentId, { reason });
       if (!res.success) {
         const fieldError = res.fieldErrors?.reason?.[0];
         if (fieldError) {
@@ -70,7 +75,11 @@ export function ReversePaymentButton({
         isOpen={isOpen}
         onClose={close}
         title={`Reverse this ${formatCurrency(amount)} payment?`}
-        description="This can't be undone. The payment stays on record, marked as reversed, and the invoice balance goes back up."
+        description={
+          kind === "order"
+            ? "This can't be undone. The payment stays on record, marked as reversed, and the order goes back to unpaid."
+            : "This can't be undone. The payment stays on record, marked as reversed, and the invoice balance goes back up."
+        }
       >
         <form onSubmit={onSubmit} className="space-y-4">
           <Field>

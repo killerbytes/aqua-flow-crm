@@ -9,6 +9,7 @@ import { ColorBadge, CustomerName } from "@/components/presentation";
 import PageHeader from "@/components/shared/PageHeader";
 import OrderActions from "@/features/orders/components/OrderActions";
 import OrderDetailList from "@/features/orders/components/OrderDetailList";
+import { OrderPaymentList } from "@/features/orders/components/OrderPaymentList";
 import { PaymentModal } from "@/features/orders/components/PaymentModal";
 import {
   ORDER_STATUS_BADGE_COLOR,
@@ -95,6 +96,11 @@ export default async function OrderDetailsPage({
             <p>
               <strong>Order Date:</strong> {formatDateTime(order.createdAt)}
             </p>
+            {order.deliveredAt && (
+              <p>
+                <strong>Delivered:</strong> {formatDateTime(order.deliveredAt)}
+              </p>
+            )}
             <p>
               <strong>User:</strong> {order.user?.name}
             </p>
@@ -103,6 +109,7 @@ export default async function OrderDetailsPage({
       )}
 
       <OrderDetailList orderDetails={order.orderDetails} />
+      <OrderPaymentList payments={(order as any).orderPayments ?? []} />
       <OrderActions showPayment order={order} />
       <PaymentModal />
     </>

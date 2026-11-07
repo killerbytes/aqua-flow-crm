@@ -109,6 +109,7 @@ describe("Unit - Order Server Actions", () => {
     expect(OrderService.makePayment).toHaveBeenCalledWith(
       { paymentMethod: PaymentMethod.CASH, paymentNotes: "Paid" },
       101,
+      1,
     );
   });
 

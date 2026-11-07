@@ -9,6 +9,7 @@ import {
   InvoiceDetail,
   Order,
   OrderDetail,
+  OrderPayment,
   ProductInventory,
   sequelize,
   User,
@@ -17,6 +18,8 @@ import {
   OrderFormData,
   PaymentFormData,
   PaymentSchema,
+  ReversePaymentFormData,
+  ReversePaymentSchema,
 } from "../schemas/zodSchemas";
 import { CustomerService, WALK_IN_CUSTOMER_NAME } from "./customer.service";
 import { ProductService } from "./product.service";
@@ -180,7 +183,16 @@ export class OrderService {
           as: "orderDetails",
           include: [{ model: ProductInventory, as: "product", paranoid: false }],
         },
+        {
+          model: OrderPayment,
+          as: "orderPayments",
+          include: [
+            { model: User, as: "user", paranoid: false },
+            { model: User, as: "reversedByUser", paranoid: false },
+          ],
+        },
       ],
+      order: [[{ model: OrderPayment, as: "orderPayments" }, "paidAt", "ASC"]],
     });
     return order ? order.get({ plain: true }) : null;
   }
@@ -267,6 +279,7 @@ export class OrderService {
           paymentStatus,
           createdBy,
           createdAt,
+          deliveredAt: status === OrderStatus.DELIVERED ? createdAt ?? new Date() : null,
         },
         { transaction: t },
       );
@@ -275,6 +288,19 @@ export class OrderService {
         validatedItems.map((item) => ({ ...item, orderId: order.orderId })),
         { transaction: t },
       );
+
+      // Orders created already paid (walk-in sales) take payment at the counter.
+      if (paymentStatus === PaymentStatus.PAID) {
+        await OrderPayment.create(
+          {
+            orderId: order.orderId,
+            amount: order.totalAmount,
+            paidAt: order.createdAt,
+            loggedBy: createdBy,
+          },
+          { transaction: t },
+        );
+      }
 
       return order.orderId;
     });
@@ -356,7 +382,15 @@ export class OrderService {
         );
       }
 
-      await order.update({ status: targetStatus }, { transaction: t });
+      await order.update(
+        {
+          status: targetStatus,
+          ...(targetStatus === OrderStatus.DELIVERED
+            ? { deliveredAt: new Date() }
+            : {}),
+        },
+        { transaction: t },
+      );
       return order.get({ plain: true });
     });
   }
@@ -366,7 +400,11 @@ export class OrderService {
     return count > 0;
   }
 
-  static async makePayment(input: PaymentFormData, id: number) {
+  static async makePayment(
+    input: PaymentFormData,
+    id: number,
+    loggedByUserId: number,
+  ) {
     const validatedData = PaymentSchema.parse(input);
 
     return await sequelize.transaction(async (t) => {
@@ -402,7 +440,64 @@ export class OrderService {
         },
         { transaction: t },
       );
+      await OrderPayment.create(
+        {
+          orderId: order.orderId,
+          amount: order.totalAmount,
+          paymentMethod: validatedData.paymentMethod,
+          paymentNotes: validatedData.paymentNotes,
+          paidAt: new Date(),
+          loggedBy: loggedByUserId,
+        },
+        { transaction: t },
+      );
       return order.get({ plain: true });
+    });
+  }
+
+  /**
+   * Undoes a direct order payment logged by mistake. It stays on record, marked
+   * as reversed, and the order goes back to unpaid.
+   */
+  static async reversePayment(
+    paymentId: number | string,
+    input: ReversePaymentFormData,
+    userId: number,
+  ) {
+    const { reason } = ReversePaymentSchema.parse(input);
+
+    return await sequelize.transaction(async (t) => {
+      const found = await OrderPayment.findByPk(Number(paymentId), {
+        transaction: t,
+      });
+      if (!found) throw new Error("Payment not found");
+
+      // The order lock serialises payments and reversals on it.
+      const order = await Order.findByPk(found.orderId, {
+        transaction: t,
+        lock: t.LOCK.UPDATE,
+      });
+      if (!order) throw new Error(`Order with ID ${found.orderId} not found`);
+
+      const payment = await OrderPayment.findByPk(found.id, { transaction: t });
+      if (payment!.reversedAt) {
+        throw new Error("This payment has already been reversed");
+      }
+
+      await payment!.update(
+        { reversedAt: new Date(), reversedBy: userId, reversalReason: reason },
+        { transaction: t },
+      );
+      await order.update(
+        {
+          paymentStatus: PaymentStatus.UNPAID,
+          paymentMethod: null,
+          paymentNotes: null,
+        },
+        { transaction: t },
+      );
+
+      return payment!.get({ plain: true });
     });
   }
 }
