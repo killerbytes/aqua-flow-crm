@@ -1,10 +1,18 @@
-import { CustomerStatus, PAGINATION } from "@/lib/definitions";
-import { Op, OrderItem } from "sequelize";
+import {
+  CustomerStatus,
+  InvoiceStatus,
+  OrderStatus,
+  PAGINATION,
+  PaymentStatus,
+} from "@/lib/definitions";
+import { Op, OrderItem, Transaction } from "sequelize";
 import { sequelize } from "../db/database";
 import {
   Customer,
   CustomerEquipmentBalance,
   CustomerSpecialPricing,
+  Invoice,
+  Order,
   ProductInventory,
 } from "../models";
 import {
@@ -163,11 +171,30 @@ export class CustomerService {
     }
   }
 
+  /**
+   * Soft-deletes a customer with no business in progress. Their settled orders
+   * and invoices stay on record and keep showing their name.
+   */
   static async delete(id: number | string) {
-    const customer = await Customer.findByPk(Number(id));
-    if (!customer) throw new Error("Customer not found");
-    await customer.destroy();
-    return true;
+    return await sequelize.transaction(async (t) => {
+      const customer = await Customer.findByPk(Number(id), {
+        transaction: t,
+        lock: t.LOCK.UPDATE,
+      });
+      if (!customer) throw new Error("Customer not found");
+
+      if (customer.name === WALK_IN_CUSTOMER_NAME) {
+        throw new Error("The walk-in sales account can't be deleted");
+      }
+
+      const blockers = await getDeleteBlockers(customer.customerId, t);
+      if (blockers.length > 0) {
+        throw new Error(`Can't delete this customer: ${blockers.join(", ")}`);
+      }
+
+      await customer.destroy({ transaction: t });
+      return true;
+    });
   }
 
   static async lookup(term: string, isActiveOnly: boolean = false) {
@@ -264,3 +291,51 @@ export class CustomerService {
     return customer.get({ plain: true });
   }
 }
+
+const countLabel = (count: number, label: string) =>
+  `${count} ${label}${count === 1 ? "" : "s"}`;
+
+const getDeleteBlockers = async (customerId: number, transaction: Transaction) => {
+  const blockers: string[] = [];
+
+  const activeOrders = await Order.count({
+    where: {
+      customerId,
+      status: { [Op.ne]: OrderStatus.CANCELLED },
+      [Op.or]: [
+        { paymentStatus: { [Op.ne]: PaymentStatus.PAID } },
+        { status: [OrderStatus.PENDING, OrderStatus.OUT_FOR_DELIVERY] },
+      ],
+    },
+    transaction,
+  });
+  if (activeOrders > 0) {
+    blockers.push(countLabel(activeOrders, "unpaid or undelivered order"));
+  }
+
+  const openInvoices = await Invoice.count({
+    where: {
+      customerId,
+      status: [InvoiceStatus.UNPAID, InvoiceStatus.PARTIAL],
+    },
+    transaction,
+  });
+  if (openInvoices > 0) {
+    blockers.push(countLabel(openInvoices, "open invoice"));
+  }
+
+  const balances = await CustomerEquipmentBalance.findAll({
+    where: { customerId },
+    transaction,
+  });
+  const containersOut = balances.reduce(
+    (sum, balance) =>
+      sum + balance.quantityOwed + balance.quantityTemporaryOwed,
+    0,
+  );
+  if (containersOut > 0) {
+    blockers.push(countLabel(containersOut, "container") + " still out");
+  }
+
+  return blockers;
+};

@@ -121,6 +121,7 @@ export class OrderService {
           {
             model: Customer,
             as: "customer",
+            paranoid: false,
             ...(query?.customerId
               ? { where: { customerId: query.customerId } }
               : {}),
@@ -164,6 +165,7 @@ export class OrderService {
         {
           model: Customer,
           as: "customer",
+          paranoid: false,
           include: [
             {
               model: CustomerSpecialPricing,
@@ -171,11 +173,11 @@ export class OrderService {
             },
           ],
         },
-        { model: User, as: "user" },
+        { model: User, as: "user", paranoid: false },
         {
           model: OrderDetail,
           as: "orderDetails",
-          include: [{ model: ProductInventory, as: "product" }],
+          include: [{ model: ProductInventory, as: "product", paranoid: false }],
         },
       ],
     });
@@ -247,6 +249,15 @@ export class OrderService {
     }
 
     const orderId = await sequelize.transaction(async (t) => {
+      // Locked so the customer can't be deleted while this order is saved.
+      const lockedCustomer = await Customer.findByPk(customerId, {
+        transaction: t,
+        lock: t.LOCK.UPDATE,
+      });
+      if (!lockedCustomer) {
+        throw new Error(`Customer with ID ${customerId} not found`);
+      }
+
       const order = await Order.create(
         {
           customerId,

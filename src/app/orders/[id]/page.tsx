@@ -96,7 +96,7 @@ export default async function OrderDetailsPage({
               <strong>Order Date:</strong> {formatDateTime(order.createdAt)}
             </p>
             <p>
-              <strong>User:</strong> {order.user.name}
+              <strong>User:</strong> {order.user?.name}
             </p>
           </div>
         </div>

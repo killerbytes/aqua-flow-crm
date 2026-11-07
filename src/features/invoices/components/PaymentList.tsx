@@ -28,7 +28,7 @@ export default function PaymentList({
         },
         cell: (info) => <MonoText>{formatDate(info.getValue())}</MonoText>,
       }),
-      columnHelper.accessor((row: any) => row.user.name, {
+      columnHelper.accessor((row: any) => row.user?.name ?? "", {
         id: "userName",
         header: "Logged by",
       }),

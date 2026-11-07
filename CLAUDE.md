@@ -68,6 +68,7 @@ Auth has two modules: `src/lib/auth.edge.ts` is for middleware and must stay fre
 - **Billing rules:** an order can be on one invoice only (unique index). Cancelled or paid orders can't be invoiced, and invoiced orders can't be cancelled or paid directly. New invoices are always unpaid. Requests create orders through `OrderService.createForStaff`, which only lets the walk-in customer set status, payment status, and date.
 - **Row locks:** use `lock: t.LOCK.UPDATE` without an `include`, because PostgreSQL rejects `FOR UPDATE` on outer joins. SQLite ignores locks, so tests can't catch this or a race.
 - **Password hashes:** the `User` default scope excludes `passwordHash` from queries and includes. Only login uses `User.scope("withPassword")`. `User.create` and `update` results can still hold the hash, so return them through `toSafeUser`.
+- **Deleting customers:** `CustomerService.delete` refuses while a customer has unpaid or undelivered orders, open invoices, or containers out, and always refuses the walk-in account. Includes on historical records use `paranoid: false` so deleted customers, products, and users still show their names.
 - **Soft deletes:** `Customer`, `CustomerSpecialPricing`, `ProductInventory`, and `User` are paranoid. Use `{ paranoid: false }` to include deleted rows.
 - **Date filtering** uses the `Asia/Manila` timezone via `moment-timezone`.
 

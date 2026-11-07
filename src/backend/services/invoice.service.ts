@@ -56,6 +56,7 @@ export class InvoiceService {
         {
           model: Customer,
           as: "customer",
+          paranoid: false,
         },
       ];
 
@@ -108,10 +109,12 @@ export class InvoiceService {
         {
           model: Customer,
           as: "customer",
+          paranoid: false,
         },
         {
           model: User,
           as: "user",
+          paranoid: false,
         },
       ],
     });
@@ -279,7 +282,7 @@ export class InvoiceService {
   static async getPayments(invoiceId: number) {
     const payments = await InvoicePayment.findAll({
       where: { invoiceId },
-      include: [{ model: User, as: "user" }],
+      include: [{ model: User, as: "user", paranoid: false }],
     });
     return payments.map((p) => p.get({ plain: true }));
   }

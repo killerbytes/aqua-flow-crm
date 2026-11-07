@@ -95,7 +95,7 @@ function PaymentFormModalContent({ onClose }: PaymentFormModalProps) {
         <DialogDescription>
           Pay Invoice for{" "}
           <span className="font-bold text-accent-foreground">
-            {editingInvoice?.customer.name}
+            {editingInvoice?.customer?.name}
           </span>
         </DialogDescription>
       </DialogHeader>

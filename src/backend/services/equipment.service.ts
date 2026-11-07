@@ -52,8 +52,8 @@ export class EquipmentService {
       where,
       order: [["createdAt", "DESC"]],
       include: [
-        { model: Customer, as: "customer" },
-        { model: ProductInventory, as: "product" },
+        { model: Customer, as: "customer", paranoid: false },
+        { model: ProductInventory, as: "product", paranoid: false },
       ],
     });
 
@@ -141,6 +141,15 @@ export class EquipmentService {
           );
         }
       }
+    }
+
+    // Locked so the customer can't be deleted while this is being recorded.
+    const customer = await Customer.findByPk(customerId, {
+      transaction: t,
+      lock: t.LOCK.UPDATE,
+    });
+    if (!customer) {
+      throw new Error("Customer not found");
     }
 
     const isTemporaryAction =
@@ -341,8 +350,8 @@ export class EquipmentService {
         ],
       },
       include: [
-        { model: Customer, as: "customer" },
-        { model: ProductInventory, as: "product" },
+        { model: Customer, as: "customer", paranoid: false },
+        { model: ProductInventory, as: "product", paranoid: false },
       ],
     });
 

@@ -62,7 +62,7 @@ export default async function InvoiceDetailPage({
       <div className="bg-card p-6 rounded-2xl border shadow-sm space-y-4">
         <div className="md:flex justify-between items-center space-y-4">
           <div>
-            <PageHeader>Invoice for {invoice.customer.name || ""}</PageHeader>
+            <PageHeader>Invoice for {invoice.customer?.name || "[Deleted]"}</PageHeader>
           </div>
           <Link href={`/invoices/${invoice.invoiceId}/print`} target="_blank">
             <Button
@@ -77,7 +77,7 @@ export default async function InvoiceDetailPage({
           <div className="flex col-span-2 justify-between pt-4 border-t">
             <div className="space-y-2 text-sm">
               <p>
-                <strong>Logged by:</strong> {invoice.user.name || ""}
+                <strong>Logged by:</strong> {invoice.user?.name || ""}
               </p>
               <p>
                 <strong>Date Issued:</strong> {formatDate(invoice.dateIssued)}
