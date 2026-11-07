@@ -14,6 +14,8 @@ import {
 } from "../schemas/zodSchemas";
 import { handleServiceError } from "./errorHandler";
 
+export const WALK_IN_CUSTOMER_NAME = "Walk-In / Counter Sales";
+
 export interface CustomerQueryParams {
   limit?: number;
   page?: number;
@@ -245,14 +247,13 @@ export class CustomerService {
   }
 
   static async getOrCreateWalkIn() {
-    const WALK_IN_NAME = "Walk-In / Counter Sales";
     let customer = await Customer.findOne({
-      where: { name: WALK_IN_NAME },
+      where: { name: WALK_IN_CUSTOMER_NAME },
     });
 
     if (!customer) {
       customer = await Customer.create({
-        name: WALK_IN_NAME,
+        name: WALK_IN_CUSTOMER_NAME,
         address: "Over the counter",
         phone: "",
         status: CustomerStatus.ACTIVE,

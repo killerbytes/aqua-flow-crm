@@ -3,6 +3,7 @@ import { CreationOptional, DataTypes, Model, NonAttribute } from "sequelize";
 import { sequelize } from "../db/database";
 import { Customer } from "./Customer";
 import { InvoiceDetail } from "./InvoiceDetail";
+import { moneyColumn } from "./moneyColumn";
 import { User } from "./User";
 
 export class Invoice extends Model {
@@ -47,15 +48,8 @@ Invoice.init(
       allowNull: true,
       field: "due_date",
     },
-    amount: {
-      type: DataTypes.DECIMAL(10, 2),
-      allowNull: false,
-    },
-    discount: {
-      type: DataTypes.DECIMAL(10, 2),
-      allowNull: false,
-      defaultValue: 0,
-    },
+    amount: moneyColumn("amount", { allowNull: false }),
+    discount: moneyColumn("discount", { allowNull: false, defaultValue: 0 }),
     status: {
       type: DataTypes.STRING,
       allowNull: false,

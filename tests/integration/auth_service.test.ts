@@ -103,8 +103,17 @@ describe("Integration - Auth Service & Server Actions", () => {
       expect(order?.user?.username).toBeDefined();
       expect(order?.user).not.toHaveProperty("passwordHash");
 
+      const unpaid = await OrderService.create(
+        {
+          customerId: order!.customerId,
+          status: "PENDING",
+          paymentStatus: "UNPAID",
+          items: [{ productId: 1, quantity: 1 }],
+        } as any,
+        1,
+      );
       const invoice = await InvoiceService.create(
-        { customerId: order!.customerId, status: "UNPAID", items: [order!.orderId] },
+        { customerId: order!.customerId, status: "UNPAID", items: [unpaid!.orderId] },
         1,
       );
       await InvoiceService.payInvoice(

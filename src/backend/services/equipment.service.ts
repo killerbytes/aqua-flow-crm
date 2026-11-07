@@ -4,15 +4,16 @@ import {
   LedgerReferenceType,
   PAGINATION,
 } from "@/lib/definitions";
-import { Op } from "sequelize";
+import { Op, Transaction } from "sequelize";
 import {
   Customer,
   CustomerEquipmentBalance,
   EquipmentLedgerEntry,
   Order,
   ProductInventory,
+  sequelize,
 } from "../models";
-import { EquipmentLogSchema } from "../schemas/zodSchemas";
+import { EquipmentLogFormData, EquipmentLogSchema } from "../schemas/zodSchemas";
 
 export interface EquipmentLogQueryParams {
   limit?: number;
@@ -103,10 +104,24 @@ export class EquipmentService {
 
   static async logEquipment(input: any, loggedByUserId: number) {
     const validatedData = EquipmentLogSchema.parse(input);
+    return await sequelize.transaction((t) =>
+      EquipmentService.recordEquipmentAction(validatedData, loggedByUserId, t),
+    );
+  }
+
+  private static async recordEquipmentAction(
+    validatedData: EquipmentLogFormData,
+    loggedByUserId: number,
+    t: Transaction,
+  ) {
     const { customerId, productId, actionType, quantity, notes } =
       validatedData;
 
-    const product = await ProductInventory.findByPk(productId);
+    // Locked so simultaneous actions on a product can't overdraw its stock.
+    const product = await ProductInventory.findByPk(productId, {
+      transaction: t,
+      lock: t.LOCK.UPDATE,
+    });
     if (!product) {
       throw new Error("Product not found");
     }
@@ -141,6 +156,7 @@ export class EquipmentService {
     if (isTemporaryAction || isRegularReduceAction) {
       const balance = await CustomerEquipmentBalance.findOne({
         where: { customerId, productId },
+        transaction: t,
       });
 
       if (isTemporaryAction) {
@@ -225,17 +241,20 @@ export class EquipmentService {
         break;
     }
 
-    const entry = await EquipmentLedgerEntry.create({
-      productId,
-      fromAccountType,
-      fromAccountId,
-      toAccountType,
-      toAccountId,
-      quantity,
-      referenceType: LedgerReferenceType.MANUAL_LOG,
-      notes,
-      loggedBy: loggedByUserId,
-    });
+    const entry = await EquipmentLedgerEntry.create(
+      {
+        productId,
+        fromAccountType,
+        fromAccountId,
+        toAccountType,
+        toAccountId,
+        quantity,
+        referenceType: LedgerReferenceType.MANUAL_LOG,
+        notes,
+        loggedBy: loggedByUserId,
+      },
+      { transaction: t },
+    );
 
     const plain = entry.get({ plain: true });
     return {

@@ -37,5 +37,13 @@ InvoiceDetail.init(
     tableName: "invoice_details",
     timestamps: true,
     hooks: {},
+    // An order can only be billed on one invoice.
+    indexes: [
+      {
+        unique: true,
+        fields: ["order_id"],
+        name: "idx_invoice_details_order_id",
+      },
+    ],
   },
 );

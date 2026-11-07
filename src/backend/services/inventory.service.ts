@@ -5,7 +5,7 @@ import {
   PAGINATION,
 } from "@/lib/definitions";
 import { handleServiceError } from "./errorHandler";
-import { EquipmentLedgerEntry, ProductInventory } from "../models";
+import { EquipmentLedgerEntry, ProductInventory, sequelize } from "../models";
 import { AdjustmentFormData, AdjustmentSchema } from "../schemas/zodSchemas";
 
 export interface InventoryLogQueryParams {
@@ -74,44 +74,53 @@ export class InventoryService {
     const validatedData = AdjustmentSchema.parse(input);
     const { productId, adjustmentType, quantity, reason } = validatedData;
 
-    const product = await ProductInventory.findByPk(productId);
-    if (!product) throw new Error("Product not found");
-
-    if (
-      (adjustmentType === InventoryAdjustmentType.DECLARED_DAMAGED ||
-        adjustmentType === InventoryAdjustmentType.DECLARED_LOST) &&
-      product.stockInStation < quantity
-    ) {
-      throw new Error(
-        `Cannot adjust ${quantity} container(s) as ${adjustmentType}. Only ${product.stockInStation} available in station.`,
-      );
-    }
-
     try {
-      let fromAccountType: LedgerAccountType = LedgerAccountType.SUPPLIER;
-      let toAccountType: LedgerAccountType = LedgerAccountType.STATION;
+      return await sequelize.transaction(async (t) => {
+        // Locked so simultaneous adjustments can't overdraw the stock.
+        const product = await ProductInventory.findByPk(productId, {
+          transaction: t,
+          lock: t.LOCK.UPDATE,
+        });
+        if (!product) throw new Error("Product not found");
 
-      if (adjustmentType === InventoryAdjustmentType.DECLARED_DAMAGED) {
-        fromAccountType = LedgerAccountType.STATION;
-        toAccountType = LedgerAccountType.SCRAP_DAMAGED;
-      } else if (adjustmentType === InventoryAdjustmentType.DECLARED_LOST) {
-        fromAccountType = LedgerAccountType.STATION;
-        toAccountType = LedgerAccountType.SCRAP_LOST;
-      }
+        if (
+          (adjustmentType === InventoryAdjustmentType.DECLARED_DAMAGED ||
+            adjustmentType === InventoryAdjustmentType.DECLARED_LOST) &&
+          product.stockInStation < quantity
+        ) {
+          throw new Error(
+            `Cannot adjust ${quantity} container(s) as ${adjustmentType}. Only ${product.stockInStation} available in station.`,
+          );
+        }
 
-      const entry = await EquipmentLedgerEntry.create({
-        productId,
-        fromAccountType,
-        toAccountType,
-        quantity,
-        referenceType:
-          adjustmentType === InventoryAdjustmentType.STOCK_IN
-            ? LedgerReferenceType.RESTOCK
-            : LedgerReferenceType.INVENTORY_ADJUSTMENT,
-        notes: reason,
+        let fromAccountType: LedgerAccountType = LedgerAccountType.SUPPLIER;
+        let toAccountType: LedgerAccountType = LedgerAccountType.STATION;
+
+        if (adjustmentType === InventoryAdjustmentType.DECLARED_DAMAGED) {
+          fromAccountType = LedgerAccountType.STATION;
+          toAccountType = LedgerAccountType.SCRAP_DAMAGED;
+        } else if (adjustmentType === InventoryAdjustmentType.DECLARED_LOST) {
+          fromAccountType = LedgerAccountType.STATION;
+          toAccountType = LedgerAccountType.SCRAP_LOST;
+        }
+
+        const entry = await EquipmentLedgerEntry.create(
+          {
+            productId,
+            fromAccountType,
+            toAccountType,
+            quantity,
+            referenceType:
+              adjustmentType === InventoryAdjustmentType.STOCK_IN
+                ? LedgerReferenceType.RESTOCK
+                : LedgerReferenceType.INVENTORY_ADJUSTMENT,
+            notes: reason,
+          },
+          { transaction: t },
+        );
+
+        return entry.get({ plain: true });
       });
-
-      return entry.get({ plain: true });
     } catch (error) {
       handleServiceError(error);
     }

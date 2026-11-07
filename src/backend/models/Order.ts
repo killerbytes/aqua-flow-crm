@@ -3,6 +3,7 @@ import { CreationOptional, DataTypes, Model, NonAttribute } from "sequelize";
 import { sequelize } from "../db/database";
 import { Customer } from "./Customer";
 import { OrderDetail } from "./OrderDetail";
+import { moneyColumn } from "./moneyColumn";
 import { User } from "./User";
 
 export class Order extends Model {
@@ -31,7 +32,7 @@ Order.init(
       primaryKey: true,
     },
     customerId: { type: DataTypes.INTEGER, allowNull: false },
-    totalAmount: { type: DataTypes.FLOAT, defaultValue: 0 },
+    totalAmount: moneyColumn("totalAmount", { defaultValue: 0 }),
     status: {
       type: DataTypes.ENUM(...Object.values(OrderStatus)),
       defaultValue: OrderStatus.PENDING,

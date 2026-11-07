@@ -1,13 +1,16 @@
 import { OrderStatus, PAGINATION, PaymentStatus } from "@/lib/definitions";
+import { fromCents, toCents } from "@/lib/money";
 import moment from "moment-timezone";
-import { Op, OrderItem } from "sequelize";
+import { Op, OrderItem, Transaction } from "sequelize";
 import { getAuthContext, UserSession } from "../auth/context";
 import {
   Customer,
   CustomerSpecialPricing,
+  InvoiceDetail,
   Order,
   OrderDetail,
   ProductInventory,
+  sequelize,
   User,
 } from "../models";
 import {
@@ -15,7 +18,7 @@ import {
   PaymentFormData,
   PaymentSchema,
 } from "../schemas/zodSchemas";
-import { CustomerService } from "./customer.service";
+import { CustomerService, WALK_IN_CUSTOMER_NAME } from "./customer.service";
 import { ProductService } from "./product.service";
 
 export interface OrderQueryParams {
@@ -57,6 +60,10 @@ export class OrderService {
         where.status = {
           [Op.ne]: OrderStatus.CANCELLED,
         };
+        const invoiced = await InvoiceDetail.findAll({
+          attributes: ["orderId"],
+        });
+        where.orderId = { [Op.notIn]: invoiced.map((d) => d.orderId) };
       }
 
       if (status) {
@@ -175,6 +182,27 @@ export class OrderService {
     return order ? order.get({ plain: true }) : null;
   }
 
+  /**
+   * Order creation for requests from staff. Only walk-in sales are recorded as
+   * already delivered, paid, and dated by the cashier. Everything else starts
+   * as a new unpaid order, whatever the request says.
+   */
+  static async createForStaff(input: OrderFormData, createdByUserId: number) {
+    const customer = await CustomerService.get(input.customerId);
+    if (customer?.name === WALK_IN_CUSTOMER_NAME) {
+      return await OrderService.create(input, createdByUserId);
+    }
+    return await OrderService.create(
+      {
+        ...input,
+        status: OrderStatus.PENDING,
+        paymentStatus: PaymentStatus.UNPAID,
+        createdAt: undefined,
+      },
+      createdByUserId,
+    );
+  }
+
   static async create(input: OrderFormData, createdByUserId: number) {
     const { customerId, status, paymentStatus, items, createdAt } = input;
     const createdBy = createdByUserId;
@@ -184,8 +212,13 @@ export class OrderService {
       throw new Error(`Customer with ID ${customerId} not found`);
     }
 
-    let calculatedTotal = 0;
-    const validatedItems = [];
+    let totalCents = 0;
+    const validatedItems: {
+      productId: number;
+      quantity: number;
+      unitPrice: number;
+      discount: number;
+    }[] = [];
 
     for (const item of items) {
       const product = await ProductService.get(item.productId);
@@ -197,42 +230,44 @@ export class OrderService {
         where: { customerId, productId: item.productId },
       });
 
-      const effectiveUnitPrice = Number(item.unitPrice || product.unitPrice);
-      const itemDiscount = specialPricing
+      // Prices always come from the database, never from the request.
+      const unitPrice = Number(product.unitPrice);
+      const discount = specialPricing
         ? Number(specialPricing.discountAmount)
-        : item.discount || 0;
-      const netUnitPrice = Math.max(0, effectiveUnitPrice - itemDiscount);
+        : 0;
+      const netUnitCents = Math.max(0, toCents(unitPrice) - toCents(discount));
 
-      calculatedTotal += netUnitPrice * item.quantity;
+      totalCents += netUnitCents * item.quantity;
       validatedItems.push({
-        ...item,
-        unitPrice: effectiveUnitPrice,
-        discount: itemDiscount,
-      });
-    }
-
-    const order = await Order.create({
-      customerId,
-      totalAmount: calculatedTotal,
-      status,
-      paymentStatus,
-      createdBy,
-      createdAt,
-    });
-
-    const plainOrder = order.get({ plain: true });
-
-    for (const item of validatedItems) {
-      await OrderDetail.create({
-        orderId: plainOrder.orderId,
         productId: item.productId,
         quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        discount: item.discount,
+        unitPrice,
+        discount,
       });
     }
 
-    return await this.get(plainOrder.orderId);
+    const orderId = await sequelize.transaction(async (t) => {
+      const order = await Order.create(
+        {
+          customerId,
+          totalAmount: fromCents(totalCents),
+          status,
+          paymentStatus,
+          createdBy,
+          createdAt,
+        },
+        { transaction: t },
+      );
+
+      await OrderDetail.bulkCreate(
+        validatedItems.map((item) => ({ ...item, orderId: order.orderId })),
+        { transaction: t },
+      );
+
+      return order.orderId;
+    });
+
+    return await this.get(orderId);
   }
 
   static async updateStatus(
@@ -250,58 +285,68 @@ export class OrderService {
       throw new Error(`Invalid order status: ${status}`);
     }
 
-    const order = await Order.findByPk(Number(id), {
-      include: [{ model: OrderDetail, as: "orderDetails" }],
-    });
-    if (!order) {
-      throw new Error(`Order with ID ${id} not found`);
-    }
+    return await sequelize.transaction(async (t) => {
+      const order = await Order.findByPk(Number(id), {
+        transaction: t,
+        lock: t.LOCK.UPDATE,
+      });
+      if (!order) {
+        throw new Error(`Order with ID ${id} not found`);
+      }
 
-    const currentStatus = order.status;
+      const currentStatus = order.status;
 
-    if (currentStatus === targetStatus) {
+      if (currentStatus === targetStatus) {
+        return order.get({ plain: true });
+      }
+
+      if (currentStatus === OrderStatus.CANCELLED) {
+        throw new Error(
+          `Cannot change status of a ${currentStatus.toLowerCase()} order`,
+        );
+      }
+
+      const allowedTransitions: Record<OrderStatus, OrderStatus[]> = {
+        [OrderStatus.PENDING]: [
+          OrderStatus.OUT_FOR_DELIVERY,
+          OrderStatus.DELIVERED,
+          OrderStatus.CANCELLED,
+        ],
+        [OrderStatus.OUT_FOR_DELIVERY]: [
+          OrderStatus.PENDING,
+          OrderStatus.DELIVERED,
+          OrderStatus.CANCELLED,
+        ],
+        [OrderStatus.DELIVERED]: [OrderStatus.CANCELLED],
+        [OrderStatus.CANCELLED]: [],
+      };
+
+      const allowed = allowedTransitions[currentStatus] || [];
+      if (!allowed.includes(targetStatus)) {
+        throw new Error(
+          `Invalid status transition from ${currentStatus} to ${targetStatus}`,
+        );
+      }
+
+      if (
+        targetStatus === OrderStatus.CANCELLED &&
+        (await isInvoiced(order.orderId, t))
+      ) {
+        throw new Error("Cannot cancel an order that is on an invoice");
+      }
+
+      const currentUser =
+        user || (await getAuthContext().catch(() => null))?.user;
+      if (currentUser) {
+        console.log(
+          `[OrderService] Order #${id} status updating from ${currentStatus} to ${targetStatus} by user:`,
+          currentUser,
+        );
+      }
+
+      await order.update({ status: targetStatus }, { transaction: t });
       return order.get({ plain: true });
-    }
-
-    if (currentStatus === OrderStatus.CANCELLED) {
-      throw new Error(
-        `Cannot change status of a ${currentStatus.toLowerCase()} order`,
-      );
-    }
-
-    const allowedTransitions: Record<OrderStatus, OrderStatus[]> = {
-      [OrderStatus.PENDING]: [
-        OrderStatus.OUT_FOR_DELIVERY,
-        OrderStatus.DELIVERED,
-        OrderStatus.CANCELLED,
-      ],
-      [OrderStatus.OUT_FOR_DELIVERY]: [
-        OrderStatus.PENDING,
-        OrderStatus.DELIVERED,
-        OrderStatus.CANCELLED,
-      ],
-      [OrderStatus.DELIVERED]: [OrderStatus.CANCELLED],
-      [OrderStatus.CANCELLED]: [],
-    };
-
-    const allowed = allowedTransitions[currentStatus] || [];
-    if (!allowed.includes(targetStatus)) {
-      throw new Error(
-        `Invalid status transition from ${currentStatus} to ${targetStatus}`,
-      );
-    }
-
-    const currentUser =
-      user || (await getAuthContext().catch(() => null))?.user;
-    if (currentUser) {
-      console.log(
-        `[OrderService] Order #${id} status updating from ${currentStatus} to ${targetStatus} by user:`,
-        currentUser,
-      );
-    }
-
-    await order.update({ status: targetStatus });
-    return order.get({ plain: true });
+    });
   }
 
   static async delete(id: number | string) {
@@ -311,34 +356,47 @@ export class OrderService {
 
   static async makePayment(input: PaymentFormData, id: number) {
     const validatedData = PaymentSchema.parse(input);
-    const order = await Order.findByPk(Number(id), {
-      include: [{ model: OrderDetail, as: "orderDetails" }],
-    });
-    if (!order) {
-      throw new Error(`Order with ID ${id} not found`);
-    }
 
-    if (order.paymentStatus === PaymentStatus.PAID) {
-      throw new Error("Order is already marked as PAID");
-    }
-
-    if (order.status === OrderStatus.CANCELLED) {
-      throw new Error(
-        `Cannot process payment for a ${order.status.toLowerCase()} order`,
-      );
-    }
-    try {
-      await order.update({
-        paymentStatus: PaymentStatus.PAID,
-        paymentMethod: validatedData.paymentMethod,
-        paymentNotes: validatedData.paymentNotes,
+    return await sequelize.transaction(async (t) => {
+      const order = await Order.findByPk(Number(id), {
+        transaction: t,
+        lock: t.LOCK.UPDATE,
       });
+      if (!order) {
+        throw new Error(`Order with ID ${id} not found`);
+      }
+
+      if (order.paymentStatus === PaymentStatus.PAID) {
+        throw new Error("Order is already marked as PAID");
+      }
+
+      if (order.status === OrderStatus.CANCELLED) {
+        throw new Error(
+          `Cannot process payment for a ${order.status.toLowerCase()} order`,
+        );
+      }
+
+      if (await isInvoiced(order.orderId, t)) {
+        throw new Error(
+          "This order is on an invoice. Record the payment on the invoice.",
+        );
+      }
+
+      await order.update(
+        {
+          paymentStatus: PaymentStatus.PAID,
+          paymentMethod: validatedData.paymentMethod,
+          paymentNotes: validatedData.paymentNotes,
+        },
+        { transaction: t },
+      );
       return order.get({ plain: true });
-    } catch (error) {
-      throw error;
-    }
+    });
   }
 }
+
+const isInvoiced = async (orderId: number, transaction: Transaction) =>
+  (await InvoiceDetail.count({ where: { orderId }, transaction })) > 0;
 
 const getSummary = async (where: any) => {
   const totalAmount = await Order.sum("totalAmount", {

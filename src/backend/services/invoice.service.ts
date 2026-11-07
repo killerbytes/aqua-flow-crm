@@ -1,4 +1,10 @@
-import { InvoiceStatus, PAGINATION, PaymentStatus } from "@/lib/definitions";
+import {
+  InvoiceStatus,
+  OrderStatus,
+  PAGINATION,
+  PaymentStatus,
+} from "@/lib/definitions";
+import { fromCents, toCents } from "@/lib/money";
 import { Op, OrderItem } from "sequelize";
 import {
   Customer,
@@ -114,41 +120,71 @@ export class InvoiceService {
   }
   static async create(data: InvoiceFormData, userId: number) {
     return await sequelize.transaction(async (t) => {
-      // 1. Fetch orders matching selected order IDs for the given customer
+      const orderIds = [...new Set(data.items)];
+
+      // Locked so an order can't be paid or cancelled while being invoiced.
       const orders = await Order.findAll({
         where: {
-          orderId: data.items,
+          orderId: orderIds,
           customerId: data.customerId,
         },
         transaction: t,
+        lock: t.LOCK.UPDATE,
       });
 
-      if (!orders || orders.length === 0) {
+      if (orders.length === 0) {
         throw new Error("No valid orders found for invoice creation");
       }
+      if (orders.length !== orderIds.length) {
+        throw new Error("Some orders were not found for this customer");
+      }
 
-      // 2. Calculate sum of total amounts from orders
-      const totalAmount = orders.reduce(
-        (sum, order) => sum + Number(order.totalAmount || 0),
+      const listIds = (matching: Order[]) =>
+        matching.map((order) => `#${order.orderId}`).join(", ");
+
+      const cancelled = orders.filter(
+        (order) => order.status === OrderStatus.CANCELLED,
+      );
+      if (cancelled.length > 0) {
+        throw new Error(`Cancelled orders can't be invoiced: ${listIds(cancelled)}`);
+      }
+
+      const paid = orders.filter(
+        (order) => order.paymentStatus === PaymentStatus.PAID,
+      );
+      if (paid.length > 0) {
+        throw new Error(`These orders are already paid: ${listIds(paid)}`);
+      }
+
+      const existing = await InvoiceDetail.findAll({
+        where: { orderId: orderIds },
+        transaction: t,
+      });
+      if (existing.length > 0) {
+        const ids = existing.map((detail) => `#${detail.orderId}`).join(", ");
+        throw new Error(`These orders are already on an invoice: ${ids}`);
+      }
+
+      const totalCents = orders.reduce(
+        (sum, order) => sum + toCents(order.totalAmount),
         0,
       );
 
-      // 3. Create main Invoice record
+      // New invoices are always unpaid. Payments are what change the status.
       const invoice = await Invoice.create(
         {
           customerId: data.customerId,
           dateIssued: data.dateIssued || new Date(),
           dueDate:
             data.dueDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          amount: totalAmount,
+          amount: fromCents(totalCents),
           discount: 0,
-          status: data.status || InvoiceStatus.UNPAID,
+          status: InvoiceStatus.UNPAID,
           loggedBy: userId,
         },
         { transaction: t },
       );
 
-      // 4. Create InvoiceDetail entries for each orderId
       const invoiceDetailsData = orders.map((order) => ({
         invoiceId: invoice.invoiceId,
         orderId: order.orderId,
@@ -162,91 +198,83 @@ export class InvoiceService {
 
   static async payInvoice(input: InvoicePaymentFormData, loggedBy: number = 1) {
     const validatedData = InvoicePaymentSchema.parse(input);
-    try {
-      return await sequelize.transaction(async (t) => {
-        const invoice = await Invoice.findByPk(validatedData.invoiceId, {
-          include: [
-            {
-              model: InvoiceDetail,
-              as: "invoiceDetails",
-            },
-          ],
-          transaction: t,
-        });
 
-        if (!invoice) {
-          throw new Error("Invoice not found");
-        }
-        if (invoice.status === InvoiceStatus.PAID) {
-          throw new Error("Invoice is already marked as PAID");
-        }
-
-        const existingPayments = await InvoicePayment.findAll({
-          where: { invoiceId: validatedData.invoiceId },
-          transaction: t,
-        });
-
-        const previousPaidAmount = existingPayments.reduce(
-          (sum, p) => sum + Number(p.paymentAmount),
-          0,
-        );
-
-        const invoiceTotalAmount = Number(invoice.amount);
-        const remainingBalance = invoiceTotalAmount - previousPaidAmount;
-
-        if (validatedData.paymentAmount <= 0) {
-          throw new Error("Payment amount must be greater than zero");
-        }
-
-        if (validatedData.paymentAmount > remainingBalance) {
-          throw new Error("Payment amount exceeds remaining balance");
-        }
-
-        const newTotalPaid = previousPaidAmount + validatedData.paymentAmount;
-
-        if (newTotalPaid >= invoiceTotalAmount) {
-          invoice.status = InvoiceStatus.PAID;
-          invoice.paymentDate = validatedData.paymentDate
-            ? new Date(validatedData.paymentDate)
-            : new Date();
-
-          const orderIds = (invoice.invoiceDetails || []).map(
-            (detail) => detail.orderId,
-          );
-
-          if (orderIds.length > 0) {
-            await Order.update(
-              { paymentStatus: PaymentStatus.PAID },
-              {
-                where: { orderId: orderIds },
-                transaction: t,
-              },
-            );
-          }
-        } else {
-          invoice.status = InvoiceStatus.PARTIAL;
-        }
-
-        await invoice.save({ transaction: t });
-
-        await InvoicePayment.create(
-          {
-            invoiceId: validatedData.invoiceId,
-            paymentAmount: validatedData.paymentAmount,
-            paymentDate: validatedData.paymentDate || new Date(),
-            paymentMethod: validatedData.paymentMethod,
-            paymentNotes: validatedData.paymentNotes,
-            loggedBy,
-          },
-          { transaction: t },
-        );
-
-        return invoice.get({ plain: true });
+    return await sequelize.transaction(async (t) => {
+      // Locked so simultaneous payments can't both pass the balance check.
+      const invoice = await Invoice.findByPk(validatedData.invoiceId, {
+        transaction: t,
+        lock: t.LOCK.UPDATE,
       });
-    } catch (error) {
-      console.log(1234, error);
-      throw error;
-    }
+
+      if (!invoice) {
+        throw new Error("Invoice not found");
+      }
+      if (invoice.status === InvoiceStatus.PAID) {
+        throw new Error("Invoice is already marked as PAID");
+      }
+
+      const existingPayments = await InvoicePayment.findAll({
+        where: { invoiceId: validatedData.invoiceId },
+        transaction: t,
+      });
+
+      const previousPaidCents = existingPayments.reduce(
+        (sum, payment) => sum + toCents(payment.paymentAmount),
+        0,
+      );
+
+      const invoiceCents = toCents(invoice.amount);
+      const remainingCents = invoiceCents - previousPaidCents;
+      const paymentCents = toCents(validatedData.paymentAmount);
+
+      if (paymentCents <= 0) {
+        throw new Error("Payment amount must be greater than zero");
+      }
+
+      if (paymentCents > remainingCents) {
+        throw new Error("Payment amount exceeds remaining balance");
+      }
+
+      if (paymentCents === remainingCents) {
+        invoice.status = InvoiceStatus.PAID;
+        invoice.paymentDate = validatedData.paymentDate
+          ? new Date(validatedData.paymentDate)
+          : new Date();
+
+        const details = await InvoiceDetail.findAll({
+          where: { invoiceId: invoice.invoiceId },
+          transaction: t,
+        });
+
+        if (details.length > 0) {
+          await Order.update(
+            { paymentStatus: PaymentStatus.PAID },
+            {
+              where: { orderId: details.map((detail) => detail.orderId) },
+              transaction: t,
+            },
+          );
+        }
+      } else {
+        invoice.status = InvoiceStatus.PARTIAL;
+      }
+
+      await invoice.save({ transaction: t });
+
+      await InvoicePayment.create(
+        {
+          invoiceId: validatedData.invoiceId,
+          paymentAmount: fromCents(paymentCents),
+          paymentDate: validatedData.paymentDate || new Date(),
+          paymentMethod: validatedData.paymentMethod,
+          paymentNotes: validatedData.paymentNotes,
+          loggedBy,
+        },
+        { transaction: t },
+      );
+
+      return invoice.get({ plain: true });
+    });
   }
   static async getPayments(invoiceId: number) {
     const payments = await InvoicePayment.findAll({

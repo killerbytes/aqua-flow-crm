@@ -2,6 +2,7 @@ import { PaymentMethod } from "@/lib/definitions";
 import { CreationOptional, DataTypes, Model, NonAttribute } from "sequelize";
 import { sequelize } from "../db/database";
 import { Invoice } from "./Invoice";
+import { moneyColumn } from "./moneyColumn";
 
 export class InvoicePayment extends Model {
   declare id: CreationOptional<number>;
@@ -37,11 +38,10 @@ InvoicePayment.init(
       allowNull: false,
       field: "payment_date",
     },
-    paymentAmount: {
-      type: DataTypes.FLOAT,
+    paymentAmount: moneyColumn("paymentAmount", {
       allowNull: false,
       field: "payment_amount",
-    },
+    }),
     paymentMethod: {
       type: DataTypes.ENUM,
       values: Object.values(PaymentMethod),

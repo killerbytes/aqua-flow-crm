@@ -30,7 +30,7 @@ export const createOrderAction = createProtectedAction({
   permission: "CREATE_ORDER",
   schema: OrderSchema,
   handler: async (ctx, input: OrderFormData) => {
-    const result = await OrderService.create(input, ctx.user.userId);
+    const result = await OrderService.createForStaff(input, ctx.user.userId);
     revalidatePath("/orders");
     return result;
   },

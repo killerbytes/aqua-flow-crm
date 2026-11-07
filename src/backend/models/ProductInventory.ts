@@ -1,5 +1,6 @@
 import { CreationOptional, DataTypes, Model } from "sequelize";
 import { sequelize } from "../db/database";
+import { moneyColumn } from "./moneyColumn";
 
 export class ProductInventory extends Model {
   declare productId: number;
@@ -27,7 +28,7 @@ ProductInventory.init(
     stockWithCustomers: { type: DataTypes.INTEGER, defaultValue: 0 },
     stockDamaged: { type: DataTypes.INTEGER, defaultValue: 0 },
     stockLost: { type: DataTypes.INTEGER, defaultValue: 0 },
-    unitPrice: { type: DataTypes.FLOAT, defaultValue: 0 },
+    unitPrice: moneyColumn("unitPrice", { defaultValue: 0 }),
     isLendOnly: { type: DataTypes.BOOLEAN, defaultValue: false },
     isDefault: { type: DataTypes.BOOLEAN, defaultValue: false },
     deletedAt: DataTypes.DATE,

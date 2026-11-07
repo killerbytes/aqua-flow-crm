@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import * as authContext from "../../../src/backend/auth/context";
+import { CustomerService } from "../../../src/backend/services/customer.service";
 import { OrderService } from "../../../src/backend/services/order.service";
 import { OrderStatus, PaymentMethod, PaymentStatus, UserRole } from "../../../src/lib/definitions";
 import {
@@ -68,6 +69,7 @@ describe("Unit - Order Server Actions", () => {
     vi.spyOn(authContext, "getAuthContext").mockResolvedValue({
       user: { userId: 1, name: "Admin", role: UserRole.ADMIN },
     } as any);
+    vi.spyOn(CustomerService, "get").mockResolvedValue({ customerId: 1, name: "Regular" } as any);
     vi.spyOn(OrderService, "create").mockResolvedValue({ orderId: 101, totalAmount: 100 } as any);
 
     const res = await createOrderAction({

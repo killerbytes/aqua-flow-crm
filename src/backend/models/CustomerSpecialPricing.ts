@@ -1,5 +1,6 @@
 import { CreationOptional, DataTypes, Model, NonAttribute } from "sequelize";
 import { sequelize } from "../db/database";
+import { moneyColumn } from "./moneyColumn";
 import { ProductInventory } from "./ProductInventory";
 
 export class CustomerSpecialPricing extends Model {
@@ -22,7 +23,7 @@ CustomerSpecialPricing.init(
     },
     customerId: { type: DataTypes.INTEGER, allowNull: false },
     productId: { type: DataTypes.INTEGER, allowNull: false },
-    discountAmount: { type: DataTypes.FLOAT, defaultValue: 0 },
+    discountAmount: moneyColumn("discountAmount", { defaultValue: 0 }),
   },
   {
     sequelize,

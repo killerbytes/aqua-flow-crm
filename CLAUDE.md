@@ -64,6 +64,9 @@ Auth has two modules: `src/lib/auth.edge.ts` is for middleware and must stay fre
 
 - **Schema changes need a migration** in `src/backend/migrations`. The app never runs `sync` against PostgreSQL at runtime.
 - **Tests run on in-memory SQLite, and production on PostgreSQL.** The test schema is built from the models with `sequelize.sync`, so passing tests don't prove a migration exists or works. `define: { underscored: true }` is also only set for PostgreSQL, so column names differ between the two, and raw SQL may behave differently.
+- **Money:** columns are `DECIMAL(10,2)` through `moneyColumn`, which reads them as numbers. Do arithmetic in centavos with `toCents` and `fromCents` (`src/lib/money.ts`). Order prices always come from the database, and any `unitPrice` or `discount` in a request is ignored.
+- **Billing rules:** an order can be on one invoice only (unique index). Cancelled or paid orders can't be invoiced, and invoiced orders can't be cancelled or paid directly. New invoices are always unpaid. Requests create orders through `OrderService.createForStaff`, which only lets the walk-in customer set status, payment status, and date.
+- **Row locks:** use `lock: t.LOCK.UPDATE` without an `include`, because PostgreSQL rejects `FOR UPDATE` on outer joins. SQLite ignores locks, so tests can't catch this or a race.
 - **Password hashes:** the `User` default scope excludes `passwordHash` from queries and includes. Only login uses `User.scope("withPassword")`. `User.create` and `update` results can still hold the hash, so return them through `toSafeUser`.
 - **Soft deletes:** `Customer`, `CustomerSpecialPricing`, `ProductInventory`, and `User` are paranoid. Use `{ paranoid: false }` to include deleted rows.
 - **Date filtering** uses the `Asia/Manila` timezone via `moment-timezone`.

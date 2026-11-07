@@ -1,5 +1,6 @@
 import { DataTypes, Model, NonAttribute, Order } from "sequelize";
 import { sequelize } from "../db/database";
+import { moneyColumn } from "./moneyColumn";
 import { ProductInventory } from "./ProductInventory";
 
 export class OrderDetail extends Model {
@@ -22,8 +23,8 @@ OrderDetail.init(
     orderId: { type: DataTypes.INTEGER, allowNull: false },
     productId: { type: DataTypes.INTEGER, allowNull: false },
     quantity: { type: DataTypes.INTEGER, allowNull: false },
-    unitPrice: { type: DataTypes.FLOAT, allowNull: false },
-    discount: { type: DataTypes.FLOAT, defaultValue: 0 },
+    unitPrice: moneyColumn("unitPrice", { allowNull: false }),
+    discount: moneyColumn("discount", { defaultValue: 0 }),
   },
   {
     sequelize,
