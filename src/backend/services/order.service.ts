@@ -62,6 +62,7 @@ export class OrderService {
         };
         const invoiced = await InvoiceDetail.findAll({
           attributes: ["orderId"],
+          where: { voidedAt: null },
         });
         where.orderId = { [Op.notIn]: invoiced.map((d) => d.orderId) };
       }
@@ -407,7 +408,10 @@ export class OrderService {
 }
 
 const isInvoiced = async (orderId: number, transaction: Transaction) =>
-  (await InvoiceDetail.count({ where: { orderId }, transaction })) > 0;
+  (await InvoiceDetail.count({
+    where: { orderId, voidedAt: null },
+    transaction,
+  })) > 0;
 
 const getSummary = async (where: any) => {
   const totalAmount = await Order.sum("totalAmount", {

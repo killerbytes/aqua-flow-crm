@@ -151,6 +151,10 @@ export const InvoiceSchema = z.object({
   items: z.array(z.number()).min(1, "At least one order is required"),
 });
 
+export const VoidInvoiceSchema = z.object({
+  reason: z.string().trim().min(3, "Please give a reason"),
+});
+
 export const InvoicePaymentSchema = z.object({
   invoiceId: z.number().int().positive("Invoice is required"),
   paymentAmount: z.number().positive("Payment amount is required"),
@@ -173,3 +177,4 @@ export type OrderFormData = z.infer<typeof OrderSchema>;
 export type OrderItemsFormData = z.infer<typeof OrderItemsSchema>;
 export type InvoiceFormData = z.infer<typeof InvoiceSchema>;
 export type InvoicePaymentFormData = z.infer<typeof InvoicePaymentSchema>;
+export type VoidInvoiceFormData = z.infer<typeof VoidInvoiceSchema>;

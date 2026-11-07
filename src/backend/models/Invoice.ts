@@ -16,6 +16,9 @@ export class Invoice extends Model {
   declare status: InvoiceStatus;
   declare paymentDate: Date;
   declare createdBy: number;
+  declare voidedAt: Date | null;
+  declare voidedBy: number | null;
+  declare voidReason: string | null;
 
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
@@ -23,6 +26,7 @@ export class Invoice extends Model {
   declare customer: NonAttribute<Customer>;
   declare invoiceDetails: NonAttribute<InvoiceDetail[]>;
   declare user: NonAttribute<User>;
+  declare voidedByUser: NonAttribute<User>;
 }
 
 Invoice.init(
@@ -61,6 +65,9 @@ Invoice.init(
       field: "payment_date",
     },
     loggedBy: { type: DataTypes.INTEGER, allowNull: false },
+    voidedAt: { type: DataTypes.DATE, allowNull: true, field: "voided_at" },
+    voidedBy: { type: DataTypes.INTEGER, allowNull: true, field: "voided_by" },
+    voidReason: { type: DataTypes.TEXT, allowNull: true, field: "void_reason" },
   },
   {
     sequelize,

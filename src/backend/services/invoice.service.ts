@@ -19,6 +19,8 @@ import {
   InvoiceFormData,
   InvoicePaymentFormData,
   InvoicePaymentSchema,
+  VoidInvoiceFormData,
+  VoidInvoiceSchema,
 } from "../schemas/zodSchemas";
 
 export interface InvoiceQueryParams {
@@ -116,6 +118,11 @@ export class InvoiceService {
           as: "user",
           paranoid: false,
         },
+        {
+          model: User,
+          as: "voidedByUser",
+          paranoid: false,
+        },
       ],
     });
 
@@ -160,7 +167,7 @@ export class InvoiceService {
       }
 
       const existing = await InvoiceDetail.findAll({
-        where: { orderId: orderIds },
+        where: { orderId: orderIds, voidedAt: null },
         transaction: t,
       });
       if (existing.length > 0) {
@@ -214,6 +221,9 @@ export class InvoiceService {
       }
       if (invoice.status === InvoiceStatus.PAID) {
         throw new Error("Invoice is already marked as PAID");
+      }
+      if (invoice.status === InvoiceStatus.VOID) {
+        throw new Error("This invoice has been voided");
       }
 
       const existingPayments = await InvoicePayment.findAll({
@@ -279,6 +289,58 @@ export class InvoiceService {
       return invoice.get({ plain: true });
     });
   }
+  /**
+   * Cancels a mistaken invoice that has no payments. It stays on record, and its
+   * orders become free to be paid, cancelled, or invoiced again.
+   */
+  static async voidInvoice(
+    id: number | string,
+    input: VoidInvoiceFormData,
+    userId: number,
+  ) {
+    const { reason } = VoidInvoiceSchema.parse(input);
+
+    return await sequelize.transaction(async (t) => {
+      // Locked so a payment can't land while this is being voided.
+      const invoice = await Invoice.findByPk(Number(id), {
+        transaction: t,
+        lock: t.LOCK.UPDATE,
+      });
+
+      if (!invoice) {
+        throw new Error("Invoice not found");
+      }
+      if (invoice.status === InvoiceStatus.VOID) {
+        throw new Error("This invoice is already void");
+      }
+
+      const payments = await InvoicePayment.count({
+        where: { invoiceId: invoice.invoiceId },
+        transaction: t,
+      });
+      if (payments > 0) {
+        throw new Error("This invoice has payments, so it can't be voided");
+      }
+
+      const voidedAt = new Date();
+      await invoice.update(
+        {
+          status: InvoiceStatus.VOID,
+          voidedAt,
+          voidedBy: userId,
+          voidReason: reason,
+        },
+        { transaction: t },
+      );
+      await InvoiceDetail.update(
+        { voidedAt },
+        { where: { invoiceId: invoice.invoiceId }, transaction: t },
+      );
+
+      return invoice.get({ plain: true });
+    });
+  }
+
   static async getPayments(invoiceId: number) {
     const payments = await InvoicePayment.findAll({
       where: { invoiceId },

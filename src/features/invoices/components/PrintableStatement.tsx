@@ -4,7 +4,7 @@ import { Invoice, InvoicePayment } from "@/backend/models";
 import { ColorBadge } from "@/components/presentation";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";
-import { INVOICE_STATUS_BADGE_COLOR } from "@/lib/definitions";
+import { InvoiceStatus, INVOICE_STATUS_BADGE_COLOR } from "@/lib/definitions";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { ArrowLeft, Printer } from "lucide-react";
 import Image from "next/image";
@@ -30,7 +30,10 @@ export default function PrintableStatement({
     (sum, p) => sum + Number(p.paymentAmount || 0),
     0,
   );
-  const remainingAmount = Math.max(0, Number(invoice.amount) - paidAmount);
+  const isVoid = invoice.status === InvoiceStatus.VOID;
+  const remainingAmount = isVoid
+    ? 0
+    : Math.max(0, Number(invoice.amount) - paidAmount);
 
   return (
     <div className="min-h-screen bg-slate-50 print:bg-white text-slate-900 p-4 sm:p-8">
@@ -53,6 +56,17 @@ export default function PrintableStatement({
       </div>
 
       <div className="max-w-4xl mx-auto bg-white p-8 sm:p-12 rounded-xl shadow-lg print:shadow-none print:p-0 print:max-w-none border border-slate-200 print:border-none space-y-8">
+        {isVoid && (
+          <div className="rounded-lg border-2 border-red-600 p-4 text-center">
+            <p className="text-2xl font-bold tracking-widest text-red-600">
+              VOID
+            </p>
+            <p className="text-sm text-slate-700">
+              This invoice was cancelled and is not payable.
+            </p>
+          </div>
+        )}
+
         <div className="flex justify-between items-start border-b pb-6 border-slate-200">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">

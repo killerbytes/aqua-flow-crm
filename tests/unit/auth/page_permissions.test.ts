@@ -81,6 +81,7 @@ describe("Unit - Page Permissions", () => {
     ["VIEW_PRODUCTS", [ADMIN, MANAGER, CASHIER]],
     ["VIEW_INVOICES", [ADMIN, MANAGER, CASHIER]],
     ["VIEW_ORDERS", [ADMIN, MANAGER, CASHIER, DELIVERY]],
+    ["VOID_INVOICE", [ADMIN, MANAGER]],
     ["MANAGE_USERS", [ADMIN]],
     ["CREATE_USER", [ADMIN]],
   ] as [PermissionAction, UserRole[]][])(

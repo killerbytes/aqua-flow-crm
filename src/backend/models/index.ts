@@ -81,6 +81,7 @@ InvoicePayment.belongsTo(User, { foreignKey: "loggedBy", as: "user" });
 User.hasMany(InvoicePayment, { foreignKey: "loggedBy", as: "invoicePayments" });
 
 Invoice.belongsTo(User, { foreignKey: "loggedBy", as: "user" });
+Invoice.belongsTo(User, { foreignKey: "voidedBy", as: "voidedByUser" });
 User.hasMany(Invoice, { foreignKey: "loggedBy", as: "invoices" });
 
 ProductInventory.hasMany(OrderDetail, {

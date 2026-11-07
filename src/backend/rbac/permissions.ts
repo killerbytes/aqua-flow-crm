@@ -20,6 +20,7 @@ export type PermissionAction =
   | "DELETE_ORDER"
   | "CREATE_INVOICE"
   | "PAY_INVOICE"
+  | "VOID_INVOICE"
   | "VIEW_INVOICES"
   | "LOG_EQUIPMENT"
   | "UPDATE_DELIVERY_STATUS"
@@ -46,6 +47,7 @@ const ROLE_PERMISSIONS: Record<UserRole, PermissionAction[]> = {
     "DELETE_ORDER",
     "CREATE_INVOICE",
     "PAY_INVOICE",
+    "VOID_INVOICE",
     "VIEW_INVOICES",
     "LOG_EQUIPMENT",
     "UPDATE_DELIVERY_STATUS",
@@ -68,6 +70,7 @@ const ROLE_PERMISSIONS: Record<UserRole, PermissionAction[]> = {
     "CANCEL_ORDER",
     "CREATE_INVOICE",
     "PAY_INVOICE",
+    "VOID_INVOICE",
     "VIEW_INVOICES",
     "LOG_EQUIPMENT",
     "UPDATE_DELIVERY_STATUS",

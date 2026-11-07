@@ -6,6 +6,7 @@ import { Order } from "./Order";
 export class InvoiceDetail extends Model {
   declare orderId: number;
   declare invoiceId: number;
+  declare voidedAt: Date | null;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
 
@@ -30,6 +31,7 @@ InvoiceDetail.init(
       allowNull: false,
       field: "order_id",
     },
+    voidedAt: { type: DataTypes.DATE, allowNull: true, field: "voided_at" },
   },
   {
     sequelize,
@@ -37,12 +39,13 @@ InvoiceDetail.init(
     tableName: "invoice_details",
     timestamps: true,
     hooks: {},
-    // An order can only be billed on one invoice.
+    // An order can only be on one active invoice. Voided links stay as a record.
     indexes: [
       {
         unique: true,
         fields: ["order_id"],
         name: "idx_invoice_details_order_id",
+        where: { voided_at: null },
       },
     ],
   },

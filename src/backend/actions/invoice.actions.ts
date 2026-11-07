@@ -6,6 +6,8 @@ import {
   InvoiceFormData,
   InvoicePaymentFormData,
   InvoiceSchema,
+  VoidInvoiceFormData,
+  VoidInvoiceSchema,
 } from "../schemas/zodSchemas";
 import { InvoiceService } from "../services/invoice.service";
 
@@ -15,6 +17,19 @@ export const createInvoiceAction = createProtectedAction({
   handler: async (ctx, input: InvoiceFormData) => {
     const result = await InvoiceService.create(input, ctx.user.userId);
     revalidatePath("/orders");
+    return result;
+  },
+});
+
+export const voidInvoiceAction = createProtectedAction({
+  permission: "VOID_INVOICE",
+  schema: VoidInvoiceSchema,
+  inputIndex: 1,
+  handler: async (ctx, id: number | string, input: VoidInvoiceFormData) => {
+    const result = await InvoiceService.voidInvoice(id, input, ctx.user.userId);
+    revalidatePath("/orders");
+    revalidatePath("/invoices");
+    revalidatePath(`/invoices/${id}`);
     return result;
   },
 });

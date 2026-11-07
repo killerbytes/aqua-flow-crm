@@ -11,6 +11,7 @@ import InvoiceDetailList from "@/features/invoices/components/InvoiceDetailList"
 import { PaymentFormModal } from "@/features/invoices/components/PaymentFormModal";
 import { PaymentFormModalButton } from "@/features/invoices/components/PaymentFormModalButton";
 import PaymentList from "@/features/invoices/components/PaymentList";
+import { VoidInvoiceButton } from "@/features/invoices/components/VoidInvoiceButton";
 import { INVOICE_STATUS_BADGE_COLOR, InvoiceStatus } from "@/lib/definitions";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { ArrowLeft, Printer } from "lucide-react";
@@ -49,6 +50,8 @@ export default async function InvoiceDetailPage({
     0,
   );
   const remainingAmount = Math.max(0, Number(invoice.amount) - paidAmount);
+  const isVoid = invoice.status === InvoiceStatus.VOID;
+  const canVoid = !isVoid && payments.length === 0;
 
   return (
     <>
@@ -64,15 +67,32 @@ export default async function InvoiceDetailPage({
           <div>
             <PageHeader>Invoice for {invoice.customer?.name || "[Deleted]"}</PageHeader>
           </div>
-          <Link href={`/invoices/${invoice.invoiceId}/print`} target="_blank">
-            <Button
-              variant="outline"
-              className="inline-flex items-center gap-2"
-            >
-              <Printer size={16} /> Print Statement
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            {canVoid && <VoidInvoiceButton invoiceId={invoice.invoiceId} />}
+            <Link href={`/invoices/${invoice.invoiceId}/print`} target="_blank">
+              <Button
+                variant="outline"
+                className="inline-flex items-center gap-2"
+              >
+                <Printer size={16} /> Print Statement
+              </Button>
+            </Link>
+          </div>
         </div>
+        {isVoid && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm space-y-1">
+            <p className="font-semibold text-destructive">
+              This invoice was voided and is not payable.
+            </p>
+            <p>
+              <strong>Voided by:</strong> {invoice.voidedByUser?.name || "N/A"}{" "}
+              on {invoice.voidedAt ? formatDate(invoice.voidedAt) : "N/A"}
+            </p>
+            <p>
+              <strong>Reason:</strong> {invoice.voidReason}
+            </p>
+          </div>
+        )}
         {invoice && (
           <div className="flex col-span-2 justify-between pt-4 border-t">
             <div className="space-y-2 text-sm">
@@ -133,7 +153,7 @@ export default async function InvoiceDetailPage({
           <TabsContent value="details" className="space-y-4">
             <InvoiceDetailList invoiceDetails={invoice.invoiceDetails || []} />
             <div className="flex justify-end w-full">
-              {invoice.status !== InvoiceStatus.PAID ? (
+              {invoice.status !== InvoiceStatus.PAID && !isVoid ? (
                 <PaymentFormModalButton invoice={invoice} variant="secondary">
                   Pay Invoice
                 </PaymentFormModalButton>
