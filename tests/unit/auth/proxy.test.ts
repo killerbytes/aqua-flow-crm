@@ -1,14 +1,14 @@
 import { NextRequest } from "next/server";
 import { describe, expect, it } from "vitest";
 import { signToken } from "../../../src/lib/auth.edge";
-import { middleware } from "../../../src/middleware";
+import { proxy } from "../../../src/proxy";
 
 const request = (path: string, token?: string) =>
   new NextRequest(`http://localhost${path}`, {
     headers: token ? { cookie: `token=${token}` } : {},
   });
 
-describe("Unit - Middleware Authentication", () => {
+describe("Unit - Proxy Authentication", () => {
   it.each([
     "/",
     "/orders",
@@ -21,7 +21,7 @@ describe("Unit - Middleware Authentication", () => {
     "/orders/logo.jpg",
     "/apiary",
   ])("should redirect %s to login without a session", async (path) => {
-    const response = await middleware(request(path));
+    const response = await proxy(request(path));
 
     expect(response.status).toBe(307);
     expect(new URL(response.headers.get("location")!).pathname).toBe("/login");
@@ -34,13 +34,13 @@ describe("Unit - Middleware Authentication", () => {
     "/api/auth/login",
     "/_next/static/chunk.js",
   ])("should allow %s without a session", async (path) => {
-    const response = await middleware(request(path));
+    const response = await proxy(request(path));
     expect(response.headers.get("location")).toBeNull();
   });
 
   it("should allow pages with a valid session", async () => {
     const token = await signToken({ userId: 1, role: "ADMIN" });
-    const response = await middleware(request("/orders/1", token));
+    const response = await proxy(request("/orders/1", token));
     expect(response.headers.get("location")).toBeNull();
   });
 });

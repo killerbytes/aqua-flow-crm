@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Aqua Flow is a CRM for a water refill business: customers, orders and dispatch, walk-in sales, invoices and payments, inventory, returnable-equipment tracking, and reports. It uses Next.js 15 (App Router), React 19, Sequelize 6 on PostgreSQL, Zod 3, Tailwind 4, and shadcn/ui. It deploys to Railway as a standalone build, with Sentry for monitoring.
+Aqua Flow is a CRM for a water refill business: customers, orders and dispatch, walk-in sales, invoices and payments, inventory, returnable-equipment tracking, and reports. It uses Next.js 16 (App Router), React 19, Sequelize 6 on PostgreSQL, Zod 4, Tailwind 4, and shadcn/ui. It deploys to Railway as a standalone build, with Sentry for monitoring.
 
 ## Commands
 
@@ -54,11 +54,11 @@ src/features (Client Components) ─► src/backend/actions ─────► s
 
 There are three separate layers, and each covers something different:
 
-1. **`src/middleware.ts`** (Edge runtime) redirects unauthenticated page requests to `/login` and refreshes the JWT. It skips `/api/*`, and it does not check roles.
+1. **`src/proxy.ts`** (Next.js 16's renamed middleware) redirects unauthenticated page requests to `/login` and refreshes the JWT. It skips `/api/*`, and it does not check roles.
 2. **`createProtectedAction`** enforces roles on Server Actions, using `src/backend/rbac/permissions.ts`.
 3. **Server Component pages** call `requirePagePermission("...")` (`src/backend/auth/context.ts`), which rejects missing sessions and deactivated users, since middleware can't reach the database, and checks the role. New pages must call it and be added to `tests/unit/auth/page_permissions.test.ts`. Call it outside any `try/catch`, because `redirect()` works by throwing. `RoleGuard` and the sidebar only hide things in the browser, so they never replace this check.
 
-Auth has two modules: `src/lib/auth.edge.ts` is for middleware and must stay free of ORM imports, while `src/lib/auth.ts` is for the Node runtime. The session is an httpOnly `token` cookie holding a 15-minute JWT that renews itself, for up to 30 days from login.
+Auth has two modules: `src/lib/auth.edge.ts` is for the proxy and stays free of ORM imports, while `src/lib/auth.ts` is for the Node runtime. The session is an httpOnly `token` cookie holding a 15-minute JWT that renews itself, for up to 30 days from login.
 
 Sessions are revoked with `AuthService.revokeSessions`, which increments `users.token_version` and so cancels all of that user's tokens at once. Logging out, changing a password, and changing an account's active status all call it. Only the Node check can see this, because middleware can't reach the database, which is why pages and actions must go through `requirePagePermission` and `createProtectedAction`.
 
@@ -87,8 +87,8 @@ Sessions are revoked with `AuthService.revokeSessions`, which increments `users.
 
 - Default to Server Components. Add `"use client"` only for state, effects, or browser APIs, and keep it as low in the tree as possible.
 - Client code must not import from `src/backend` at runtime, except for calling Server Actions. Use `import type` for model and service types.
-- Nothing reachable from `src/middleware.ts` may import Sequelize or other Node-only packages.
-- `params`, `searchParams`, `cookies()`, and `headers()` are async in Next 15, so always `await` them.
+- Keep `src/proxy.ts` free of database access. It runs on every request, including static ones, so checks that need the database belong in `requirePagePermission` and `createProtectedAction`.
+- `params`, `searchParams`, `cookies()`, and `headers()` are async since Next 15, so always `await` them.
 - Cookies can only be written in Server Actions and Route Handlers, not while rendering.
 - Put mutations in Server Actions through `createProtectedAction`, with a `permission` and usually a `schema`, and call `revalidatePath` for affected routes. Don't add Route Handlers for internal mutations; `src/app/api` is only for login and logout.
 - `createProtectedAction` validates `args[0]`, so `(id, input)` actions must set `inputIndex: 1`. It passes the **original** arguments to the handler, so Zod defaults, transforms, and coercion are not applied to what the handler receives.
