@@ -91,7 +91,8 @@
   --border: #1e293b;
   --input: #1e293b;
   --ring: #aff33e;
-  --chart-1: #aff33e;
+  /* #aff33e is too light for chart marks on a dark surface; same hue, one step deeper. */
+  --chart-1: #6fa221;
   --chart-2: #3b82f6;
   --chart-3: #22c55e;
   --chart-4: #a855f7;

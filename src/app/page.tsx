@@ -3,6 +3,7 @@ import { initDatabase } from "@/backend/db/database";
 import { checkPermission } from "@/backend/rbac/permissions";
 import { DashboardService } from "@/backend/services/dashboard.service";
 import { MotionCard } from "@/components/animations/MotionCard";
+import { SalesTrendChart } from "@/features/dashboard/SalesTrendChart";
 import { OrderStatus } from "@/lib/definitions";
 import {
   AlertTriangle,
@@ -83,8 +84,18 @@ export default async function DashboardPage() {
   const user = await requirePagePermission("VIEW_DASHBOARD");
   const canViewReports = checkPermission(user.role, "VIEW_REPORTS");
 
-  const { today, cash, deliveries, receivables, customers, stock } =
-    await DashboardService.getSummary();
+  const {
+    today,
+    cash,
+    deliveries,
+    receivables,
+    customers,
+    stock,
+    trend,
+    drivers,
+    heldLongest,
+  } = await DashboardService.getSummary();
+  const lowStock = stock.products.filter((p) => p.isLow);
   const cashBreakdown = Object.entries(cash.byMethod)
     .map(([method, amount]) =>
       `${method === "NOT_RECORDED" ? "method not recorded" : method} ${peso(amount)}`,
@@ -103,6 +114,21 @@ export default async function DashboardPage() {
           follow up.
         </p>
       </div>
+
+      {lowStock.length > 0 && (
+        <Link
+          href="/products"
+          className="flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm"
+        >
+          <AlertTriangle className="w-5 h-5 shrink-0 text-amber-600" />
+          <span>
+            <strong>Low stock:</strong>{" "}
+            {lowStock
+              .map((p) => `${p.name} (${p.inStation} left, warning at ${p.lowStockThreshold})`)
+              .join(", ")}
+          </span>
+        </Link>
+      )}
 
       {driftedProducts.length > 0 && (
         <Link
@@ -188,7 +214,90 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <MotionCard delay={0.4}>
+      <MotionCard delay={0.38}>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-medium">
+            Delivered Sales, Last {trend.length} Days
+          </span>
+          <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+            <TrendingUp className="w-5 h-5" />
+          </div>
+        </div>
+        <SalesTrendChart days={trend} />
+      </MotionCard>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <MotionCard delay={0.39}>
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-xs font-medium">Deliveries Today</span>
+            <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+              <Truck className="w-5 h-5" />
+            </div>
+          </div>
+          {drivers.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No deliveries yet today.
+            </p>
+          ) : (
+            <ul className="divide-y text-sm">
+              {drivers.map((driver) => (
+                <li key={driver.name} className="flex justify-between py-2">
+                  <span
+                    className={
+                      driver.name === "Not recorded"
+                        ? "text-muted-foreground"
+                        : undefined
+                    }
+                  >
+                    {driver.name}
+                  </span>
+                  <span className="tabular-nums">
+                    {plural(driver.count, "delivery")}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </MotionCard>
+
+        <MotionCard delay={0.4}>
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-xs font-medium">Containers Held Longest</span>
+            <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+              <Droplet className="w-5 h-5" />
+            </div>
+          </div>
+          {heldLongest.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No containers are out with customers.
+            </p>
+          ) : (
+            <ul className="divide-y text-sm">
+              {heldLongest.map((row) => (
+                <li key={`${row.customerId}-${row.productName}`}>
+                  <Link
+                    href={`/customers/${row.customerId}`}
+                    className="flex justify-between gap-4 py-2 hover:underline"
+                  >
+                    <span>
+                      {row.customerName}
+                      <span className="text-muted-foreground">
+                        {" "}
+                        · {row.quantity} {row.productName}
+                      </span>
+                    </span>
+                    <span className="tabular-nums shrink-0">
+                      {plural(row.daysIdle, "day")} idle
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </MotionCard>
+      </div>
+
+      <MotionCard delay={0.41}>
         <div className="flex items-center justify-between mb-4">
           <span className="text-xs font-medium">Stock by Product</span>
           <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
@@ -206,7 +315,15 @@ export default async function DashboardPage() {
           <tbody className="divide-y">
             {stock.products.map((product) => (
               <tr key={product.productId}>
-                <td className="py-2">{product.name}</td>
+                <td className="py-2">
+                  {product.name}
+                  {product.isLow && (
+                    <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs">
+                      <AlertTriangle className="w-3 h-3 text-amber-600" />
+                      Low stock
+                    </span>
+                  )}
+                </td>
                 <td className="py-2 text-right font-mono">
                   {product.inStation}
                 </td>

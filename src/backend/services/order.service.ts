@@ -280,6 +280,7 @@ export class OrderService {
           createdBy,
           createdAt,
           deliveredAt: status === OrderStatus.DELIVERED ? createdAt ?? new Date() : null,
+          deliveredBy: status === OrderStatus.DELIVERED ? createdBy : null,
         },
         { transaction: t },
       );
@@ -386,7 +387,7 @@ export class OrderService {
         {
           status: targetStatus,
           ...(targetStatus === OrderStatus.DELIVERED
-            ? { deliveredAt: new Date() }
+            ? { deliveredAt: new Date(), deliveredBy: currentUser?.userId ?? null }
             : {}),
         },
         { transaction: t },
@@ -509,12 +510,14 @@ const isInvoiced = async (orderId: number, transaction: Transaction) =>
   })) > 0;
 
 const getSummary = async (where: any) => {
+  // Sales count by when orders were delivered, matching the dashboard. The other
+  // figures describe the orders in the list, so they keep its order-date filter.
+  const { createdAt: orderDateFilter, ...salesWhere } = where;
   const totalAmount = await Order.sum("totalAmount", {
     where: {
-      ...where,
-      ...{
-        status: { [Op.in]: [OrderStatus.DELIVERED] },
-      },
+      ...salesWhere,
+      ...(orderDateFilter ? { deliveredAt: orderDateFilter } : {}),
+      status: { [Op.in]: [OrderStatus.DELIVERED] },
     },
   });
 
@@ -556,7 +559,7 @@ const getSummary = async (where: any) => {
 
   return {
     totalAmount: {
-      label: "Total Sales",
+      label: "Delivered Sales",
       value: totalAmount,
     },
     pendingOrders: {

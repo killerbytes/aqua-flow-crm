@@ -17,6 +17,7 @@ export class Order extends Model {
 
   declare createdBy: number;
   declare deliveredAt: Date | null;
+  declare deliveredBy: number | null;
 
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
@@ -50,6 +51,7 @@ Order.init(
     },
     createdBy: { type: DataTypes.INTEGER, allowNull: false },
     deliveredAt: { type: DataTypes.DATE, allowNull: true, field: "delivered_at" },
+    deliveredBy: { type: DataTypes.INTEGER, allowNull: true, field: "delivered_by" },
   },
   { sequelize, modelName: "Order", tableName: "orders", timestamps: true },
 );

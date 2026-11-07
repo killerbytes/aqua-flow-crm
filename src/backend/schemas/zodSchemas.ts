@@ -42,6 +42,12 @@ export const ProductInventorySchema = z.object({
   stockLost: z.coerce.number<number>().optional(),
   isLendOnly: z.boolean().optional(),
   isDefault: z.boolean().optional(),
+  lowStockThreshold: z
+    .number()
+    .int("Use a whole number")
+    .min(0, "Can't be negative")
+    .nullable()
+    .optional(),
 });
 
 /** What a product's own form may change. Stock moves only through the ledger. */

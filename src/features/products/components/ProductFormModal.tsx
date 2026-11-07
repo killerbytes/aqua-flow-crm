@@ -18,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Field, FieldError, FieldLabel, FieldSet } from "@/components/ui/field";
+import { Field, FieldError, FieldLabel, FieldSet, FieldDescription } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toast";
@@ -54,6 +54,7 @@ export const ProductFormModalContent = ({}) => {
       unitPrice: editingProduct?.unitPrice || 0,
       isDefault: editingProduct?.isDefault || false,
       isLendOnly: editingProduct?.isLendOnly || false,
+      lowStockThreshold: editingProduct?.lowStockThreshold ?? null,
     },
   });
   const {
@@ -72,6 +73,7 @@ export const ProductFormModalContent = ({}) => {
         unitPrice: Number(data.unitPrice),
         isDefault: data.isDefault,
         isLendOnly: data.isLendOnly,
+        lowStockThreshold: data.lowStockThreshold ?? null,
       };
 
       const targetId = editingProduct?.productId;
@@ -174,6 +176,35 @@ export const ProductFormModalContent = ({}) => {
                 <FieldLabel>Unit Price</FieldLabel>
                 <Input type="number" placeholder="50.00" {...field} />
                 <FieldError>{errors.unitPrice?.message}</FieldError>
+              </Field>
+            )}
+          />
+          <Controller
+            control={control}
+            name="lowStockThreshold"
+            render={({ field }) => (
+              <Field>
+                <FieldLabel>Low Stock Warning</FieldLabel>
+                <Input
+                  type="number"
+                  min={0}
+                  step={1}
+                  placeholder="Leave empty for no warning"
+                  name={field.name}
+                  ref={field.ref}
+                  onBlur={field.onBlur}
+                  value={field.value ?? ""}
+                  onChange={(e) =>
+                    field.onChange(
+                      e.target.value === "" ? null : Number(e.target.value),
+                    )
+                  }
+                />
+                <FieldDescription>
+                  The dashboard warns when station stock falls to this number
+                  or below.
+                </FieldDescription>
+                <FieldError>{errors.lowStockThreshold?.message}</FieldError>
               </Field>
             )}
           />

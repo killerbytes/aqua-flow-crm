@@ -12,6 +12,7 @@ export class ProductInventory extends Model {
   declare unitPrice: number;
   declare isLendOnly: boolean;
   declare isDefault: boolean;
+  declare lowStockThreshold: number | null;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
   declare deletedAt?: CreationOptional<Date> | null;
@@ -31,6 +32,11 @@ ProductInventory.init(
     unitPrice: moneyColumn("unitPrice", { defaultValue: 0 }),
     isLendOnly: { type: DataTypes.BOOLEAN, defaultValue: false },
     isDefault: { type: DataTypes.BOOLEAN, defaultValue: false },
+    lowStockThreshold: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: "low_stock_threshold",
+    },
     deletedAt: DataTypes.DATE,
   },
   {

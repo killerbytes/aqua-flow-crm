@@ -16,12 +16,15 @@ import {
   Order,
   OrderPayment,
   ProductInventory,
+  User,
 } from "../models";
 import { WALK_IN_CUSTOMER_NAME } from "./customer.service";
 import { EquipmentService } from "./equipment.service";
 
 export const BUSINESS_TIMEZONE = "Asia/Manila";
 export const CHURN_DAYS = 7;
+export const TREND_DAYS = 14;
+const HELD_LONGEST_LIMIT = 5;
 
 const sumCents = (amounts: number[]) =>
   fromCents(amounts.reduce((total, amount) => total + toCents(amount), 0));
@@ -35,8 +38,17 @@ export class DashboardService {
     const startOfToday = moment.tz(now, BUSINESS_TIMEZONE).startOf("day");
     const startOfTomorrow = startOfToday.clone().add(1, "day");
 
-    const [today, cash, deliveries, receivables, customers, stock] =
-      await Promise.all([
+    const [
+      today,
+      cash,
+      deliveries,
+      receivables,
+      customers,
+      stock,
+      trend,
+      drivers,
+      heldLongest,
+    ] = await Promise.all([
         DashboardService.getTodaysSales(
           startOfToday.toDate(),
           startOfTomorrow.toDate(),
@@ -49,9 +61,25 @@ export class DashboardService {
         DashboardService.getReceivables(now),
         DashboardService.getCustomerActivity(now),
         DashboardService.getStock(),
+        DashboardService.getSalesTrend(startOfToday.clone()),
+        DashboardService.getDeliveriesByDriver(
+          startOfToday.toDate(),
+          startOfTomorrow.toDate(),
+        ),
+        DashboardService.getContainersHeldLongest(),
       ]);
 
-    return { today, cash, deliveries, receivables, customers, stock };
+    return {
+      today,
+      cash,
+      deliveries,
+      receivables,
+      customers,
+      stock,
+      trend,
+      drivers,
+      heldLongest,
+    };
   }
 
   /** Orders delivered today, whenever they were placed. */
@@ -104,6 +132,85 @@ export class DashboardService {
         [...byMethod].map(([method, cents]) => [method, fromCents(cents)]),
       ),
     };
+  }
+
+  /** Delivered sales for each of the last TREND_DAYS Philippine days, ending today. */
+  static async getSalesTrend(startOfToday: moment.Moment) {
+    const first = startOfToday.clone().subtract(TREND_DAYS - 1, "days");
+    const end = startOfToday.clone().add(1, "day");
+
+    const orders = await Order.findAll({
+      attributes: ["totalAmount", "deliveredAt"],
+      where: {
+        status: OrderStatus.DELIVERED,
+        deliveredAt: { [Op.gte]: first.toDate(), [Op.lt]: end.toDate() },
+      },
+    });
+
+    const days = Array.from({ length: TREND_DAYS }, (_, i) => ({
+      date: first.clone().add(i, "days").format("YYYY-MM-DD"),
+      cents: 0,
+      orderCount: 0,
+    }));
+    const byDate = new Map(days.map((day) => [day.date, day]));
+    for (const order of orders) {
+      const date = moment.tz(order.deliveredAt, BUSINESS_TIMEZONE).format("YYYY-MM-DD");
+      const day = byDate.get(date);
+      if (day) {
+        day.cents += toCents(order.totalAmount);
+        day.orderCount++;
+      }
+    }
+
+    return days.map(({ date, cents, orderCount }) => ({
+      date,
+      sales: fromCents(cents),
+      orderCount,
+    }));
+  }
+
+  /** Orders delivered today, per person who marked them delivered. */
+  static async getDeliveriesByDriver(start: Date, end: Date) {
+    const orders = await Order.findAll({
+      attributes: ["deliveredBy"],
+      where: {
+        status: OrderStatus.DELIVERED,
+        deliveredAt: { [Op.gte]: start, [Op.lt]: end },
+      },
+      include: [
+        {
+          model: User,
+          as: "deliveredByUser",
+          attributes: ["name"],
+          paranoid: false,
+        },
+      ],
+    });
+
+    const counts = new Map<string, number>();
+    for (const order of orders) {
+      const name = (order as any).deliveredByUser?.name ?? "Not recorded";
+      counts.set(name, (counts.get(name) ?? 0) + 1);
+    }
+    return [...counts]
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+  }
+
+  /** Customers who have held containers longest without any activity. */
+  static async getContainersHeldLongest() {
+    const report = await EquipmentService.getCustomerLiabilityAgingReport();
+    return report
+      .filter((row) => row.totalHoldings > 0)
+      .sort((a, b) => b.daysIdle - a.daysIdle)
+      .slice(0, HELD_LONGEST_LIMIT)
+      .map((row) => ({
+        customerId: row.customerId,
+        customerName: row.customerName,
+        productName: row.productName,
+        quantity: row.totalHoldings,
+        daysIdle: row.daysIdle,
+      }));
   }
 
   static async getDeliveryQueue() {
@@ -242,6 +349,10 @@ export class DashboardService {
         name: product.name,
         inStation: product.stockInStation,
         withCustomers: product.stockWithCustomers,
+        lowStockThreshold: product.lowStockThreshold,
+        isLow:
+          product.lowStockThreshold !== null &&
+          product.stockInStation <= product.lowStockThreshold,
         matchesLedger: !drifted.has(product.productId),
       })),
       temporaryLoans: temporary || 0,
