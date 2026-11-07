@@ -1,4 +1,4 @@
-import { requirePageUser } from "@/backend/auth/context";
+import { requirePagePermission } from "@/backend/auth/context";
 import { initDatabase } from "@/backend/db/database";
 import {
   CustomersWithLastOrderParams,
@@ -16,7 +16,7 @@ export default async function CustomersPage({
   searchParams,
 }: CustomersPageProps) {
   await initDatabase();
-  await requirePageUser();
+  await requirePagePermission("VIEW_REPORTS");
 
   const params = await searchParams;
   const page = Number(params?.page) || PAGINATION.PAGE;

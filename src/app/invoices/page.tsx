@@ -1,4 +1,4 @@
-import { requirePageUser } from "@/backend/auth/context";
+import { requirePagePermission } from "@/backend/auth/context";
 import { Invoice } from "@/backend/models";
 import { InvoiceQueryParams, InvoiceService } from "@/backend/services";
 import PageHeader from "@/components/shared/PageHeader";
@@ -19,7 +19,7 @@ interface InvoicePageProps {
 }
 
 export default async function InvoicesPage({ searchParams }: InvoicePageProps) {
-  await requirePageUser();
+  await requirePagePermission("VIEW_INVOICES");
   const params = await searchParams;
 
   const page = Number(params?.page) || PAGINATION.PAGE;

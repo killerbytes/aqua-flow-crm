@@ -44,7 +44,7 @@ src/app (Server Components)  ── reads ────────────�
 src/features (Client Components) ─► src/backend/actions ─────► services ─► models
 ```
 
-- **`src/app`** holds routes and fetches data. Data pages set `export const dynamic = "force-dynamic"`, call `await initDatabase()` and `await requirePageUser()`, and then call services directly.
+- **`src/app`** holds routes and fetches data. Data pages set `export const dynamic = "force-dynamic"`, call `await initDatabase()` and `await requirePagePermission("...")`, and then call services directly.
 - **`src/features/<domain>/components`** holds domain UI. **`src/components`** holds shared UI, and `src/components/ui` is shadcn-generated.
 - **`src/backend/actions`** holds Server Actions, built with `createProtectedAction` (`src/backend/lib/safe-action.ts`). It initializes the database, authenticates, checks the RBAC permission, validates with Zod, and returns `ActionResponse<T>` (`{ success: true, data }` or `{ success: false, error, fieldErrors? }`). Errors become return values rather than throws, so callers must check `success`.
 - **`src/backend/services`** holds business logic as classes with static methods. This is the layer integration tests target.
@@ -55,8 +55,8 @@ src/features (Client Components) ─► src/backend/actions ─────► s
 There are three separate layers, and each covers something different:
 
 1. **`src/middleware.ts`** (Edge runtime) redirects unauthenticated page requests to `/login` and refreshes the JWT. It skips `/api/*`, and it does not check roles.
-2. **`createProtectedAction`** is the only place roles are enforced, using `src/backend/rbac/permissions.ts`.
-3. **Server Component pages** call `requirePageUser()` (`src/backend/auth/context.ts`), which rejects missing sessions and deactivated users, since middleware can't reach the database. It doesn't check roles, so a page that shows role-restricted data has to do that itself. Call it outside any `try/catch`, because `redirect()` works by throwing.
+2. **`createProtectedAction`** enforces roles on Server Actions, using `src/backend/rbac/permissions.ts`.
+3. **Server Component pages** call `requirePagePermission("...")` (`src/backend/auth/context.ts`), which rejects missing sessions and deactivated users, since middleware can't reach the database, and checks the role. New pages must call it and be added to `tests/unit/auth/page_permissions.test.ts`. Call it outside any `try/catch`, because `redirect()` works by throwing. `RoleGuard` and the sidebar only hide things in the browser, so they never replace this check.
 
 Auth has two modules: `src/lib/auth.edge.ts` is for middleware and must stay free of ORM imports, while `src/lib/auth.ts` is for the Node runtime. The session is an httpOnly `token` cookie.
 

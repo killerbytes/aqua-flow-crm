@@ -2,6 +2,7 @@ import { verifyOrRefreshToken } from "@/lib/auth";
 import { UserRole } from "@/lib/definitions";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { getPageRedirect, PermissionAction } from "../rbac/permissions";
 
 export interface UserSession {
   userId: number;
@@ -32,6 +33,19 @@ export function requireAuth(ctx: AuthContext): UserSession {
 export async function requirePageUser(): Promise<UserSession> {
   const { user } = await getAuthContext();
   if (!user) redirect("/login");
+  return user;
+}
+
+/**
+ * requirePageUser plus a role check. Every page calls this, because hiding a
+ * link or wrapping content in RoleGuard doesn't stop someone opening the URL.
+ */
+export async function requirePagePermission(
+  permission: PermissionAction,
+): Promise<UserSession> {
+  const user = await requirePageUser();
+  const target = getPageRedirect(user.role, permission);
+  if (target) redirect(target);
   return user;
 }
 

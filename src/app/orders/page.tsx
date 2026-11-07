@@ -1,6 +1,8 @@
-import { requirePageUser } from "@/backend/auth/context";
+import { requirePagePermission } from "@/backend/auth/context";
 import { initDatabase } from "@/backend/db/database";
+import { checkPermission } from "@/backend/rbac/permissions";
 import { OrderService } from "@/backend/services";
+import { RoleGuard } from "@/components/auth/RoleGuard";
 import PageHeader from "@/components/shared/PageHeader";
 import {
   Card,
@@ -14,7 +16,7 @@ import OrderList from "@/features/orders/components/OrderList";
 import OrderListFilter from "@/features/orders/components/OrderListFilter";
 import { WalkInSalesModal } from "@/features/orders/components/WalkInSalesModal";
 import { WalkInSalesModalButton } from "@/features/orders/components/WalkInSalesModalButton";
-import { PAGINATION, PaymentStatus } from "@/lib/definitions";
+import { PAGINATION, PaymentStatus, UserRole } from "@/lib/definitions";
 import { formatCurrency } from "@/lib/utils";
 import { Paginated } from "@/types";
 import { Plus, ShoppingBag, Store } from "lucide-react";
@@ -37,7 +39,8 @@ interface OrdersPageProps {
 
 export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   await initDatabase();
-  await requirePageUser();
+  const user = await requirePagePermission("VIEW_ORDERS");
+  const canSeeSales = checkPermission(user.role, "VIEW_DASHBOARD");
   const params = await searchParams;
 
   const page = Number(params?.page) || PAGINATION.PAGE;
@@ -83,27 +86,33 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <WalkInSalesModalButton variant="outline">
-            <Store size={16} />
-            Walk-In Sales
-          </WalkInSalesModalButton>
-          <OrderFormModalButton>
-            <Plus size={16} />
-            Create Order
-          </OrderFormModalButton>
+          <RoleGuard
+            allowedRoles={[UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER]}
+          >
+            <WalkInSalesModalButton variant="outline">
+              <Store size={16} />
+              Walk-In Sales
+            </WalkInSalesModalButton>
+            <OrderFormModalButton>
+              <Plus size={16} />
+              Create Order
+            </OrderFormModalButton>
+          </RoleGuard>
         </div>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card>
-          <CardHeader>
-            <CardDescription>
-              {orders.summary.totalAmount?.label}
-            </CardDescription>
-            <CardTitle>
-              {formatCurrency(Number(orders.summary.totalAmount?.value || 0))}
-            </CardTitle>
-          </CardHeader>
-        </Card>
+        {canSeeSales && (
+          <Card>
+            <CardHeader>
+              <CardDescription>
+                {orders.summary.totalAmount?.label}
+              </CardDescription>
+              <CardTitle>
+                {formatCurrency(Number(orders.summary.totalAmount?.value || 0))}
+              </CardTitle>
+            </CardHeader>
+          </Card>
+        )}
         {orders.summary.unpaidOrders?.value > 0 && (
           <Card>
             <CardHeader>

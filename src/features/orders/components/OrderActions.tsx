@@ -71,18 +71,27 @@ export default function OrderActions({
       </RoleGuard>
 
       <RoleGuard
-        allowedRoles={[UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER]}
+        allowedRoles={[
+          UserRole.ADMIN,
+          UserRole.MANAGER,
+          UserRole.CASHIER,
+          UserRole.DELIVERY,
+        ]}
       >
         <div className="ml-auto flex items-center gap-2">
-          {showPayment && order.paymentStatus !== PaymentStatus.PAID &&
-            order.status !== OrderStatus.CANCELLED && (
-              <Button
-                size={size}
-                onClick={() => setPaymentModalOpen(true, order)}
-              >
-                <Banknote className="w-4 h-4" /> Payment
-              </Button>
-            )}
+          <RoleGuard
+            allowedRoles={[UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER]}
+          >
+            {showPayment && order.paymentStatus !== PaymentStatus.PAID &&
+              order.status !== OrderStatus.CANCELLED && (
+                <Button
+                  size={size}
+                  onClick={() => setPaymentModalOpen(true, order)}
+                >
+                  <Banknote className="w-4 h-4" /> Payment
+                </Button>
+              )}
+          </RoleGuard>
           {order.status === OrderStatus.PENDING && (
             <ConfirmDialog
               isLoading={isPending}

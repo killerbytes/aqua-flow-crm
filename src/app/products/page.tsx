@@ -1,4 +1,4 @@
-import { requirePageUser } from "@/backend/auth/context";
+import { requirePagePermission } from "@/backend/auth/context";
 import { initDatabase } from "@/backend/db/database";
 import { ProductInventory } from "@/backend/models";
 import { EquipmentService, ProductService } from "@/backend/services";
@@ -49,7 +49,7 @@ interface ProductPageProps {
 
 export default async function ProductsPage({ searchParams }: ProductPageProps) {
   await initDatabase();
-  await requirePageUser();
+  await requirePagePermission("VIEW_PRODUCTS");
   const params = await searchParams;
 
   const page = Number(params?.page) || PAGINATION.PAGE;

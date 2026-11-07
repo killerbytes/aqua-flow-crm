@@ -1,4 +1,4 @@
-import { requirePageUser } from "@/backend/auth/context";
+import { requirePagePermission } from "@/backend/auth/context";
 import { ArrowLeft, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 
@@ -24,7 +24,7 @@ export default async function OrderDetailsPage({
   params: Promise<{ id: string }>;
 }) {
   await initDatabase();
-  await requirePageUser();
+  await requirePagePermission("VIEW_ORDERS");
   const { id } = await params;
   let order: Order | null = null;
 

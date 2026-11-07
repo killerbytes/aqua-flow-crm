@@ -14,14 +14,14 @@ import { CustomerService } from "../services/customer.service";
 import { EquipmentService } from "../services/equipment.service";
 
 export const getCustomersAction = createProtectedAction({
-  permission: "CREATE_ORDER",
+  permission: "VIEW_CUSTOMERS",
   handler: async () => {
     return await CustomerService.getAll();
   },
 });
 
 export const createCustomerAction = createProtectedAction({
-  permission: "CREATE_ORDER",
+  permission: "CREATE_CUSTOMER",
   schema: CustomerSchema,
   handler: async (_ctx, input: CustomerFormData) => {
     const result = await CustomerService.create(input);
@@ -31,7 +31,7 @@ export const createCustomerAction = createProtectedAction({
 });
 
 export const updateCustomerAction = createProtectedAction({
-  permission: "CREATE_ORDER",
+  permission: "MANAGE_CUSTOMERS",
   schema: CustomerSchema,
   inputIndex: 1,
   handler: async (_ctx, id: number | string, input: CustomerFormData) => {
@@ -42,7 +42,7 @@ export const updateCustomerAction = createProtectedAction({
 });
 
 export const deleteCustomerAction = createProtectedAction({
-  permission: "MANAGE_USERS",
+  permission: "DELETE_CUSTOMER",
   handler: async (_ctx, id: number | string) => {
     const result = await CustomerService.delete(id);
     revalidatePath("/customers");

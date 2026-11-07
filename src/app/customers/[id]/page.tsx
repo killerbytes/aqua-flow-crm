@@ -1,4 +1,4 @@
-import { requirePageUser } from "@/backend/auth/context";
+import { requirePagePermission } from "@/backend/auth/context";
 import {
   ArrowLeft,
   ArrowRightLeft,
@@ -65,7 +65,7 @@ export default async function CustomerPage({
   }>;
 }) {
   await initDatabase();
-  await requirePageUser();
+  await requirePagePermission("VIEW_CUSTOMERS");
   const { id } = await params;
   const { tab, limit, page, sort, order } = await searchParams;
   let customer;

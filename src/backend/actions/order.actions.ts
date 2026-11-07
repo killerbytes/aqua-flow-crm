@@ -3,6 +3,7 @@
 import { OrderStatus } from "@/lib/definitions";
 import { revalidatePath } from "next/cache";
 import { createProtectedAction } from "../lib/safe-action";
+import { checkPermission } from "../rbac/permissions";
 import {
   OrderFormData,
   OrderSchema,
@@ -37,8 +38,15 @@ export const createOrderAction = createProtectedAction({
 });
 
 export const updateOrderStatusAction = createProtectedAction({
-  permission: "UPDATE_ORDER",
+  permission: "UPDATE_DELIVERY_STATUS",
   handler: async (ctx, id: number | string, status: OrderStatus) => {
+    if (
+      status === OrderStatus.CANCELLED &&
+      !checkPermission(ctx.user.role, "CANCEL_ORDER")
+    ) {
+      throw new Error("Forbidden: insufficient permissions");
+    }
+
     console.log(
       `[updateOrderStatusAction] Updating order #${id} status to ${status} by user:`,
       ctx.user,
@@ -50,7 +58,7 @@ export const updateOrderStatusAction = createProtectedAction({
 });
 
 export const deleteOrderAction = createProtectedAction({
-  permission: "MANAGE_USERS",
+  permission: "DELETE_ORDER",
   handler: async (_ctx, id: number | string) => {
     const result = await OrderService.delete(id);
     revalidatePath("/orders");

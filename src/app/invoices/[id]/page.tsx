@@ -1,4 +1,4 @@
-import { requirePageUser } from "@/backend/auth/context";
+import { requirePagePermission } from "@/backend/auth/context";
 import { initDatabase } from "@/backend/db/database";
 import { Invoice } from "@/backend/models";
 import { InvoiceService } from "@/backend/services";
@@ -33,7 +33,7 @@ export default async function InvoiceDetailPage({
   }>;
 }) {
   await initDatabase();
-  await requirePageUser();
+  await requirePagePermission("VIEW_INVOICES");
   const { id } = await params;
   let invoice: Invoice | null = null;
 

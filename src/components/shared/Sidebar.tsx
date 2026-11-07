@@ -1,6 +1,6 @@
 "use client";
 
-import { UserRole } from "@/lib/definitions";
+import { checkPermission, PermissionAction } from "@/backend/rbac/permissions";
 import { useAuthStore } from "@/lib/store";
 import { cx } from "class-variance-authority";
 import {
@@ -58,12 +58,28 @@ export default function Sidebar() {
     toggleSidebar,
   } = useSidebar();
 
+  const can = (permission: PermissionAction) =>
+    !!user && checkPermission(user.role, permission);
+
   const navItems: NavItem[] = [
-    { name: "Dashboard", href: "/", icon: LayoutDashboard },
-    { name: "Customers", href: "/customers", icon: Users },
-    { name: "Orders", href: "/orders", icon: ShoppingCart },
-    { name: "Products", href: "/products", icon: Tag },
-    { name: "Invoices", href: "/invoices", icon: Receipt },
+    ...(can("VIEW_DASHBOARD")
+      ? [{ name: "Dashboard", href: "/", icon: LayoutDashboard }]
+      : []),
+    ...(can("VIEW_CUSTOMERS")
+      ? [{ name: "Customers", href: "/customers", icon: Users }]
+      : []),
+    ...(can("VIEW_ORDERS")
+      ? [{ name: "Orders", href: "/orders", icon: ShoppingCart }]
+      : []),
+    ...(can("VIEW_PRODUCTS")
+      ? [{ name: "Products", href: "/products", icon: Tag }]
+      : []),
+    ...(can("VIEW_INVOICES")
+      ? [{ name: "Invoices", href: "/invoices", icon: Receipt }]
+      : []),
+    ...(can("VIEW_USERS")
+      ? [{ name: "Users", href: "/users", icon: UserCog }]
+      : []),
   ];
 
   const reportItems: NavItem[] = [
@@ -79,9 +95,6 @@ export default function Sidebar() {
     },
     { name: "Yearly Sales", href: "/reports/yearly-sales", icon: FileText },
   ];
-  if (user?.role === UserRole.ADMIN) {
-    navItems.push({ name: "Users", href: "/users", icon: UserCog });
-  }
 
   return (
     <SidebarUI variant="inset" className="print:hidden" collapsible="icon">
