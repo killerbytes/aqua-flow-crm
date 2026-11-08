@@ -390,45 +390,6 @@ export default async function DashboardPage() {
 
       {/* Operations */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
-        <Panel
-          delay={0.4}
-          title="Deliveries Today"
-          description="Completed by each person"
-          icon={<Truck className="size-4" />}
-        >
-          {drivers.length === 0 ? (
-            <EmptyState>No deliveries yet today.</EmptyState>
-          ) : (
-            <ul className="space-y-3 text-sm">
-              {drivers.map((driver) => (
-                <li key={driver.name}>
-                  <div className="mb-1 flex justify-between gap-4">
-                    <span
-                      className={
-                        driver.name === "Not recorded"
-                          ? "text-muted-foreground italic"
-                          : "font-medium"
-                      }
-                    >
-                      {driver.name}
-                    </span>
-                    <span className="tabular-nums text-muted-foreground">
-                      {plural(driver.count, "delivery")}
-                    </span>
-                  </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-[var(--chart-1)]"
-                      style={{
-                        width: `${(driver.count / busiestDriver) * 100}%`,
-                      }}
-                    />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Panel>
 
         <Panel
           delay={0.45}

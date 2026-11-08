@@ -1,6 +1,6 @@
 import { OrderStatus, PAGINATION, PaymentStatus } from "@/lib/definitions";
 import { fromCents, toCents } from "@/lib/money";
-import moment from "moment-timezone";
+import { endOfBusinessDay, startOfBusinessDay } from "@/lib/business-time";
 import { Op, OrderItem, Transaction } from "sequelize";
 import { getAuthContext, UserSession } from "../auth/context";
 import {
@@ -78,21 +78,14 @@ export class OrderService {
       if (paymentStatus) where.paymentStatus = paymentStatus;
 
       if (startDate || endDate) {
-        const timezone = "Asia/Manila";
         const createdAtFilter: any = {};
         if (startDate) {
-          createdAtFilter[Op.gte] = moment
-            .tz(new Date(Number(startDate)), timezone)
-            .startOf("day")
-            .utc()
-            .toDate();
+          createdAtFilter[Op.gte] = startOfBusinessDay(
+            new Date(Number(startDate)),
+          );
         }
         if (endDate) {
-          createdAtFilter[Op.lte] = moment
-            .tz(new Date(Number(endDate)), timezone)
-            .endOf("day")
-            .utc()
-            .toDate();
+          createdAtFilter[Op.lte] = endOfBusinessDay(new Date(Number(endDate)));
         }
         where.createdAt = createdAtFilter;
       }
@@ -539,12 +532,12 @@ const getSummary = async (where: any) => {
     },
   });
 
+  // Cancelled orders stay UNPAID but are not owed, so they don't count here.
   const unpaidOrders = await Order.count({
     where: {
       ...where,
-      ...{
-        paymentStatus: { [Op.in]: [PaymentStatus.UNPAID] },
-      },
+      status: { ...where.status, [Op.ne]: OrderStatus.CANCELLED },
+      paymentStatus: { [Op.in]: [PaymentStatus.UNPAID] },
     },
   });
 

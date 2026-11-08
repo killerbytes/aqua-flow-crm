@@ -1,5 +1,5 @@
 "use client";
-import DatePicker from "@/components/DatePicker";
+import { CalendarDatePicker } from "@/components/CalendarDatePicker";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import {
@@ -61,14 +61,13 @@ export default function OrderListFilter() {
   return (
     <div className="flex flex-wrap gap-4">
       <div className="flex items-center gap-2">
-        <DatePicker
-          onSelect={(range) => {
+        <CalendarDatePicker
+          date={{ from: startDate, to: endDate }}
+          onDateSelect={({ from, to }) => {
             router.push(
-              `?startDate=${range?.from?.getTime()}&endDate=${range?.to?.getTime()}`
+              `?startDate=${from.getTime()}&endDate=${to.getTime()}`
             );
           }}
-          from={new Date(Number(startDate ?? startOfMonth(new Date())))}
-          to={new Date(Number(endDate ?? endOfMonth(new Date())))}
         />
 
         <Button onClick={toggleDateHandler} size="xs">

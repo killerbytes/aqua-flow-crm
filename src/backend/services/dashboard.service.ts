@@ -5,7 +5,12 @@ import {
   OrderStatus,
   PaymentStatus,
 } from "@/lib/definitions";
-import moment from "moment-timezone";
+import {
+  BUSINESS_TIMEZONE,
+  businessDateKey,
+  startOfBusinessDay,
+} from "@/lib/business-time";
+import { subDays } from "date-fns";
 import { Op } from "sequelize";
 import {
   Customer,
@@ -21,7 +26,7 @@ import {
 import { WALK_IN_CUSTOMER_NAME } from "./customer.service";
 import { EquipmentService } from "./equipment.service";
 
-export const BUSINESS_TIMEZONE = "Asia/Manila";
+export { BUSINESS_TIMEZONE };
 export const CHURN_DAYS = 7;
 export const TREND_DAYS = 14;
 const HELD_LONGEST_LIMIT = 5;
@@ -35,8 +40,8 @@ export class DashboardService {
    * clock. Days follow Philippine time, whatever timezone the server runs in.
    */
   static async getSummary(now: Date = new Date()) {
-    const startOfToday = moment.tz(now, BUSINESS_TIMEZONE).startOf("day");
-    const startOfTomorrow = startOfToday.clone().add(1, "day");
+    const startOfToday = startOfBusinessDay(now);
+    const startOfTomorrow = startOfBusinessDay(now, 1);
 
     const [
       today,
@@ -50,21 +55,21 @@ export class DashboardService {
       heldLongest,
     ] = await Promise.all([
         DashboardService.getTodaysSales(
-          startOfToday.toDate(),
-          startOfTomorrow.toDate(),
+          startOfToday,
+          startOfTomorrow,
         ),
         DashboardService.getCashCollected(
-          startOfToday.toDate(),
-          startOfTomorrow.toDate(),
+          startOfToday,
+          startOfTomorrow,
         ),
         DashboardService.getDeliveryQueue(),
         DashboardService.getReceivables(now),
         DashboardService.getCustomerActivity(now),
         DashboardService.getStock(),
-        DashboardService.getSalesTrend(startOfToday.clone()),
+        DashboardService.getSalesTrend(now),
         DashboardService.getDeliveriesByDriver(
-          startOfToday.toDate(),
-          startOfTomorrow.toDate(),
+          startOfToday,
+          startOfTomorrow,
         ),
         DashboardService.getContainersHeldLongest(),
       ]);
@@ -135,26 +140,26 @@ export class DashboardService {
   }
 
   /** Delivered sales for each of the last TREND_DAYS Philippine days, ending today. */
-  static async getSalesTrend(startOfToday: moment.Moment) {
-    const first = startOfToday.clone().subtract(TREND_DAYS - 1, "days");
-    const end = startOfToday.clone().add(1, "day");
+  static async getSalesTrend(now: Date) {
+    const first = startOfBusinessDay(now, -(TREND_DAYS - 1));
+    const end = startOfBusinessDay(now, 1);
 
     const orders = await Order.findAll({
       attributes: ["totalAmount", "deliveredAt"],
       where: {
         status: OrderStatus.DELIVERED,
-        deliveredAt: { [Op.gte]: first.toDate(), [Op.lt]: end.toDate() },
+        deliveredAt: { [Op.gte]: first, [Op.lt]: end },
       },
     });
 
     const days = Array.from({ length: TREND_DAYS }, (_, i) => ({
-      date: first.clone().add(i, "days").format("YYYY-MM-DD"),
+      date: businessDateKey(startOfBusinessDay(now, i - (TREND_DAYS - 1))),
       cents: 0,
       orderCount: 0,
     }));
     const byDate = new Map(days.map((day) => [day.date, day]));
     for (const order of orders) {
-      const date = moment.tz(order.deliveredAt, BUSINESS_TIMEZONE).format("YYYY-MM-DD");
+      const date = businessDateKey(order.deliveredAt!);
       const day = byDate.get(date);
       if (day) {
         day.cents += toCents(order.totalAmount);
@@ -304,7 +309,7 @@ export class DashboardService {
       activeCustomers.map((customer) => customer.customerId),
     );
 
-    const cutoff = moment(now).subtract(CHURN_DAYS, "days").toDate();
+    const cutoff = subDays(now, CHURN_DAYS);
     const orders = await Order.findAll({
       attributes: ["customerId", "createdAt"],
       where: { status: { [Op.ne]: OrderStatus.CANCELLED } },

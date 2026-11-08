@@ -55,6 +55,16 @@ const config = {
     storage: ":memory:",
     logging: false,
   },
+  staging: {
+    use_env_variable: dbUrl ? "DATABASE_URL" : null,
+    username: dbUser,
+    password: dbPassword,
+    database: dbName,
+    host: dbHost,
+    port: dbPort,
+    dialect: "postgres",
+    logging: false,
+  },
   production: {
     use_env_variable: dbUrl ? "DATABASE_URL" : null,
     username: dbUser,

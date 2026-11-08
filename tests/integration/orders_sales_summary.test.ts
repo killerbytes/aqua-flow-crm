@@ -65,6 +65,24 @@ describe("Integration - Orders Page Sales Summary", () => {
     expect(summary.pendingOrders.value).toBe(pendingPlacedInRange);
   });
 
+  it("should not count cancelled orders as unpaid", async () => {
+    const before = (await summaryFor(RANGE)).unpaidOrders.value;
+
+    const cancelled = await placeOrder("2026-09-11T02:00:00Z", null);
+    await Order.update(
+      { status: OrderStatus.CANCELLED },
+      { where: { orderId: cancelled.orderId } },
+    );
+
+    const summary = await summaryFor(RANGE);
+    expect(summary.cancelledOrders.value).toBe(1);
+    expect(summary.unpaidOrders.value).toBe(before);
+    expect(
+      (await summaryFor({ ...RANGE, status: OrderStatus.CANCELLED }))
+        .unpaidOrders.value,
+    ).toBe(0);
+  });
+
   it("should count every delivered order when no range is selected", async () => {
     const summary = await summaryFor({});
     const expected = await Order.sum("totalAmount", {
