@@ -26,26 +26,28 @@ import { useUIStore } from "@/store/uiStore";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { cx } from "class-variance-authority";
 import { Plus, Search, ShoppingBag, Tag, Trash2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useTransition } from "react";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { OrderCustomerLookupButton } from "./OrderCustomerLookupButton";
 
 export const OrderFormModalContent = () => {
   const router = useRouter();
+  const pathname = usePathname();
   const {
     isOrderModalOpen,
     setOrderFormModalOpen,
     products,
     setProducts,
     lookupCustomers,
+    orderCustomer,
   } = useUIStore();
   const [isPending, startTransition] = useTransition();
 
   const form = useForm({
     resolver: zodResolver(OrderSchema),
     defaultValues: {
-      customerId: 0,
+      customerId: orderCustomer?.customerId ?? 0,
       status: OrderStatus.PENDING,
       paymentStatus: PaymentStatus.UNPAID,
       items: [
@@ -102,9 +104,10 @@ export const OrderFormModalContent = () => {
     name: "customerId",
   });
 
-  const customer = lookupCustomers.find(
-    (c) => c.customerId === watchCustomerId,
-  );
+  // A preset customer isn't in the lookup results until someone searches.
+  const customer =
+    lookupCustomers.find((c) => c.customerId === watchCustomerId) ??
+    (orderCustomer?.customerId === watchCustomerId ? orderCustomer : undefined);
 
   const calculateTotal = () => {
     return (watchFields || []).reduce((sum, item) => {
@@ -130,7 +133,13 @@ export const OrderFormModalContent = () => {
           title: "Order Created",
         });
         setOrderFormModalOpen(false);
-        router.refresh();
+        // From elsewhere (e.g. a customer page), go to the orders list. On the
+        // list itself, refresh so its filters stay as they are.
+        if (pathname === "/orders") {
+          router.refresh();
+        } else {
+          router.push("/orders");
+        }
       } catch (error: any) {
         toast.add({
           type: "error",

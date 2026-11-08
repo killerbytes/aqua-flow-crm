@@ -21,6 +21,8 @@ interface UIState {
   editingCustomer?: Customer | null;
   isEquipmentLogModalOpen: boolean;
   isOrderModalOpen: boolean;
+  /** Customer the order form opens with, e.g. from the customer page. */
+  orderCustomer?: Customer | null;
   isProductModalOpen: boolean;
   editingProduct?: ProductInventory | null;
   isUserModalOpen: boolean;
@@ -49,7 +51,7 @@ interface UIState {
     customerId?: number | null,
     productId?: number | null,
   ) => void;
-  setOrderFormModalOpen: (open: boolean) => void;
+  setOrderFormModalOpen: (open: boolean, customer?: Customer | null) => void;
   setWalkInModalOpen: (open: boolean) => void;
   setProductFormModalOpen: (
     open: boolean,
@@ -110,7 +112,8 @@ export const useUIStore = create<UIState>((set) => ({
       selectedCustomerId: customerId,
       selectedProductId: productId,
     }),
-  setOrderFormModalOpen: (open) => set({ isOrderModalOpen: open }),
+  setOrderFormModalOpen: (open, customer = null) =>
+    set({ isOrderModalOpen: open, orderCustomer: customer }),
   setWalkInModalOpen: (open) => set({ isWalkInModalOpen: open }),
   setProductFormModalOpen: (open, product = null) =>
     set({ isProductModalOpen: open, editingProduct: product }),

@@ -6,6 +6,7 @@ import {
   DollarSign,
   Edit,
   Package,
+  ShoppingBag,
   Tag,
   User,
 } from "lucide-react";
@@ -41,6 +42,8 @@ import { LogEquipmentModal } from "@/features/customers/components/LogEquipmentM
 import { LogEquipmentModalButton } from "@/features/customers/components/LogEquipmentModalButton";
 import { SpecialPricingModal } from "@/features/customers/components/SpecialPricingModal";
 import { SpecialPricingModalButton } from "@/features/customers/components/SpecialPricingModalButton";
+import { OrderFormModal } from "@/features/orders/components/OrderFormModal";
+import { OrderFormModalButton } from "@/features/orders/components/OrderFormModalButton";
 import { InvoiceFormModal } from "@/features/invoices/components/InvoiceFormModal";
 import { InvoiceFormModalButton } from "@/features/invoices/components/InvoiceFormModalButton";
 import OrderList from "@/features/orders/components/OrderList";
@@ -136,7 +139,11 @@ export default async function CustomerPage({
           <RoleGuard
             allowedRoles={[UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER]}
           >
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+              <OrderFormModalButton customer={customer}>
+                <ShoppingBag className="w-4 h-4" />
+                Create Order
+              </OrderFormModalButton>
               <CustomerFormModalButton customer={customer} variant="outline">
                 <Edit className="w-4 h-4" />
                 Edit Customer
@@ -308,6 +315,7 @@ export default async function CustomerPage({
       <LogEquipmentModal products={products} />
       <SpecialPricingModal products={products} />
       <InvoiceFormModal />
+      <OrderFormModal />
     </>
   );
 }
