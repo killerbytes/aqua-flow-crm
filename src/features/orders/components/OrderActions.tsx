@@ -17,36 +17,53 @@ interface OrderActionsProps {
   order: Order;
   size?: "default" | "sm";
   className?: string;
-  showPayment?: boolean
+  showPayment?: boolean;
+  /**
+   * "list" shows only the delivery steps (Out For Delivery, Mark as
+   * Delivered). Cancel, Back to Pending, and Payment stay on the details page.
+   */
+  variant?: "list" | "detail";
 }
 
 export default function OrderActions({
   order,
   size = "default",
   className,
-  showPayment = false
-
+  showPayment = false,
+  variant = "detail",
 }: OrderActionsProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const { setPaymentModalOpen } = useUIStore();
-  const handleClick = async (status: OrderStatus) => {
-    startTransition(async () => {
-      const res = await updateOrderStatusAction(order.orderId, status);
-      if (!res.success) {
-        toast.add({
-          type: "error",
-          title: res.error || "Failed to update order status",
-        });
-        return;
-      }
+  const isDetail = variant === "detail";
+  // Resolves once the update and refresh are done, so ConfirmDialog can close.
+  const handleClick = (status: OrderStatus) =>
+    new Promise<void>((resolve) =>
+      startTransition(async () => {
+        try {
+          await updateStatus(status);
+        } finally {
+          resolve();
+        }
+      }),
+    );
+
+  const updateStatus = async (status: OrderStatus) => {
+    const res = await updateOrderStatusAction(order.orderId, status);
+    if (!res.success) {
       toast.add({
-        type: "success",
-        title: `Order #${order.orderId} status updated to ${status}`,
+        type: "error",
+        title: res.error || "Failed to update order status",
       });
-      router.refresh();
+      return;
+    }
+    toast.add({
+      type: "success",
+      title: `Order #${order.orderId} status updated to ${status}`,
     });
+    router.refresh();
   };
+
   return (
     <div
       className={cn("flex items-center gap-2", className)}
@@ -54,7 +71,7 @@ export default function OrderActions({
     >
       <RoleGuard allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]}>
         <div>
-          {order.status === OrderStatus.DELIVERED && (
+          {isDetail && order.status === OrderStatus.DELIVERED && (
             <ConfirmDialog
               isLoading={isPending}
               onConfirm={() => handleClick(OrderStatus.CANCELLED)}
@@ -82,7 +99,7 @@ export default function OrderActions({
           <RoleGuard
             allowedRoles={[UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER]}
           >
-            {showPayment && order.paymentStatus !== PaymentStatus.PAID &&
+            {isDetail && showPayment && order.paymentStatus !== PaymentStatus.PAID &&
               order.status !== OrderStatus.CANCELLED && (
                 <Button
                   size={size}
@@ -110,17 +127,19 @@ export default function OrderActions({
           )}
           {order.status === OrderStatus.OUT_FOR_DELIVERY && (
             <>
-              <ConfirmDialog
-                isLoading={isPending}
-                onConfirm={() => handleClick(OrderStatus.PENDING)}
-                title="Return order to pending?"
-                description=""
-                actionButtonText="Back to Pending"
-              >
-                <Button size={size} variant="outline">
-                  <RotateCcw className="w-4 h-4" /> Back to Pending
-                </Button>
-              </ConfirmDialog>
+              {isDetail && (
+                <ConfirmDialog
+                  isLoading={isPending}
+                  onConfirm={() => handleClick(OrderStatus.PENDING)}
+                  title="Return order to pending?"
+                  description=""
+                  actionButtonText="Back to Pending"
+                >
+                  <Button size={size} variant="outline">
+                    <RotateCcw className="w-4 h-4" /> Back to Pending
+                  </Button>
+                </ConfirmDialog>
+              )}
               <ConfirmDialog
                 isLoading={isPending}
                 onConfirm={() => handleClick(OrderStatus.DELIVERED)}

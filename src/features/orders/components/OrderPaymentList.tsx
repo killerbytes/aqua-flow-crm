@@ -6,11 +6,16 @@ import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { ReversePaymentButton } from "@/features/invoices/components/ReversePaymentButton";
 
 export function OrderPaymentList({ payments }: { payments: any[] }) {
-  if (payments.length === 0) return null;
+  if (payments.length === 0) {
+    return (
+      <p className="rounded-lg border border-dashed py-6 text-center text-sm text-muted-foreground">
+        No payments recorded yet.
+      </p>
+    );
+  }
 
   return (
-    <div className="space-y-2">
-      <h3 className="text-sm font-semibold">Payments</h3>
+    <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
           <tr className="text-left text-muted-foreground border-b">

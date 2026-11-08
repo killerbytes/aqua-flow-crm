@@ -37,7 +37,11 @@ export default function OrderList({ orders }: OrderListProps) {
         columnHelper.accessor("orderId", {
           header: "Order ID",
           size: 50,
-          cell: (info) => <MonoText>#{info.getValue()}</MonoText>,
+          cell: (info) => (
+            <MonoText className="text-muted-foreground">
+              #{info.getValue()}
+            </MonoText>
+          ),
         }),
         !pathname.startsWith("/customers") &&
         columnHelper.accessor("customer.name", {
@@ -49,18 +53,25 @@ export default function OrderList({ orders }: OrderListProps) {
             const customerId = order.customerId;
 
             return (
-              <Link
-                onClick={(e) => e.stopPropagation()}
-                href={`/customers/${customerId}`}
-                className={cx(
-                  "font-medium text-primary",
-                  order.customer?.status === CustomerStatus.INACTIVE
-                    ? "opacity-60"
-                    : "opacity-100",
+              <div className="min-w-0">
+                <Link
+                  onClick={(e) => e.stopPropagation()}
+                  href={`/customers/${customerId}`}
+                  className={cx(
+                    "font-medium text-primary hover:underline",
+                    order.customer?.status === CustomerStatus.INACTIVE
+                      ? "opacity-60"
+                      : "opacity-100",
+                  )}
+                >
+                  <CustomerName customer={order.customer} />
+                </Link>
+                {order.customer?.barangay && (
+                  <div className="truncate text-xs text-muted-foreground">
+                    {order.customer.barangay}
+                  </div>
                 )}
-              >
-                <CustomerName customer={order.customer} />
-              </Link>
+              </div>
             );
           },
         }),
@@ -69,7 +80,24 @@ export default function OrderList({ orders }: OrderListProps) {
             return <ColumnSort column={column}>Date Ordered</ColumnSort>;
           },
           cell: (info) => (
-            <MonoText>{formatDateTime(info.getValue())}</MonoText>
+            <div className="whitespace-nowrap leading-tight">
+              <div className="text-sm">
+                {formatDateTime(info.getValue(), "MMM d, yyyy")}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {formatDateTime(info.getValue(), "h:mm a")}
+              </div>
+            </div>
+          ),
+        }),
+        columnHelper.accessor("status", {
+          header: ({ column }) => {
+            return <ColumnSort column={column}>Status</ColumnSort>;
+          },
+          cell: (info) => (
+            <ColorBadge colorMap={ORDER_STATUS_BADGE_COLOR}>
+              {info.getValue()}
+            </ColorBadge>
           ),
         }),
         columnHelper.accessor("paymentStatus", {
@@ -98,19 +126,9 @@ export default function OrderList({ orders }: OrderListProps) {
             align: "right",
           },
           cell: (info) => (
-            <span className="font-mono font-semibold text-primary flex justify-end">
+            <span className="flex justify-end font-semibold tabular-nums">
               {formatCurrency(info.getValue())}
             </span>
-          ),
-        }),
-        columnHelper.accessor("status", {
-          header: ({ column }) => {
-            return <ColumnSort column={column}>Status</ColumnSort>;
-          },
-          cell: (info) => (
-            <ColorBadge colorMap={ORDER_STATUS_BADGE_COLOR}>
-              {info.getValue()}
-            </ColorBadge>
           ),
         }),
         columnHelper.display({
@@ -124,7 +142,7 @@ export default function OrderList({ orders }: OrderListProps) {
               className="flex items-center justify-end"
               onClick={(e) => e.stopPropagation()}
             >
-              <OrderActions order={info.row.original} size="sm" />
+              <OrderActions order={info.row.original} size="sm" variant="list" />
             </div>
           ),
         }),
@@ -145,6 +163,9 @@ export default function OrderList({ orders }: OrderListProps) {
           data={orders.rows}
           emptyMessage="No orders found."
           onRowClick={(row) => router.push(`/orders/${row.orderId}`)}
+          // Key rows by order, not position: when an order leaves a filtered
+          // list, the next one must not inherit its row's open dialog.
+          getRowId={(row) => String(row.orderId)}
         />
         {orders.pagination && orders.pagination.totalPages > 1 && (
           <Pager initial={orders.pagination} />

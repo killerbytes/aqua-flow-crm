@@ -2,12 +2,18 @@ import { requirePagePermission } from "@/backend/auth/context";
 import {
   ArrowLeft,
   ArrowRightLeft,
+  CalendarDays,
   ClockAlert,
   DollarSign,
   Edit,
+  MapPin,
   Package,
+  Phone,
+  Receipt,
   ShoppingBag,
+  StickyNote,
   Tag,
+  TrendingUp,
   User,
 } from "lucide-react";
 import Link from "next/link";
@@ -42,10 +48,10 @@ import { LogEquipmentModal } from "@/features/customers/components/LogEquipmentM
 import { LogEquipmentModalButton } from "@/features/customers/components/LogEquipmentModalButton";
 import { SpecialPricingModal } from "@/features/customers/components/SpecialPricingModal";
 import { SpecialPricingModalButton } from "@/features/customers/components/SpecialPricingModalButton";
-import { OrderFormModal } from "@/features/orders/components/OrderFormModal";
-import { OrderFormModalButton } from "@/features/orders/components/OrderFormModalButton";
 import { InvoiceFormModal } from "@/features/invoices/components/InvoiceFormModal";
 import { InvoiceFormModalButton } from "@/features/invoices/components/InvoiceFormModalButton";
+import { OrderFormModal } from "@/features/orders/components/OrderFormModal";
+import { OrderFormModalButton } from "@/features/orders/components/OrderFormModalButton";
 import OrderList from "@/features/orders/components/OrderList";
 import EquipmentLogs from "@/features/products/components/EquipmentLogs";
 import { CUSTOMER_STATUS_BADGE_COLOR, UserRole } from "@/lib/definitions";
@@ -53,6 +59,14 @@ import { formatCurrency } from "@/lib/utils";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
+
+function EmptyNote({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="rounded-lg border border-dashed py-4 text-center text-xs text-muted-foreground">
+      {children}
+    </p>
+  );
+}
 
 export default async function CustomerPage({
   params,
@@ -70,7 +84,7 @@ export default async function CustomerPage({
   await initDatabase();
   await requirePagePermission("VIEW_CUSTOMERS");
   const { id } = await params;
-  const { tab, limit, page, sort, order } = await searchParams;
+  const { limit, page, sort, order } = await searchParams;
   let customer;
 
   try {
@@ -100,187 +114,278 @@ export default async function CustomerPage({
       customerId: Number(id),
     },
   });
-  //   const invoiceOrders =  getOrdersAction({
-  //   query: {
-  //     customerId: Number(id),
-  //   },
-  // });
   const barangays = CommonService.getBarangays();
 
-  const activeRegularBalances =
-    customer?.equipmentBalances?.filter(
+  const activeRegularBalances: CustomerEquipmentBalance[] =
+    customer.equipmentBalances?.filter(
       (b: CustomerEquipmentBalance) => (b.quantityOwed ?? 0) > 0,
     ) || [];
 
-  const activeTemporaryBalances =
-    customer?.equipmentBalances?.filter(
+  const activeTemporaryBalances: CustomerEquipmentBalance[] =
+    customer.equipmentBalances?.filter(
       (b: CustomerEquipmentBalance) => (b.quantityTemporaryOwed ?? 0) > 0,
     ) || [];
 
+  const specialPricings: CustomerSpecialPricing[] =
+    customer.specialPricings || [];
+  const unitsOut = activeRegularBalances.reduce(
+    (sum, b) => sum + (b.quantityOwed ?? 0),
+    0,
+  );
+  const unpaidOrders = Number(orders.summary?.unpaidOrders?.value || 0);
+  const initials = customer.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word: string) => word[0]?.toUpperCase())
+    .join("");
+  const customerSince = new Date(customer.createdAt).toLocaleDateString(
+    "en-PH",
+    { month: "long", day: "numeric", year: "numeric", timeZone: "Asia/Manila" },
+  );
+
+  const stats = [
+    {
+      label: "Delivered Sales",
+      value: formatCurrency(Number(orders.summary?.totalAmount?.value || 0)),
+      icon: <TrendingUp className="size-4" />,
+      warning: false,
+    },
+    {
+      label: "Orders",
+      value: orders.pagination.total,
+      icon: <ShoppingBag className="size-4" />,
+      warning: false,
+    },
+    {
+      label: "Unpaid Orders",
+      value: unpaidOrders,
+      icon: <Receipt className="size-4" />,
+      warning: unpaidOrders > 0,
+    },
+    {
+      label: "Containers Out",
+      value: unitsOut,
+      icon: <Package className="size-4" />,
+      warning: false,
+    },
+  ];
+
   return (
-    <>
-      <Link
-        href="/customers"
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft size={16} /> Back to Customers
-      </Link>
-      {/* <CustomerDetailsActions customer={customer} /> */}
-      <div className="bg-card p-6 rounded-2xl border shadow-sm space-y-4">
-        <div className="md:flex space-y-4 justify-between items-center">
-          <PageHeader>
-            <User />
-            {customer?.name || "Customer Profile"}
-            <ColorBadge colorMap={CUSTOMER_STATUS_BADGE_COLOR}>
-              {customer.status}
-            </ColorBadge>
-          </PageHeader>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-4">
+        <PageHeader>
+          <User />
+          Customer Profile
+        </PageHeader>
+        <Link
+          href="/customers"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft size={16} /> Back to Customers
+        </Link>
+      </div>
+
+      {/* Profile */}
+      <Card>
+        <CardContent className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex min-w-0 items-start gap-4">
+            <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-lg font-bold text-primary">
+              {initials || <User />}
+            </div>
+            <div className="min-w-0 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="truncate text-2xl font-bold tracking-tight">
+                  {customer.name}
+                </h2>
+                <ColorBadge colorMap={CUSTOMER_STATUS_BADGE_COLOR}>
+                  {customer.status}
+                </ColorBadge>
+              </div>
+              <div className="flex flex-col gap-1.5 text-sm text-muted-foreground sm:flex-row sm:flex-wrap sm:gap-x-5">
+                <span className="inline-flex items-center gap-1.5">
+                  <MapPin className="size-4 shrink-0" />
+                  {[customer.address, customer.barangay]
+                    .filter(Boolean)
+                    .join(", ") || "No address"}
+                </span>
+                {customer.phone ? (
+                  <a
+                    href={`tel:${customer.phone}`}
+                    className="inline-flex items-center gap-1.5 hover:text-foreground"
+                  >
+                    <Phone className="size-4 shrink-0" />
+                    {customer.phone}
+                  </a>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Phone className="size-4 shrink-0" />
+                    No phone
+                  </span>
+                )}
+                <span className="inline-flex items-center gap-1.5">
+                  <CalendarDays className="size-4 shrink-0" />
+                  Customer since {customerSince}
+                </span>
+              </div>
+            </div>
+          </div>
 
           <RoleGuard
             allowedRoles={[UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER]}
           >
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+            <div className="flex flex-wrap gap-2 lg:max-w-md lg:justify-end">
               <OrderFormModalButton customer={customer}>
-                <ShoppingBag className="w-4 h-4" />
+                <ShoppingBag className="size-4" />
                 Create Order
               </OrderFormModalButton>
-              <CustomerFormModalButton customer={customer} variant="outline">
-                <Edit className="w-4 h-4" />
-                Edit Customer
-              </CustomerFormModalButton>
               <InvoiceFormModalButton customer={customer} variant="outline">
-                <DollarSign className="w-4 h-4" />
+                <DollarSign className="size-4" />
                 Create Invoice
               </InvoiceFormModalButton>
-              <SpecialPricingModalButton customer={customer} variant="outline">
-                <Tag className="w-4 h-4 text-orange-500" />
-                Special Discount
-              </SpecialPricingModalButton>
-
               <LogEquipmentModalButton
                 customerId={customer.customerId}
-                variant="secondary"
+                variant="outline"
               >
-                <ArrowRightLeft size={16} /> Log Equipment
+                <ArrowRightLeft className="size-4" />
+                Log Equipment
               </LogEquipmentModalButton>
+              <SpecialPricingModalButton customer={customer} variant="outline">
+                <Tag className="size-4 text-orange-500" />
+                Special Discount
+              </SpecialPricingModalButton>
+              <CustomerFormModalButton customer={customer} variant="ghost">
+                <Edit className="size-4" />
+                Edit
+              </CustomerFormModalButton>
             </div>
           </RoleGuard>
-        </div>
-        {customer && (
-          <div className="pt-4 border-t space-y-2 text-sm ">
-            <p>
-              <strong>Address:</strong> {customer.address}
-            </p>
-            <p>
-              <strong>Barangay:</strong> {customer.barangay}
-            </p>
-            <p>
-              <strong>Phone:</strong> {customer.phone}
-            </p>
-            {customer.notes && (
-              <p className="flex gap-2">
-                <strong className="font-medium">Notes:</strong>{" "}
-                <span className="whitespace-pre-wrap">{customer.notes}</span>
-              </p>
-            )}
+        </CardContent>
+      </Card>
 
-            {/* Temporary Equipment Loans (Immediate Retrieval Required) */}
-            {activeTemporaryBalances.length > 0 && (
-              <div className="pt-4 border-t space-y-3">
-                <h2 className="text-sm font-semibold flex items-center gap-2 text-amber-700 dark:text-amber-400">
-                  <ClockAlert size={16} /> Temporary Loans (Immediate Retrieval)
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {activeTemporaryBalances.map(
-                    (balance: CustomerEquipmentBalance) => (
-                      <div
-                        key={`temp-${balance.balanceId}`}
-                        className="p-3 border border-amber-300 dark:border-amber-700 rounded-xl bg-amber-50 dark:bg-amber-950/40 flex items-center justify-between"
-                      >
-                        <span className="font-medium text-xs text-amber-900 dark:text-amber-200">
-                          {balance.product?.name}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-md bg-amber-200/60 dark:bg-amber-900/60">
-                            {balance.quantityTemporaryOwed} temp
-                          </span>
-                          {/* <RoleGuard
-                            allowedRoles={[
-                              UserRole.ADMIN,
-                              UserRole.MANAGER,
-                              UserRole.CASHIER,
-                            ]}
-                          >
-                            <LogEquipmentModalButton
-                              customer={customer}
-                              productId={balance.productId}
-                              variant="secondary"
-                            >
-                              <ArrowRightLeft size={16} />
-                            </LogEquipmentModalButton>
-                          </RoleGuard> */}
-                        </div>
-                      </div>
-                    ),
-                  )}
-                </div>
-              </div>
-            )}
-            {/* Regular Borrowed Inventory */}
-            <div className="pt-4 border-t space-y-3">
-              <h2 className="text-sm font-semibold flex items-center gap-2">
-                <Package size={16} /> Equipment
-              </h2>
-              {activeRegularBalances.length === 0 ? (
-                <p className="text-xs text-muted-foreground italic">
-                  No active regular borrowed equipment.
-                </p>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {activeRegularBalances.map(
-                    (balance: CustomerEquipmentBalance) => (
-                      <div
-                        key={balance.balanceId}
-                        className="p-3 border rounded-xl bg-muted/30 flex items-center justify-between"
-                      >
-                        <span className="font-medium text-xs">
-                          {balance.product?.name}
-                        </span>
-                        <span className="text-sm font-bold text-primary px-2 py-0.5 rounded-md bg-primary/10">
-                          {balance.quantityOwed} owed
-                        </span>
-                      </div>
-                    ),
-                  )}
-                </div>
-              )}
-            </div>
-            {customer.specialPricings.length > 0 && (
-              <div className="pt-4 border-t space-y-3">
-                <h2 className="text-sm font-semibold flex items-center gap-2">
-                  <Tag className="text-orange-500" size={16} /> Special Discount
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {customer.specialPricings.map(
-                    (pricing: CustomerSpecialPricing) => (
-                      <div
-                        key={pricing.pricingId}
-                        className="p-3 border rounded-xl bg-muted/30 flex items-center justify-between"
-                      >
-                        <span className="font-medium text-xs">
-                          {pricing.product?.name}
-                        </span>
-                        <span className="text-sm font-bold text-orange-500 px-2 py-0.5 rounded-md bg-orange-500/10">
-                          {formatCurrency(pricing.discountAmount)}
-                        </span>
-                      </div>
-                    ),
-                  )}
-                </div>
-              </div>
-            )}
+      {/* Temporary loans need to come back right away, so they stand out. */}
+      {activeTemporaryBalances.length > 0 && (
+        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4">
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-amber-700 dark:text-amber-400">
+            <ClockAlert className="size-4" /> Temporary loans to retrieve
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {activeTemporaryBalances.map((balance) => (
+              <span
+                key={`temp-${balance.balanceId}`}
+                className="inline-flex items-center gap-2 rounded-lg border border-amber-500/40 bg-background/60 px-3 py-1.5 text-sm"
+              >
+                {balance.product?.name}
+                <span className="font-bold tabular-nums text-amber-700 dark:text-amber-400">
+                  {balance.quantityTemporaryOwed}
+                </span>
+              </span>
+            ))}
           </div>
-        )}
+        </div>
+      )}
+
+      {/* At a glance */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {stats.map((stat) => (
+          <Card key={stat.label} size="sm">
+            <CardContent className="space-y-2">
+              <div className="flex items-center justify-between gap-2 text-muted-foreground">
+                <span className="text-xs font-medium">{stat.label}</span>
+                <span
+                  className={
+                    stat.warning
+                      ? "flex size-7 items-center justify-center rounded-md bg-rose-500/10 text-rose-500"
+                      : "flex size-7 items-center justify-center rounded-md bg-primary/10 text-primary"
+                  }
+                >
+                  {stat.icon}
+                </span>
+              </div>
+              <div
+                className={`text-xl font-bold tabular-nums sm:text-2xl ${
+                  stat.warning ? "text-rose-500" : ""
+                }`}
+              >
+                {stat.value}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Details */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <Card size="sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="size-4 text-primary" /> Borrowed Equipment
+            </CardTitle>
+            <CardDescription>Units the customer has with them</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {activeRegularBalances.length === 0 ? (
+              <EmptyNote>No borrowed equipment.</EmptyNote>
+            ) : (
+              <ul className="divide-y">
+                {activeRegularBalances.map((balance) => (
+                  <li
+                    key={balance.balanceId}
+                    className="flex items-center justify-between py-2"
+                  >
+                    <span>{balance.product?.name}</span>
+                    <span className="rounded-md bg-primary/10 px-2 py-0.5 text-sm font-semibold tabular-nums text-primary">
+                      {balance.quantityOwed}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card size="sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Tag className="size-4 text-orange-500" /> Special Discounts
+            </CardTitle>
+            <CardDescription>Taken off the price of each unit</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {specialPricings.length === 0 ? (
+              <EmptyNote>No special discounts.</EmptyNote>
+            ) : (
+              <ul className="divide-y">
+                {specialPricings.map((pricing) => (
+                  <li
+                    key={pricing.pricingId}
+                    className="flex items-center justify-between py-2"
+                  >
+                    <span>{pricing.product?.name}</span>
+                    <span className="rounded-md bg-orange-500/10 px-2 py-0.5 text-sm font-semibold tabular-nums text-orange-600 dark:text-orange-400">
+                      −{formatCurrency(pricing.discountAmount)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card size="sm" className="md:col-span-2 xl:col-span-1">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <StickyNote className="size-4 text-primary" /> Notes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {customer.notes ? (
+              <p className="whitespace-pre-wrap text-sm">{customer.notes}</p>
+            ) : (
+              <EmptyNote>No notes.</EmptyNote>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <TabWrapper defaultValue="history">
@@ -288,34 +393,37 @@ export default async function CustomerPage({
           <TabsTrigger value="history">Order History</TabsTrigger>
           <TabsTrigger value="logs">Equipment Logs</TabsTrigger>
         </TabsList>
-        <TabsContent value="logs">
-          <Card>
-            <CardHeader>
-              <CardTitle>Equipment Logs</CardTitle>
-              <CardDescription>Track equipment loan history.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <EquipmentLogs logsPromise={logsPromise} />
-            </CardContent>
-          </Card>
-        </TabsContent>
         <TabsContent value="history">
           <Card>
             <CardHeader>
               <CardTitle>Order History</CardTitle>
-              <CardDescription>View order history</CardDescription>
+              <CardDescription>
+                Every order placed by this customer
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <OrderList orders={orders} />
             </CardContent>
           </Card>
         </TabsContent>
+        <TabsContent value="logs">
+          <Card>
+            <CardHeader>
+              <CardTitle>Equipment Logs</CardTitle>
+              <CardDescription>Equipment lent out and returned</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <EquipmentLogs logsPromise={logsPromise} />
+            </CardContent>
+          </Card>
+        </TabsContent>
       </TabWrapper>
+
       <CustomerFormModal barangays={barangays} />
       <LogEquipmentModal products={products} />
       <SpecialPricingModal products={products} />
       <InvoiceFormModal />
       <OrderFormModal />
-    </>
+    </div>
   );
 }

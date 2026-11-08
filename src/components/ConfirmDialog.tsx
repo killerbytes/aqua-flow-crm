@@ -1,4 +1,5 @@
 import { Loader2Icon } from "lucide-react";
+import { useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,14 +21,25 @@ export default function ConfirmDialog({
   actionButtonText = "Continue",
 }: {
   children: React.ReactElement;
-  onConfirm: () => void;
+  /** May return a promise; the dialog closes once it settles. */
+  onConfirm: () => void | Promise<unknown>;
   isLoading: boolean;
   title: string;
   description: string;
   actionButtonText?: string;
 }) {
+  const [open, setOpen] = useState(false);
+
+  const handleConfirm = async () => {
+    try {
+      await onConfirm();
+    } finally {
+      setOpen(false);
+    }
+  };
+
   return (
-    <AlertDialog>
+    <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger render={children} />
       <AlertDialogContent>
         <AlertDialogHeader>
@@ -36,7 +48,7 @@ export default function ConfirmDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction disabled={isLoading} onClick={onConfirm}>
+          <AlertDialogAction disabled={isLoading} onClick={handleConfirm}>
             {isLoading && (
               <Loader2Icon className="animate-spin" aria-hidden="true" />
             )}

@@ -171,6 +171,7 @@ export class OrderService {
           ],
         },
         { model: User, as: "user", paranoid: false },
+        { model: User, as: "deliveredByUser", paranoid: false },
         {
           model: OrderDetail,
           as: "orderDetails",
