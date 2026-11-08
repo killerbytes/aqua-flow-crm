@@ -199,3 +199,18 @@
     letter-spacing: var(--tracking-normal);
   }
 }
+
+/* Card surface used by MotionCard and empty states. */
+@utility glass-card {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background-color: var(--card);
+  color: var(--card-foreground);
+  box-shadow: var(--shadow-sm);
+}
+
+@utility glass-card-hover {
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
