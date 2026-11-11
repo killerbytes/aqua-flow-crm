@@ -35,6 +35,7 @@ export const createOrderAction = createProtectedAction({
   handler: async (ctx, input: OrderFormData) => {
     const result = await OrderService.createForStaff(input, ctx.user.userId);
     revalidatePath("/orders");
+    revalidatePath(`/customers/${input.customerId}`);
     return result;
   },
 });

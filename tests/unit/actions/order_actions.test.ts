@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { describe, expect, it, vi } from "vitest";
 import * as authContext from "../../../src/backend/auth/context";
 import { CustomerService } from "../../../src/backend/services/customer.service";
@@ -83,6 +84,8 @@ describe("Unit - Order Server Actions", () => {
     if (res.success) {
       expect(res.data).toEqual({ orderId: 101, totalAmount: 100 });
     }
+    expect(revalidatePath).toHaveBeenCalledWith("/orders");
+    expect(revalidatePath).toHaveBeenCalledWith("/customers/1");
   });
 
   it("should fail makePaymentAction when input fails PaymentSchema", async () => {
