@@ -121,6 +121,8 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     icon: React.ReactNode;
     tone: Tone;
     filter: { key: "status" | "paymentStatus"; value: string };
+    /** Small print under the value. */
+    hint?: string;
   }[] = [
     ...(canSeeSales
       ? [
@@ -130,6 +132,12 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
             icon: <TrendingUp className="size-4" />,
             tone: "default" as Tone,
             filter: { key: "status" as const, value: OrderStatus.DELIVERED },
+            // The total follows delivery dates while the list follows order
+            // dates, so it can include orders placed before the range.
+            hint:
+              startDate || endDate
+                ? "By delivery date in this range"
+                : undefined,
           },
         ]
       : []),
@@ -226,6 +234,11 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
               <div className="mt-2 text-xl font-bold tabular-nums sm:text-2xl">
                 {tile.value}
               </div>
+              {tile.hint && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {tile.hint}
+                </p>
+              )}
             </Link>
           );
         })}

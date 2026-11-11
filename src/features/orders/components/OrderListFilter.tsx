@@ -9,7 +9,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { OrderStatus, PaymentStatus } from "@/lib/definitions";
-import { endOfMonth, startOfMonth } from "date-fns";
 import { X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -30,17 +29,17 @@ const PAYMENT_LABELS: Record<string, string> = {
 export default function OrderListFilter() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const startDate = new Date(
-    Number(searchParams.get("startDate") ?? startOfMonth(new Date())),
-  );
-  const endDate = new Date(
-    Number(searchParams.get("endDate") ?? endOfMonth(new Date())),
-  );
+  // With no dates in the URL the server applies no date filter, so the picker
+  // says "All time" rather than suggesting a range that isn't applied.
+  const startParam = searchParams.get("startDate");
+  const endParam = searchParams.get("endDate");
+  const startDate = startParam ? new Date(Number(startParam)) : undefined;
+  const endDate = endParam ? new Date(Number(endParam)) : undefined;
+  const hasDates = Boolean(startDate || endDate);
   const status = searchParams.get("status") ?? "ALL";
   const paymentStatus = searchParams.get("paymentStatus") ?? "ALL";
 
-  const isToday = startDate.toDateString() === endDate.toDateString();
-  const hasFilters = status !== "ALL" || paymentStatus !== "ALL";
+  const hasFilters = hasDates || status !== "ALL" || paymentStatus !== "ALL";
 
   /** Applies changes to the current filters, starting again from page 1. */
   const push = (changes: Record<string, string | null>) => {
@@ -58,7 +57,10 @@ export default function OrderListFilter() {
     <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center">
       <div className="flex items-center gap-2">
         <CalendarDatePicker
-          date={{ from: startDate, to: endDate }}
+          // A range open at one end only shows its known end on both sides.
+          date={{ from: startDate ?? endDate, to: endDate ?? startDate }}
+          placeholder="All time"
+          onClear={() => push({ startDate: null, endDate: null })}
           onDateSelect={({ from, to }) =>
             push({
               startDate: String(from.getTime()),
@@ -113,7 +115,14 @@ export default function OrderListFilter() {
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => push({ status: null, paymentStatus: null })}
+            onClick={() =>
+              push({
+                status: null,
+                paymentStatus: null,
+                startDate: null,
+                endDate: null,
+              })
+            }
           >
             <X className="size-4" /> Clear
           </Button>
