@@ -4,6 +4,7 @@ import {
   LedgerReferenceType,
   PAGINATION,
 } from "@/lib/definitions";
+import { toPagination } from "@/lib/pagination";
 import { handleServiceError } from "./errorHandler";
 import { EquipmentLedgerEntry, ProductInventory, sequelize } from "../models";
 import { AdjustmentFormData, AdjustmentSchema } from "../schemas/zodSchemas";
@@ -62,11 +63,7 @@ export class InventoryService {
           reason: plain.notes || "N/A",
         };
       }),
-      pagination: {
-        total: count,
-        totalPages: Math.ceil(count / limit),
-        currentPage: Number(offset / limit) + 1,
-      },
+      pagination: toPagination(count, limit, page),
     };
   }
 

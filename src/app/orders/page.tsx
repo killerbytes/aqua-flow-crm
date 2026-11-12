@@ -13,10 +13,10 @@ import { WalkInSalesModal } from "@/features/orders/components/WalkInSalesModal"
 import { WalkInSalesModalButton } from "@/features/orders/components/WalkInSalesModalButton";
 import {
   OrderStatus,
-  PAGINATION,
   PaymentStatus,
   UserRole,
 } from "@/lib/definitions";
+import { parsePageParams } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
 import { Paginated } from "@/types";
 import {
@@ -69,8 +69,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const canSeeSales = checkPermission(user.role, "VIEW_DASHBOARD");
   const params = await searchParams;
 
-  const page = Number(params?.page) || PAGINATION.PAGE;
-  const limit = Number(params?.limit) || PAGINATION.PAGE_SIZE;
+  const { page, limit } = parsePageParams(params);
   const startDate = params?.startDate || "";
   const endDate = params?.endDate || "";
   const sort = params?.sort || "createdAt";

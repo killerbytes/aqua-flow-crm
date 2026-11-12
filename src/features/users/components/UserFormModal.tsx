@@ -45,12 +45,12 @@ export function UserFormModal() {
 
   return (
     <Modal isOpen={isUserModalOpen} onClose={() => setUserModalOpen(false)}>
-      <OrderFormModalContent />
+      <UserFormModalContent />
     </Modal>
   );
 }
 
-export const OrderFormModalContent = () => {
+export const UserFormModalContent = () => {
   const router = useRouter();
   const { isUserModalOpen, editingUser, setUserModalOpen } = useUIStore();
   const isEditing = Boolean(editingUser?.userId);

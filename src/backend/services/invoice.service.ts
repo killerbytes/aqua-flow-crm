@@ -4,6 +4,7 @@ import {
   PAGINATION,
   PaymentStatus,
 } from "@/lib/definitions";
+import { toPagination } from "@/lib/pagination";
 import { fromCents, toCents } from "@/lib/money";
 import { Op, OrderItem } from "sequelize";
 import {
@@ -83,11 +84,7 @@ export class InvoiceService {
 
     return {
       rows: rows.map((r) => r.get({ plain: true })),
-      pagination: {
-        total: count,
-        totalPages: Math.ceil(count / limit),
-        currentPage: Number(offset / limit) + 1,
-      },
+      pagination: toPagination(count, limit, page),
       summary: await getSummary(where),
     };
   }

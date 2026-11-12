@@ -11,7 +11,8 @@ import PageHeader from "@/components/shared/PageHeader";
 import { CustomerFormModal } from "@/features/customers/components/CustomerFormModal";
 import { CustomerFormModalButton } from "@/features/customers/components/CustomerFormModalButton";
 import CustomerList from "@/features/customers/components/CustomerList";
-import { PAGINATION, UserRole } from "@/lib/definitions";
+import { UserRole } from "@/lib/definitions";
+import { parsePageParams } from "@/lib/pagination";
 import { Search, UserPlus, Users } from "lucide-react";
 import { Suspense } from "react";
 
@@ -27,8 +28,7 @@ export default async function CustomersPage({
   await requirePagePermission("VIEW_CUSTOMERS");
   const params = await searchParams;
 
-  const page = Number(params?.page) || PAGINATION.PAGE;
-  const limit = Number(params?.limit) || PAGINATION.PAGE_SIZE;
+  const { page, limit } = parsePageParams(params);
   const sort = params?.sort;
   const order = params?.order;
 

@@ -22,7 +22,6 @@ interface UIState {
   isInventoryAdjustmentModalOpen: boolean;
   selectedCustomerId?: number | null;
   selectedProductId?: number | null;
-  products: ProductInventory[];
   isCustomerLookupModalOpen: boolean;
   onSelectCustomer?: (id: number) => void;
   isChangePasswordModalOpen: boolean;
@@ -34,7 +33,6 @@ interface UIState {
   editingInvoice?: Invoice | null;
 
   isWalkInModalOpen: boolean;
-  setProducts: (products: ProductInventory[]) => void;
   setLookupCustomers: (lookupCustomers: Customer[]) => void;
   setCustomerFormModalOpen: (open: boolean, customer?: Customer | null) => void;
   setEquipmentLogModalOpen: (
@@ -81,7 +79,6 @@ export const useUIStore = create<UIState>((set) => ({
   isInventoryAdjustmentModalOpen: false,
   selectedCustomerId: null,
   selectedProductId: null,
-  products: [],
   isCustomerLookupModalOpen: false,
   isChangePasswordModalOpen: false,
   isSpecialPricingModalOpen: false,
@@ -91,7 +88,6 @@ export const useUIStore = create<UIState>((set) => ({
   isPaymentFormModalOpen: false,
   isWalkInModalOpen: false,
 
-  setProducts: (products) => set({ products }),
   setLookupCustomers: (lookupCustomers) => set({ lookupCustomers }),
   setCustomerFormModalOpen: (open, customer = null) =>
     set({ isCustomerFormModalOpen: open, editingCustomer: customer }),
