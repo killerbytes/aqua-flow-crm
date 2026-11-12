@@ -1,6 +1,6 @@
 "use client";
 
-import { createOrderAction } from "@/backend/actions";
+import { createOrderAction, updateOrderAction } from "@/backend/actions";
 import { OrderFormData, OrderSchema } from "@/backend/schemas/zodSchemas";
 import Modal from "@/components/Modal";
 import { Button } from "@/components/ui/button";
@@ -32,19 +32,38 @@ const hasContainersOut = (balance: any) =>
 const OrderFormModalContent = () => {
   const router = useRouter();
   const pathname = usePathname();
-  const { setOrderFormModalOpen, lookupCustomers, orderCustomer } =
-    useUIStore();
+  const {
+    setOrderFormModalOpen,
+    lookupCustomers,
+    orderCustomer: presetCustomer,
+    editingOrder,
+  } = useUIStore();
   const [isPending, startTransition] = useTransition();
+  // An order being edited keeps its customer, so it stands in as the preset.
+  const orderCustomer = editingOrder?.customer ?? presetCustomer;
 
   const form = useForm({
     resolver: zodResolver(OrderSchema),
-    defaultValues: {
-      customerId: orderCustomer?.customerId ?? 0,
-      status: OrderStatus.PENDING,
-      paymentStatus: PaymentStatus.UNPAID,
-      items: [UNSET_ORDER_ITEM],
-      surcharge: DEFAULT_ORDER_SURCHARGE,
-    },
+    defaultValues: editingOrder
+      ? {
+          customerId: editingOrder.customerId,
+          status: OrderStatus.PENDING,
+          paymentStatus: PaymentStatus.UNPAID,
+          // Previewed at today's prices, which is what saving will charge.
+          items: editingOrder.orderDetails.map((d: any) => ({
+            productId: d.productId,
+            quantity: d.quantity,
+            unitPrice: Number(d.product?.unitPrice ?? d.unitPrice),
+          })),
+          surcharge: Number(editingOrder.surcharge) || 0,
+        }
+      : {
+          customerId: orderCustomer?.customerId ?? 0,
+          status: OrderStatus.PENDING,
+          paymentStatus: PaymentStatus.UNPAID,
+          items: [UNSET_ORDER_ITEM],
+          surcharge: DEFAULT_ORDER_SURCHARGE,
+        },
   });
   const { handleSubmit, control, formState } = form;
   const products = useOrderProducts(form);
@@ -64,6 +83,20 @@ const OrderFormModalContent = () => {
   const onSubmit = async (data: OrderFormData) => {
     startTransition(async () => {
       try {
+        if (editingOrder) {
+          const res = await updateOrderAction(editingOrder.orderId, {
+            items: data.items,
+            surcharge: data.surcharge,
+          });
+          if (!res.success) {
+            throw new Error(res.error);
+          }
+          toast.add({ title: `Order #${editingOrder.orderId} updated` });
+          setOrderFormModalOpen(false);
+          router.refresh();
+          return;
+        }
+
         const res = await createOrderAction(data);
         if (!res.success) {
           throw new Error(res.error);
@@ -83,7 +116,9 @@ const OrderFormModalContent = () => {
         toast.add({
           type: "error",
           priority: "high",
-          description: error.message || "Failed to create order",
+          description:
+            error.message ||
+            (editingOrder ? "Failed to update order" : "Failed to create order"),
         });
       }
     });
@@ -94,15 +129,20 @@ const OrderFormModalContent = () => {
       <FieldGroup className="gap-2">
         <Field data-invalid={!!formState.errors.customerId?.message}>
           <FieldLabel>Customer</FieldLabel>
-          <OrderCustomerLookupButton form={form}>
-            <FieldLabel className="w-full cursor-pointer justify-start">
-              {customer?.name || (
-                <div className="flex justify-start gap-2 items-center">
-                  <Search /> Select customer...
-                </div>
-              )}
-            </FieldLabel>
-          </OrderCustomerLookupButton>
+          {editingOrder ? (
+            // The customer of an existing order can't be changed.
+            <div className="text-sm font-medium">{customer?.name}</div>
+          ) : (
+            <OrderCustomerLookupButton form={form}>
+              <FieldLabel className="w-full cursor-pointer justify-start">
+                {customer?.name || (
+                  <div className="flex justify-start gap-2 items-center">
+                    <Search /> Select customer...
+                  </div>
+                )}
+              </FieldLabel>
+            </OrderCustomerLookupButton>
+          )}
         </Field>
 
         {balancesOut.length > 0 && (
@@ -139,7 +179,10 @@ const OrderFormModalContent = () => {
         specialPricings={customer?.specialPricings}
       />
 
-      <OrderSurchargeField form={form} />
+      <OrderSurchargeField
+        form={form}
+        initial={editingOrder ? Number(editingOrder.surcharge) || 0 : undefined}
+      />
 
       <div className="flex items-center justify-between pt-4 border-t border-slate-800">
         <span className="text-xs text-muted-foreground">Total Amount:</span>
@@ -159,7 +202,13 @@ const OrderFormModalContent = () => {
           Cancel
         </Button>
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Placing Order..." : "Create Order"}
+          {editingOrder
+            ? isPending
+              ? "Saving..."
+              : "Save Changes"
+            : isPending
+              ? "Placing Order..."
+              : "Create Order"}
         </Button>
       </div>
     </form>
@@ -167,7 +216,8 @@ const OrderFormModalContent = () => {
 };
 
 export function OrderFormModal() {
-  const { isOrderModalOpen, setOrderFormModalOpen } = useUIStore();
+  const { isOrderModalOpen, setOrderFormModalOpen, editingOrder } =
+    useUIStore();
 
   // The content mounts on open, so each order starts from a fresh form.
   if (!isOrderModalOpen) return null;
@@ -177,10 +227,14 @@ export function OrderFormModal() {
       title={
         <>
           <ShoppingBag />
-          Create Order
+          {editingOrder ? `Edit Order #${editingOrder.orderId}` : "Create Order"}
         </>
       }
-      description="Place a new water refill order"
+      description={
+        editingOrder
+          ? "Change the items or surcharge of this pending order"
+          : "Place a new water refill order"
+      }
       isOpen={isOrderModalOpen}
       onClose={() => setOrderFormModalOpen(false)}
     >

@@ -9,7 +9,7 @@ import { toast } from "@/components/ui/toast";
 import { OrderStatus, PaymentStatus, UserRole } from "@/lib/definitions";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/store/uiStore";
-import { Banknote, Check, RotateCcw, Truck } from "lucide-react";
+import { Banknote, Check, Pencil, RotateCcw, Truck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 
@@ -34,7 +34,7 @@ export default function OrderActions({
 }: OrderActionsProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const { setPaymentModalOpen } = useUIStore();
+  const { setPaymentModalOpen, setOrderFormModalOpen } = useUIStore();
   const isDetail = variant === "detail";
   // Resolves once the update and refresh are done, so ConfirmDialog can close.
   const handleClick = (status: OrderStatus) =>
@@ -106,6 +106,17 @@ export default function OrderActions({
                   onClick={() => setPaymentModalOpen(true, order)}
                 >
                   <Banknote className="w-4 h-4" /> Payment
+                </Button>
+              )}
+            {isDetail &&
+              order.status === OrderStatus.PENDING &&
+              order.paymentStatus !== PaymentStatus.PAID && (
+                <Button
+                  size={size}
+                  variant="outline"
+                  onClick={() => setOrderFormModalOpen(true, null, order)}
+                >
+                  <Pencil className="w-4 h-4" /> Edit
                 </Button>
               )}
           </RoleGuard>

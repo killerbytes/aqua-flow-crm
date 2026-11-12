@@ -29,7 +29,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import OrderActions from "@/features/orders/components/OrderActions";
-import OrderDetailList from "@/features/orders/components/OrderDetailList";
+import { OrderFormModal } from "@/features/orders/components/OrderFormModal";
+import OrderDetailList from"@/features/orders/components/OrderDetailList";
 import { OrderPaymentList } from "@/features/orders/components/OrderPaymentList";
 import { PaymentModal } from "@/features/orders/components/PaymentModal";
 import {
@@ -385,6 +386,7 @@ export default async function OrderDetailsPage({
       </div>
 
       <PaymentModal />
+      <OrderFormModal />
     </div>
   );
 }

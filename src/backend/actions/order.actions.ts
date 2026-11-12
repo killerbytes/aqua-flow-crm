@@ -7,6 +7,8 @@ import { checkPermission } from "../rbac/permissions";
 import {
   OrderFormData,
   OrderSchema,
+  OrderUpdateFormData,
+  OrderUpdateSchema,
   PaymentFormData,
   PaymentSchema,
   ReversePaymentFormData,
@@ -40,7 +42,20 @@ export const createOrderAction = createProtectedAction({
   },
 });
 
-export const updateOrderStatusAction = createProtectedAction({
+export const updateOrderAction = createProtectedAction({
+  permission: "UPDATE_ORDER",
+  schema: OrderUpdateSchema,
+  inputIndex: 1,
+  handler: async (_ctx, id: number | string, input: OrderUpdateFormData) => {
+    const result = await OrderService.update(id, input);
+    revalidatePath("/orders");
+    revalidatePath(`/orders/${id}`);
+    if (result) revalidatePath(`/customers/${result.customerId}`);
+    return result;
+  },
+});
+
+export const updateOrderStatusAction =createProtectedAction({
   permission: "UPDATE_DELIVERY_STATUS",
   handler: async (ctx, id: number | string, status: OrderStatus) => {
     if (

@@ -17,6 +17,7 @@ import {
 } from "../models";
 import {
   OrderFormData,
+  OrderUpdateFormData,
   PaymentFormData,
   PaymentSchema,
   ReversePaymentFormData,
@@ -218,44 +219,13 @@ export class OrderService {
       throw new Error(`Customer with ID ${customerId} not found`);
     }
 
-    let totalCents = 0;
-    const validatedItems: {
-      productId: number;
-      quantity: number;
-      unitPrice: number;
-      discount: number;
-    }[] = [];
-
-    for (const item of items) {
-      const product = await ProductService.get(item.productId);
-      if (!product) {
-        throw new Error(`Product with ID ${item.productId} not found`);
-      }
-
-      const specialPricing = await CustomerSpecialPricing.findOne({
-        where: { customerId, productId: item.productId },
-      });
-
-      // Prices always come from the database, never from the request.
-      const unitPrice = Number(product.unitPrice);
-      const discount = specialPricing
-        ? Number(specialPricing.discountAmount)
-        : 0;
-      const netUnitCents = Math.max(0, toCents(unitPrice) - toCents(discount));
-
-      totalCents += netUnitCents * item.quantity;
-      validatedItems.push({
-        productId: item.productId,
-        quantity: item.quantity,
-        unitPrice,
-        discount,
-      });
-    }
+    const priced = await priceItems(customerId, items);
+    const validatedItems = priced.items;
 
     // The one amount staff set themselves. Product prices never come from the
     // request, but the surcharge is theirs to charge, waive, or change.
     const surchargeCents = Math.max(0, toCents(input.surcharge));
-    totalCents += surchargeCents;
+    const totalCents = priced.totalCents + surchargeCents;
 
     const orderId = await sequelize.transaction(async (t) => {
       // Locked so the customer can't be deleted while this order is saved.
@@ -301,6 +271,67 @@ export class OrderService {
       }
 
       return order.orderId;
+    });
+
+    return await this.get(orderId);
+  }
+
+  /**
+   * Changes the items and surcharge of an order that is still pending. Lines
+   * are priced again from the database, at today's prices. A paid or invoiced
+   * order is refused, because its payment or invoice holds the old total.
+   */
+  static async update(id: number | string, input: OrderUpdateFormData) {
+    const orderId = Number(id);
+    const existing = await Order.findByPk(orderId);
+    if (!existing) {
+      throw new Error(`Order with ID ${id} not found`);
+    }
+
+    // The customer of an order never changes, so pricing can run before the lock.
+    const priced = await priceItems(existing.customerId, input.items);
+
+    await sequelize.transaction(async (t) => {
+      const order = await Order.findByPk(orderId, {
+        transaction: t,
+        lock: t.LOCK.UPDATE,
+      });
+      if (!order) {
+        throw new Error(`Order with ID ${id} not found`);
+      }
+      if (order.status !== OrderStatus.PENDING) {
+        throw new Error("Only pending orders can be edited");
+      }
+      if (order.paymentStatus === PaymentStatus.PAID) {
+        throw new Error(
+          "Cannot edit an order that is already paid. Reverse the payment first.",
+        );
+      }
+      if (await isInvoiced(order.orderId, t)) {
+        throw new Error("Cannot edit an order that is on an invoice");
+      }
+
+      // A request without a surcharge leaves the one on the order as it is.
+      const surchargeCents =
+        input.surcharge === undefined
+          ? toCents(order.surcharge)
+          : Math.max(0, toCents(input.surcharge));
+
+      await OrderDetail.destroy({
+        where: { orderId: order.orderId },
+        transaction: t,
+      });
+      await OrderDetail.bulkCreate(
+        priced.items.map((item) => ({ ...item, orderId: order.orderId })),
+        { transaction: t },
+      );
+      await order.update(
+        {
+          totalAmount: fromCents(priced.totalCents + surchargeCents),
+          surcharge: fromCents(surchargeCents),
+        },
+        { transaction: t },
+      );
     });
 
     return await this.get(orderId);
@@ -491,6 +522,48 @@ export class OrderService {
     });
   }
 }
+
+/**
+ * Prices order lines for a customer. Prices and discounts always come from the
+ * database, never from the request.
+ */
+const priceItems = async (
+  customerId: number,
+  items: { productId: number; quantity: number }[],
+) => {
+  let totalCents = 0;
+  const priced: {
+    productId: number;
+    quantity: number;
+    unitPrice: number;
+    discount: number;
+  }[] = [];
+
+  for (const item of items) {
+    const product = await ProductService.get(item.productId);
+    if (!product) {
+      throw new Error(`Product with ID ${item.productId} not found`);
+    }
+
+    const specialPricing = await CustomerSpecialPricing.findOne({
+      where: { customerId, productId: item.productId },
+    });
+
+    const unitPrice = Number(product.unitPrice);
+    const discount = specialPricing ? Number(specialPricing.discountAmount) : 0;
+    const netUnitCents = Math.max(0, toCents(unitPrice) - toCents(discount));
+
+    totalCents += netUnitCents * item.quantity;
+    priced.push({
+      productId: item.productId,
+      quantity: item.quantity,
+      unitPrice,
+      discount,
+    });
+  }
+
+  return { items: priced, totalCents };
+};
 
 const isInvoiced = async (orderId: number, transaction: Transaction) =>
   (await InvoiceDetail.count({

@@ -8,6 +8,7 @@ import {
   createOrderAction,
   getOrdersAction,
   makePaymentAction,
+  updateOrderAction,
   updateOrderStatusAction,
 } from "../../../src/backend/actions/order.actions";
 
@@ -113,6 +114,45 @@ describe("Unit - Order Server Actions", () => {
       101,
       1,
     );
+  });
+
+  it("should fail updateOrderAction when user lacks UPDATE_ORDER permission", async () => {
+    vi.spyOn(authContext, "getAuthContext").mockResolvedValue({
+      user: { userId: 2, name: "Delivery", role: UserRole.DELIVERY },
+    } as any);
+    const update = vi.spyOn(OrderService, "update");
+
+    const res = await updateOrderAction(101, {
+      items: [{ productId: 1, quantity: 2, discount: 0 }],
+    });
+
+    expect(res.success).toBe(false);
+    if (!res.success) expect(res.error).toMatch(/Forbidden/i);
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("should validate the second argument of updateOrderAction and call OrderService.update", async () => {
+    vi.spyOn(authContext, "getAuthContext").mockResolvedValue({
+      user: { userId: 3, name: "Cashier", role: UserRole.CASHIER },
+    } as any);
+    const update = vi
+      .spyOn(OrderService, "update")
+      .mockResolvedValue({ orderId: 101, customerId: 7 } as any);
+
+    const invalid = await updateOrderAction(101, { items: [] });
+    expect(invalid.success).toBe(false);
+    expect(update).not.toHaveBeenCalled();
+
+    const input = {
+      items: [{ productId: 1, quantity: 2, discount: 0 }],
+      surcharge: 5,
+    };
+    const res = await updateOrderAction(101, input);
+
+    expect(res.success).toBe(true);
+    expect(update).toHaveBeenCalledWith(101, input);
+    expect(revalidatePath).toHaveBeenCalledWith("/orders/101");
+    expect(revalidatePath).toHaveBeenCalledWith("/customers/7");
   });
 
   it("should update order status and log current user in updateOrderStatusAction", async () => {
