@@ -90,6 +90,12 @@ export const OrderSchema = z.object({
     .optional(),
 });
 
+/** What staff can change on a pending order: its items and its surcharge. */
+export const OrderUpdateSchema = OrderSchema.pick({
+  items: true,
+  surcharge: true,
+});
+
 export const PaymentSchema = OrderSchema.omit({
   customerId: true,
   status: true,
@@ -184,7 +190,8 @@ export type EquipmentLogFormData = z.infer<typeof EquipmentLogSchema>;
 export type SpecialPricingFormData = z.infer<typeof SpecialPricingSchema>;
 export type PaymentFormData = z.infer<typeof PaymentSchema>;
 export type OrderFormData = z.infer<typeof OrderSchema>;
-export type OrderItemsFormData = z.infer<typeof OrderItemsSchema>;
+export type OrderUpdateFormData = z.infer<typeof OrderUpdateSchema>;
+export type OrderItemsFormData =z.infer<typeof OrderItemsSchema>;
 export type InvoiceFormData = z.infer<typeof InvoiceSchema>;
 export type InvoicePaymentFormData = z.infer<typeof InvoicePaymentSchema>;
 export type VoidInvoiceFormData = z.infer<typeof VoidInvoiceSchema>;

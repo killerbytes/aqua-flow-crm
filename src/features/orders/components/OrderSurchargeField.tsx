@@ -22,7 +22,14 @@ export const DEFAULT_ORDER_SURCHARGE = 5;
  * It is on for an order of a single unit, and switches itself off when the
  * order grows past that. Staff can still switch it back on for a larger order.
  */
-export function OrderSurchargeField({ form }: { form: OrderForm }) {
+export function OrderSurchargeField({
+  form,
+  initial,
+}: {
+  form: OrderForm;
+  /** The surcharge already on an order being edited. Zero means none. */
+  initial?: number;
+}) {
   const { control, setValue, formState } = form;
   const items = useWatch({ control, name: "items" }) || [];
   const totalQuantity = items.reduce(
@@ -31,8 +38,12 @@ export function OrderSurchargeField({ form }: { form: OrderForm }) {
   );
   const isSingleUnit = totalQuantity === 1;
 
-  const [checked, setChecked] = useState(isSingleUnit);
-  const [amount, setAmount] = useState(String(DEFAULT_ORDER_SURCHARGE));
+  const [checked, setChecked] = useState(
+    initial === undefined ? isSingleUnit : initial > 0,
+  );
+  const [amount, setAmount] = useState(
+    String(initial || DEFAULT_ORDER_SURCHARGE),
+  );
 
   // Follow the quantity only when it crosses between one unit and more, so a
   // choice staff made by hand survives other quantity changes.

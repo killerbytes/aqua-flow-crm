@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { Order } from "../../src/backend/models";
-import { ProductService } from "../../src/backend/services";
+import { InvoiceService, ProductService } from "../../src/backend/services";
 import { OrderService } from "../../src/backend/services/order.service";
 import { OrderStatus } from "../../src/lib/definitions";
 import { setupTestDatabase } from "../helpers/db.setup";
@@ -96,6 +96,88 @@ describe("Integration - Order Service & Workflows", () => {
 
       const productAfter = await ProductService.get(1);
       expect(productAfter?.stockInStation).toBe(initialStock);
+    });
+  });
+
+  describe("Editing a pending order", () => {
+    const newOrder = async (surcharge?: number) =>
+      (await OrderService.create(
+        {
+          customerId: 1,
+          status: OrderStatus.PENDING,
+          paymentStatus: "UNPAID",
+          items: [{ productId: 1, quantity: 1, discount: 0 }],
+          surcharge,
+        },
+        1,
+      ))!;
+
+    it("should replace the items and surcharge and recalculate the total", async () => {
+      const order = await newOrder(5);
+      const unitNet = order.totalAmount - 5;
+
+      const updated = (await OrderService.update(order.orderId, {
+        // A price in the request is ignored, as on creation.
+        items: [{ productId: 1, quantity: 4, unitPrice: 0.01, discount: 0 }],
+        surcharge: 0,
+      }))!;
+
+      expect(updated.orderDetails).toHaveLength(1);
+      expect(updated.orderDetails[0].quantity).toBe(4);
+      expect(updated.surcharge).toBe(0);
+      expect(updated.totalAmount).toBeCloseTo(unitNet * 4, 2);
+      expect(updated.status).toBe(OrderStatus.PENDING);
+    });
+
+    it("should keep the surcharge when the request leaves it out", async () => {
+      const order = await newOrder(7.5);
+
+      const updated = (await OrderService.update(order.orderId, {
+        items: [{ productId: 1, quantity: 2, discount: 0 }],
+      }))!;
+
+      expect(updated.surcharge).toBe(7.5);
+      expect(updated.totalAmount).toBeCloseTo((order.totalAmount - 7.5) * 2 + 7.5, 2);
+    });
+
+    it("should refuse orders that are no longer pending", async () => {
+      const order = await newOrder();
+      await OrderService.updateStatus(order.orderId, OrderStatus.OUT_FOR_DELIVERY);
+
+      await expect(
+        OrderService.update(order.orderId, {
+          items: [{ productId: 1, quantity: 9, discount: 0 }],
+        }),
+      ).rejects.toThrow(/Only pending orders can be edited/);
+
+      const after = (await OrderService.get(order.orderId))!;
+      expect(after.orderDetails[0].quantity).toBe(1);
+      expect(after.totalAmount).toBe(order.totalAmount);
+    });
+
+    it("should refuse a pending order that is already paid", async () => {
+      const order = await newOrder();
+      await OrderService.makePayment({ paymentMethod: "CASH" } as any, order.orderId, 1);
+
+      await expect(
+        OrderService.update(order.orderId, {
+          items: [{ productId: 1, quantity: 9, discount: 0 }],
+        }),
+      ).rejects.toThrow(/already paid/);
+    });
+
+    it("should refuse a pending order that is on an invoice", async () => {
+      const order = await newOrder();
+      await InvoiceService.create(
+        { customerId: 1, status: "UNPAID", items: [order.orderId] } as any,
+        1,
+      );
+
+      await expect(
+        OrderService.update(order.orderId, {
+          items: [{ productId: 1, quantity: 9, discount: 0 }],
+        }),
+      ).rejects.toThrow(/on an invoice/);
     });
   });
 
