@@ -21,6 +21,10 @@ import {
   UNSET_ORDER_ITEM,
   useOrderProducts,
 } from "./OrderItemsField";
+import {
+  DEFAULT_ORDER_SURCHARGE,
+  OrderSurchargeField,
+} from "./OrderSurchargeField";
 
 const hasContainersOut = (balance: any) =>
   (balance.quantityOwed ?? 0) > 0 || (balance.quantityTemporaryOwed ?? 0) > 0;
@@ -39,6 +43,7 @@ const OrderFormModalContent = () => {
       status: OrderStatus.PENDING,
       paymentStatus: PaymentStatus.UNPAID,
       items: [UNSET_ORDER_ITEM],
+      surcharge: DEFAULT_ORDER_SURCHARGE,
     },
   });
   const { handleSubmit, control, formState } = form;
@@ -46,6 +51,7 @@ const OrderFormModalContent = () => {
 
   const items = useWatch({ control, name: "items" });
   const customerId = useWatch({ control, name: "customerId" });
+  const surcharge = useWatch({ control, name: "surcharge" }) ?? 0;
 
   // A preset customer isn't in the lookup results until someone searches.
   const customer =
@@ -133,10 +139,14 @@ const OrderFormModalContent = () => {
         specialPricings={customer?.specialPricings}
       />
 
+      <OrderSurchargeField form={form} />
+
       <div className="flex items-center justify-between pt-4 border-t border-slate-800">
         <span className="text-xs text-muted-foreground">Total Amount:</span>
         <span className="text-lg font-bold font-mono text-primary">
-          {formatCurrency(orderTotal(items, customer?.specialPricings))}
+          {formatCurrency(
+            orderTotal(items, customer?.specialPricings) + surcharge,
+          )}
         </span>
       </div>
 

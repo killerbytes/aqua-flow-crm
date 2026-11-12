@@ -54,6 +54,32 @@ describe("Integration - Order Service & Workflows", () => {
       expect(created.orderDetails).toHaveLength(1);
     });
 
+    it("should add the surcharge staff set to the order total", async () => {
+      const order = (surcharge?: number, quantity = 1) =>
+        OrderService.create(
+          {
+            customerId: 1,
+            status: OrderStatus.PENDING,
+            paymentStatus: "UNPAID",
+            items: [{ productId: 1, quantity, discount: 0 }],
+            surcharge,
+          },
+          1,
+        );
+
+      const plain = await order();
+      expect(plain.surcharge).toBe(0);
+
+      const charged = await order(5);
+      expect(charged.surcharge).toBe(5);
+      expect(charged.totalAmount).toBeCloseTo(plain.totalAmount + 5, 2);
+
+      // Staff can change the amount, and charge it on a larger order too.
+      const custom = await order(7.5, 3);
+      expect(custom.surcharge).toBe(7.5);
+      expect(custom.totalAmount).toBeCloseTo(plain.totalAmount * 3 + 7.5, 2);
+    });
+
     it("should leave stockInStation unchanged upon order creation", async () => {
       const productBefore = await ProductService.get(1);
       const initialStock = productBefore?.stockInStation ?? 0;

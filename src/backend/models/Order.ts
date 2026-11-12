@@ -10,6 +10,8 @@ export class Order extends Model {
   declare orderId: number;
   declare customerId: number;
   declare totalAmount: number;
+  /** A flat fee on the whole order, already included in totalAmount. */
+  declare surcharge: number;
   declare status: OrderStatus;
   declare paymentStatus: PaymentStatus;
   declare paymentMethod: PaymentMethod;
@@ -35,6 +37,7 @@ Order.init(
     },
     customerId: { type: DataTypes.INTEGER, allowNull: false },
     totalAmount: moneyColumn("totalAmount", { defaultValue: 0 }),
+    surcharge: moneyColumn("surcharge", { allowNull: false, defaultValue: 0 }),
     status: {
       type: DataTypes.ENUM(...Object.values(OrderStatus)),
       defaultValue: OrderStatus.PENDING,

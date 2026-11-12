@@ -267,6 +267,14 @@ export default async function OrderDetailsPage({
                     </dd>
                   </div>
                 )}
+                {order.surcharge > 0 && (
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">Surcharge</dt>
+                    <dd className="tabular-nums">
+                      {formatCurrency(order.surcharge)}
+                    </dd>
+                  </div>
+                )}
                 <div className="flex justify-between gap-4 border-t pt-1.5 font-semibold">
                   <dt>Total</dt>
                   <dd className="tabular-nums">

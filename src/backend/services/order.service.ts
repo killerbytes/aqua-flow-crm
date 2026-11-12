@@ -252,6 +252,11 @@ export class OrderService {
       });
     }
 
+    // The one amount staff set themselves. Product prices never come from the
+    // request, but the surcharge is theirs to charge, waive, or change.
+    const surchargeCents = Math.max(0, toCents(input.surcharge));
+    totalCents += surchargeCents;
+
     const orderId = await sequelize.transaction(async (t) => {
       // Locked so the customer can't be deleted while this order is saved.
       const lockedCustomer = await Customer.findByPk(customerId, {
@@ -266,6 +271,7 @@ export class OrderService {
         {
           customerId,
           totalAmount: fromCents(totalCents),
+          surcharge: fromCents(surchargeCents),
           status,
           paymentStatus,
           createdBy,
