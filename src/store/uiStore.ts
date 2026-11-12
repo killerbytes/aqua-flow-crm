@@ -5,17 +5,9 @@ import {
   ProductInventory,
   User,
 } from "@/backend/models";
-import { UserRole } from "@/lib/definitions";
 import { create } from "zustand";
 
-interface ToastNotification {
-  id: string;
-  type: "success" | "error" | "info";
-  message: string;
-}
-
 interface UIState {
-  currentRole: UserRole;
   lookupCustomers: Customer[];
   isCustomerFormModalOpen: boolean;
   editingCustomer?: Customer | null;
@@ -42,7 +34,6 @@ interface UIState {
   editingInvoice?: Invoice | null;
 
   isWalkInModalOpen: boolean;
-  setRole: (role: UserRole) => void;
   setProducts: (products: ProductInventory[]) => void;
   setLookupCustomers: (lookupCustomers: Customer[]) => void;
   setCustomerFormModalOpen: (open: boolean, customer?: Customer | null) => void;
@@ -78,7 +69,6 @@ interface UIState {
 }
 
 export const useUIStore = create<UIState>((set) => ({
-  currentRole: UserRole.ADMIN,
   lookupCustomers: [],
   isCustomerFormModalOpen: false,
   editingCustomer: null,
@@ -101,7 +91,6 @@ export const useUIStore = create<UIState>((set) => ({
   isPaymentFormModalOpen: false,
   isWalkInModalOpen: false,
 
-  setRole: (role) => set({ currentRole: role }),
   setProducts: (products) => set({ products }),
   setLookupCustomers: (lookupCustomers) => set({ lookupCustomers }),
   setCustomerFormModalOpen: (open, customer = null) =>

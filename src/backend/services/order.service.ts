@@ -308,10 +308,7 @@ export class OrderService {
     status: OrderStatus | string,
     user?: UserSession | any,
   ) {
-    let targetStatus = status as OrderStatus;
-    if ((status as string) === "COMPLETED") {
-      targetStatus = OrderStatus.DELIVERED;
-    }
+    const targetStatus = status as OrderStatus;
 
     const validStatuses = Object.values(OrderStatus);
     if (!validStatuses.includes(targetStatus)) {
@@ -388,11 +385,6 @@ export class OrderService {
       );
       return order.get({ plain: true });
     });
-  }
-
-  static async delete(id: number | string) {
-    const count = await Order.destroy({ where: { orderId: Number(id) } });
-    return count > 0;
   }
 
   static async makePayment(

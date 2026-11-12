@@ -14,7 +14,6 @@ function getSecretKey(): Uint8Array {
 }
 
 const JWT_EXPIRES_IN = "15m";
-const REFRESH_TOKEN_EXPIRES_IN = "7d";
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
 /**
@@ -49,10 +48,6 @@ export async function signToken(
     .setIssuedAt()
     .setExpirationTime(expiresIn)
     .sign(getSecretKey());
-}
-
-export async function signRefreshToken(user: any): Promise<string> {
-  return await signToken(user, REFRESH_TOKEN_EXPIRES_IN);
 }
 
 /**
@@ -107,9 +102,4 @@ export async function verifyOrRefreshToken(
 
     return null;
   }
-}
-
-export async function verifyToken(token: string): Promise<any | null> {
-  const result = await verifyOrRefreshToken(token);
-  return result?.user || null;
 }

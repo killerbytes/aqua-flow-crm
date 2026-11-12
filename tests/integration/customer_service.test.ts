@@ -114,10 +114,5 @@ describe("Integration - Customer Service & Queries", () => {
 
       expect(foundA).toBeDefined();
     });
-
-    it("should retrieve customers with temporary equipment via getWithTemporaryBalance", async () => {
-      const list = await CustomerService.getWithTemporaryBalance();
-      expect(list.length).toBeGreaterThan(0);
-    });
   });
 });

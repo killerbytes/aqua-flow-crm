@@ -22,16 +22,8 @@ export const dynamic = "force-dynamic";
 
 export default async function InvoiceDetailPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{
-    tab?: string;
-    limit?: number;
-    page?: number;
-    sort?: string;
-    order?: "ASC" | "DESC";
-  }>;
 }) {
   await initDatabase();
   await requirePagePermission("VIEW_INVOICES");

@@ -402,7 +402,7 @@ async function seedForTest(options: any) {
 
   // Seed Orders and Details
   for (const ord of seedData.orders) {
-    const createdOrder = await OrderService.create(ord, 1);
+    await OrderService.create(ord, 1);
   }
 }
 // Execution block when invoked directly via CLI (e.g. `npx tsx src/backend/db/seed.ts`)

@@ -37,64 +37,59 @@ export interface InvoiceQueryParams {
 
 export class InvoiceService {
   static async getAll(params: InvoiceQueryParams = {}) {
-    try {
-      const {
-        limit = PAGINATION.PAGE_SIZE,
-        page = PAGINATION.PAGE,
-        sort,
-        order: sortOrder = "ASC",
-        query,
-      } = params;
-      const { status } = query || {};
+    const {
+      limit = PAGINATION.PAGE_SIZE,
+      page = PAGINATION.PAGE,
+      sort,
+      order: sortOrder = "ASC",
+      query,
+    } = params;
+    const { status } = query || {};
 
-      const where: any = {};
-      if (status) {
-        where.status = status;
-      }
-
-      const include: any[] = [
-        {
-          model: InvoiceDetail,
-          as: "invoiceDetails",
-        },
-        {
-          model: Customer,
-          as: "customer",
-          paranoid: false,
-        },
-      ];
-
-      const offset = (page - 1) * limit;
-
-      const orderByMap: Record<string, string> = {
-        status: "status",
-      };
-
-      const orderByField =
-        sort && orderByMap[sort] ? orderByMap[sort] : "customerId";
-      const orderBy: OrderItem = [orderByField, sortOrder];
-
-      const { rows, count } = await Invoice.findAndCountAll({
-        where,
-        limit,
-        offset,
-        include,
-        order: [orderBy],
-      });
-
-      return {
-        rows: rows.map((r) => r.get({ plain: true })),
-        pagination: {
-          total: count,
-          totalPages: Math.ceil(count / limit),
-          currentPage: Number(offset / limit) + 1,
-        },
-        summary: await getSummary(where),
-      };
-    } catch (error) {
-      console.log(123, error);
-      throw error;
+    const where: any = {};
+    if (status) {
+      where.status = status;
     }
+
+    const include: any[] = [
+      {
+        model: InvoiceDetail,
+        as: "invoiceDetails",
+      },
+      {
+        model: Customer,
+        as: "customer",
+        paranoid: false,
+      },
+    ];
+
+    const offset = (page - 1) * limit;
+
+    const orderByMap: Record<string, string> = {
+      status: "status",
+    };
+
+    const orderByField =
+      sort && orderByMap[sort] ? orderByMap[sort] : "customerId";
+    const orderBy: OrderItem = [orderByField, sortOrder];
+
+    const { rows, count } = await Invoice.findAndCountAll({
+      where,
+      limit,
+      offset,
+      include,
+      order: [orderBy],
+    });
+
+    return {
+      rows: rows.map((r) => r.get({ plain: true })),
+      pagination: {
+        total: count,
+        totalPages: Math.ceil(count / limit),
+        currentPage: Number(offset / limit) + 1,
+      },
+      summary: await getSummary(where),
+    };
   }
 
   static async get(id: number | string) {

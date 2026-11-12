@@ -66,18 +66,6 @@ export const EquipmentLogSchema = z.object({
   notes: z.string().optional(),
 });
 
-export const EquipmentLedgerSchema = z.object({
-  productId: z.number().int().positive("Product is required"),
-  fromAccountType: z.string(),
-  fromAccountId: z.number().int().optional().nullable(),
-  toAccountType: z.string(),
-  toAccountId: z.number().int().optional().nullable(),
-  quantity: z.number().int().positive("Quantity must be greater than 0"),
-  referenceType: z.string().optional(),
-  referenceId: z.number().int().optional().nullable(),
-  notes: z.string().optional(),
-});
-
 export const OrderItemsSchema = z
   .array(
     z.object({
@@ -186,7 +174,6 @@ export type ProductFormData = z.infer<typeof ProductInventorySchema>;
 export type CustomerFormData = z.infer<typeof CustomerSchema>;
 export type LoginFormData = z.infer<typeof LoginSchema>;
 export type UserFormData = z.infer<typeof UserFormSchema>;
-export type UserFormUpdateData = z.infer<typeof UserFormUpdateSchema>;
 export type ChangePasswordData = z.infer<typeof ChangePasswordSchema>;
 export type EquipmentLogFormData = z.infer<typeof EquipmentLogSchema>;
 export type SpecialPricingFormData = z.infer<typeof SpecialPricingSchema>;

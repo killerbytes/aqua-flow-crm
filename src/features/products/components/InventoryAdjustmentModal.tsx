@@ -1,6 +1,6 @@
 "use client";
 
-import { createAdjustmentAction } from "@/backend/actions/inventory.actions";
+import { createAdjustmentAction } from "@/backend/actions";
 import {
   AdjustmentFormData,
   AdjustmentSchema,
@@ -34,10 +34,9 @@ import { Controller, useForm } from "react-hook-form";
 
 function InventoryAdjustmentModalContent() {
   const { setInventoryAdjustmentModalOpen, editingProduct } = useUIStore();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   const {
-    register,
     handleSubmit,
     control,
     reset,

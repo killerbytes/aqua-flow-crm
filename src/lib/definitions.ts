@@ -1,7 +1,7 @@
 export const PAGINATION = {
   PAGE: 1,
   PAGE_SIZE: 25,
-  PAGE_SIZE_OPTIONS: [1, 2, 3, 25, 50, 100],
+  PAGE_SIZE_OPTIONS: [25, 50, 100],
 };
 
 // User Roles & RBAC
@@ -35,13 +35,6 @@ export const USER_ROLE_OPTIONS = [
     description: "Order delivery & container collection",
   },
 ];
-
-export const USER_ROLE_LABELS: Record<UserRole, string> = {
-  [UserRole.ADMIN]: "Administrator",
-  [UserRole.MANAGER]: "Manager",
-  [UserRole.CASHIER]: "Cashier",
-  [UserRole.DELIVERY]: "Delivery Personnel",
-};
 
 // Ledger Account & Reference Types (Pattern 1 Double-Entry Equipment Ledger)
 export const LedgerAccountType = {
@@ -145,17 +138,6 @@ export const EQUIPMENT_ACTION_OPTIONS = [
   },
 ];
 
-export const EQUIPMENT_ACTION_LABELS: Record<EquipmentActionType, string> = {
-  [EquipmentActionType.ISSUE]: "Issued Container",
-  [EquipmentActionType.RETURNED]: "Returned Container",
-  [EquipmentActionType.TEMPORARY]: "Issued Temporary",
-  [EquipmentActionType.TEMPORARY_RETURNED]: "Returned Temporary",
-  [EquipmentActionType.LOST]: "Declared Lost",
-  [EquipmentActionType.TEMPORARY_LOST]: "Declared Lost (Temporary)",
-  [EquipmentActionType.DAMAGED]: "Declared Damaged",
-  [EquipmentActionType.TEMPORARY_DAMAGED]: "Declared Damaged (Temporary)",
-};
-
 // Inventory Adjustment Types
 export const InventoryAdjustmentType = {
   STOCK_IN: "STOCK_IN",
@@ -211,11 +193,6 @@ export const PaymentStatus = {
   PAID: "PAID",
 } as const;
 export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
-
-export const PAYMENT_STATUS_OPTIONS = [
-  { value: PaymentStatus.UNPAID, label: "Unpaid" },
-  { value: PaymentStatus.PAID, label: "Paid" },
-];
 
 export const PaymentMethod = {
   CASH: "CASH",
@@ -287,16 +264,4 @@ export const USER_ROLE_BADGE_COLOR: Record<UserRole, string> = {
 export const CUSTOMER_STATUS_BADGE_COLOR: Record<CustomerStatus, string> = {
   [CustomerStatus.ACTIVE]: "bg-green-100 text-black border-green-500",
   [CustomerStatus.INACTIVE]: "bg-red-100 text-black border-red-500",
-};
-
-export const INVENTORY_ADJUSTMENT_TYPE_BADGE_COLOR: Record<
-  InventoryAdjustmentType,
-  string
-> = {
-  [InventoryAdjustmentType.STOCK_IN]:
-    "bg-green-100 text-black border-green-500",
-  [InventoryAdjustmentType.DECLARED_DAMAGED]:
-    "bg-red-100 text-black border-red-500",
-  [InventoryAdjustmentType.DECLARED_LOST]:
-    "bg-orange-100 text-black border-orange-500",
 };

@@ -7,7 +7,6 @@ const JWT_SECRET = env.JWT_SECRET;
 const secretKey = new TextEncoder().encode(JWT_SECRET);
 
 const JWT_EXPIRES_IN = "15m";
-const REFRESH_TOKEN_EXPIRES_IN = "7d";
 
 export interface VerifyResult {
   user: any;
@@ -40,10 +39,6 @@ export async function signToken(
     .setIssuedAt()
     .setExpirationTime(expiresIn)
     .sign(secretKey);
-}
-
-export async function signRefreshToken(user: any): Promise<string> {
-  return await signToken(user, REFRESH_TOKEN_EXPIRES_IN);
 }
 
 /**

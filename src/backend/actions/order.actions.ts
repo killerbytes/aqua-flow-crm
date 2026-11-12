@@ -17,7 +17,7 @@ import { OrderQueryParams, OrderService } from "../services/order.service";
 
 export const getOrdersAction = createProtectedAction({
   permission: "VIEW_ORDERS",
-  handler: async (ctx, input: OrderQueryParams) => {
+  handler: async (_ctx, input: OrderQueryParams) => {
     return await OrderService.getAll(input);
   },
 });
@@ -55,15 +55,6 @@ export const updateOrderStatusAction = createProtectedAction({
       ctx.user,
     );
     const result = await OrderService.updateStatus(id, status, ctx.user);
-    revalidatePath("/orders");
-    return result;
-  },
-});
-
-export const deleteOrderAction = createProtectedAction({
-  permission: "DELETE_ORDER",
-  handler: async (_ctx, id: number | string) => {
-    const result = await OrderService.delete(id);
     revalidatePath("/orders");
     return result;
   },

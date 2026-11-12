@@ -16,7 +16,6 @@ interface CustomerListProps {
 
 export default function CustomerList({ customers }: CustomerListProps) {
   const router = useRouter();
-  const [filter, setFilter] = React.useState();
 
   const columnHelper = createColumnHelper<Customer>();
   const columns = React.useMemo(

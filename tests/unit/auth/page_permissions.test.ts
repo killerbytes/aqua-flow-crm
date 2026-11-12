@@ -7,7 +7,6 @@ import {
 } from "../../../src/backend/actions/customer.actions";
 import {
   createOrderAction,
-  deleteOrderAction,
   getOrdersAction,
   makePaymentAction,
   updateOrderStatusAction,
@@ -41,7 +40,7 @@ const PAGES: Record<string, PermissionAction> = {
   "orders/[id]/page.tsx": "VIEW_ORDERS",
   "products/page.tsx": "VIEW_PRODUCTS",
   "reports/page.tsx": "VIEW_REPORTS",
-  "reports/[customers]/page.tsx": "VIEW_REPORTS",
+  "reports/customers/page.tsx": "VIEW_REPORTS",
   "users/page.tsx": "VIEW_USERS",
 };
 
@@ -218,20 +217,6 @@ describe("Unit - Action Permissions", () => {
 
       signInAs(DELIVERY);
       expect(await updateCustomerAction(1, input)).toMatchObject({
-        error: expect.stringMatching(/Forbidden/),
-      });
-    });
-  });
-
-  describe("Deleting orders", () => {
-    it("should stay Admin only", async () => {
-      vi.spyOn(OrderService, "delete").mockResolvedValue(true);
-
-      signInAs(ADMIN);
-      expect((await deleteOrderAction(1)).success).toBe(true);
-
-      signInAs(MANAGER);
-      expect(await deleteOrderAction(1)).toMatchObject({
         error: expect.stringMatching(/Forbidden/),
       });
     });

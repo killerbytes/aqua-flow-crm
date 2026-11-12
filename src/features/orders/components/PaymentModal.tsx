@@ -29,8 +29,7 @@ import { useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 export function PaymentModalContent({ onClose }: { onClose: () => void }) {
-  const { isPaymentModalOpen, setPaymentModalOpen, editingOrder } =
-    useUIStore();
+  const { editingOrder } = useUIStore();
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 

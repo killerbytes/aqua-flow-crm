@@ -38,7 +38,7 @@ const ChangePasswordModalContent = () => {
     handleSubmit,
     reset,
     control,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm({
     resolver: zodResolver(ChangePasswordSchema),
     values: React.useMemo(

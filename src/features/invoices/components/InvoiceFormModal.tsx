@@ -49,8 +49,7 @@ function InvoiceFormModalContent({ onClose }: InvoiceFormModalProps) {
   const [isPending, startTransition] = useTransition();
   const [orders, setOrders] = React.useState<Order[]>([]);
   const router = useRouter();
-  const { editingCustomer, lookupCustomers, isInvoiceFormModalOpen } =
-    useUIStore();
+  const { editingCustomer, isInvoiceFormModalOpen } = useUIStore();
 
   const getData = async () => {
     startTransition(async () => {
@@ -107,10 +106,8 @@ function InvoiceFormModalContent({ onClose }: InvoiceFormModalProps) {
   const {
     handleSubmit,
     control,
-    setError,
     formState: { errors },
   } = form;
-  console.log(errors);
 
   const handleSave = (data: InvoiceFormData) => {
     startTransition(async () => {

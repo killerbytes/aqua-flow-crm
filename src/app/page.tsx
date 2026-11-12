@@ -179,7 +179,6 @@ export default async function DashboardPage() {
     customers,
     stock,
     trend,
-    drivers,
     heldLongest,
   } = await DashboardService.getSummary();
   const lowStock = stock.products.filter((p) => p.isLow);
@@ -188,7 +187,6 @@ export default async function DashboardPage() {
   const cashMethods = Object.entries(cash.byMethod);
   const trendTotal = trend.reduce((sum, d) => sum + d.sales, 0);
   const trendOrders = trend.reduce((sum, d) => sum + d.orderCount, 0);
-  const busiestDriver = Math.max(1, ...drivers.map((d) => d.count));
   const hasOverdue = receivables.overdueInvoices.count > 0;
 
   const todayLabel = new Date().toLocaleDateString("en-PH", {

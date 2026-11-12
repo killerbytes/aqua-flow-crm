@@ -5,7 +5,6 @@ import { UserRole } from "../../../src/lib/definitions";
 import {
   createCustomerAction,
   deleteCustomerAction,
-  getCustomersAction,
   updateCustomerAction,
 } from "../../../src/backend/actions/customer.actions";
 
@@ -22,16 +21,6 @@ vi.mock("../../../src/backend/db/database", async (importOriginal) => {
 });
 
 describe("Unit - Customer Server Actions", () => {
-  it("should fail getCustomersAction when user is unauthenticated", async () => {
-    vi.spyOn(authContext, "getAuthContext").mockResolvedValue(null);
-
-    const res = await getCustomersAction();
-    expect(res.success).toBe(false);
-    if (!res.success) {
-      expect(res.error).toMatch(/Unauthorized/i);
-    }
-  });
-
   it("should create a customer successfully via createCustomerAction", async () => {
     vi.spyOn(authContext, "getAuthContext").mockResolvedValue({
       user: { userId: 1, name: "Admin", role: UserRole.ADMIN },

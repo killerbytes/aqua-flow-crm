@@ -1,5 +1,5 @@
 import { PAGINATION } from "@/lib/definitions";
-import { Op, OrderItem } from "sequelize";
+import { OrderItem } from "sequelize";
 import { Customer, Order, OrderDetail, ProductInventory } from "../models";
 
 export interface CustomersWithLastOrderParams {
@@ -15,27 +15,6 @@ export interface CustomersWithLastOrderParams {
 }
 
 export class ReportService {
-  static async getDailySales(date?: string) {
-    const targetDate = date || new Date().toISOString().split("T")[0];
-    const startOfDay = new Date(targetDate);
-    startOfDay.setHours(0, 0, 0, 0);
-
-    const endOfDay = new Date(targetDate);
-    endOfDay.setHours(23, 59, 59, 999);
-
-    const orders = await Order.findAll({
-      where: {
-        createdAt: {
-          [Op.gte]: startOfDay,
-          [Op.lte]: endOfDay,
-        },
-      },
-    });
-
-    const totalSales = orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
-    return { date: targetDate, totalSales };
-  }
-
   static async getCustomersWithLastOrder({
     limit = PAGINATION.PAGE_SIZE,
     page = PAGINATION.PAGE,
@@ -196,22 +175,5 @@ export class ReportService {
         currentPage: Number(page),
       },
     };
-  }
-
-  static async getWeeklyChurn() {
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const recentOrderCustomers = await Order.findAll({
-      where: { createdAt: { [Op.gte]: sevenDaysAgo } },
-      attributes: ["customerId"],
-      group: ["customerId"],
-    });
-
-    const activeIds = new Set(recentOrderCustomers.map((o) => o.customerId));
-    const allCustomers = await Customer.findAll();
-    const churnCustomers = allCustomers.filter(
-      (c) => !activeIds.has(c.customerId),
-    );
-
-    return { timeframe: "7_days", customers: churnCustomers };
   }
 }

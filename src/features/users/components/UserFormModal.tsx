@@ -60,7 +60,7 @@ export const OrderFormModalContent = () => {
     handleSubmit,
     reset,
     control,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<UserFormData>({
     resolver: zodResolver(
       isEditing ? UserFormUpdateSchema : UserFormSchema,

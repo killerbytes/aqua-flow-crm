@@ -6,7 +6,6 @@ import { OrderService } from "../../../src/backend/services/order.service";
 import { OrderStatus, PaymentMethod, PaymentStatus, UserRole } from "../../../src/lib/definitions";
 import {
   createOrderAction,
-  deleteOrderAction,
   getOrdersAction,
   makePaymentAction,
   updateOrderStatusAction,

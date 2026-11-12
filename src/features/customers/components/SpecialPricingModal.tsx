@@ -27,7 +27,7 @@ import { toast } from "@/components/ui/toast";
 import { useUIStore } from "@/store/uiStore";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import React, { useTransition } from "react";
+import { useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 interface SpecialPricingModalProps {
@@ -41,8 +41,7 @@ function SpecialPricingModalContent({
 }: SpecialPricingModalProps) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
-  const [isTemp, setIsTemp] = React.useState(false);
-  const { editingCustomer, setEquipmentLogModalOpen } = useUIStore();
+  const { editingCustomer } = useUIStore();
 
   const form = useForm<SpecialPricingFormData>({
     resolver: zodResolver(SpecialPricingSchema),

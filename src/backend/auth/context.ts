@@ -13,11 +13,10 @@ export interface UserSession {
 
 export interface AuthContext {
   user?: UserSession;
-  currentUser?: UserSession;
 }
 
 export function requireAuth(ctx: AuthContext): UserSession {
-  const user = ctx?.currentUser || ctx?.user;
+  const user = ctx?.user;
   const userId = user?.userId;
   if (!userId) {
     throw new Error("User not authenticated");
@@ -94,12 +93,12 @@ export async function getAuthContext(): Promise<AuthContext> {
             // Ignore if cookie store is read-only in rendering phase
           }
         }
-        return { user: result.user, currentUser: result.user };
+        return { user: result.user };
       }
     }
   } catch (err) {
     console.error("getAuthContext error:", err);
   }
 
-  return { user: undefined, currentUser: undefined };
+  return { user: undefined };
 }

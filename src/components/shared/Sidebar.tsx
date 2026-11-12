@@ -4,7 +4,6 @@ import { checkPermission, PermissionAction } from "@/backend/rbac/permissions";
 import { useAuthStore } from "@/lib/store";
 import { cx } from "class-variance-authority";
 import {
-  FileText,
   LayoutDashboard,
   Receipt,
   Search,
@@ -15,7 +14,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import CustomerLookup from "../CustomerLookup";
 import { CustomerLookupButton } from "../CustomerLookupButton";
 import {
@@ -42,21 +41,11 @@ interface NavItem {
 }
 export default function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
-  const logout = useAuthStore((state) => state.logout);
   const user = useAuthStore((state) => state.user);
 
   if (pathname === "/login") return null;
 
-  const {
-    state,
-    open,
-    setOpen,
-    openMobile,
-    setOpenMobile,
-    isMobile,
-    toggleSidebar,
-  } = useSidebar();
+  const { open, setOpenMobile } = useSidebar();
 
   const can = (permission: PermissionAction) =>
     !!user && checkPermission(user.role, permission);
@@ -80,20 +69,6 @@ export default function Sidebar() {
     ...(can("VIEW_USERS")
       ? [{ name: "Users", href: "/users", icon: UserCog }]
       : []),
-  ];
-
-  const reportItems: NavItem[] = [
-    {
-      name: "Customers",
-      href: "/reports/customers",
-      icon: FileText,
-    },
-    {
-      name: "Monthly Sales",
-      href: "/reports/monthly-sales",
-      icon: FileText,
-    },
-    { name: "Yearly Sales", href: "/reports/yearly-sales", icon: FileText },
   ];
 
   return (
@@ -177,67 +152,6 @@ export default function Sidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* <SidebarGroup>
-          <SidebarGroupLabel>Reports</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="gap-1">
-              {reportItems.map((item) => {
-                const Icon = item.icon;
-                const isActive =
-                  item.href === "/"
-                    ? pathname === "/"
-                    : pathname.startsWith(item.href);
-
-                return (
-                  <SidebarMenuItem key={item.name}>
-                    <SidebarMenuButton
-                      className={cx(
-                        "min-w-8  duration-200 ease-linear",
-                        "hover:bg-primary/90 hover:text-primary-foreground ",
-                        {
-                          "bg-primary text-primary-foreground": isActive,
-                        },
-                      )}
-                      render={<Link href={item.href} />}
-                    >
-                      <Icon />
-                      {item.name}
-                    </SidebarMenuButton>
-                    {item.subMenu && (
-                      <SidebarMenuSub>
-                        {item.subMenu.map((subItem) => {
-                          const SubIcon = subItem.icon;
-                          const isSubActive =
-                            pathname.startsWith(item.href) && pathname !== "/"
-                              ? true
-                              : false;
-                          return (
-                            <SidebarMenuItem key={subItem.name}>
-                              <SidebarMenuButton
-                                className={cx(
-                                  "min-w-8  duration-200 ease-linear",
-                                  "hover:bg-primary/90 hover:text-primary-foreground ",
-                                  {
-                                    "bg-primary text-primary-foreground":
-                                      isSubActive,
-                                  },
-                                )}
-                                render={<Link href={subItem.href} />}
-                              >
-                                <SubIcon />
-                                {subItem.name}
-                              </SidebarMenuButton>
-                            </SidebarMenuItem>
-                          );
-                        })}
-                      </SidebarMenuSub>
-                    )}
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup> */}
         <SidebarGroup className="mt-auto">
           <SidebarGroupContent>
             <SidebarMenu>

@@ -40,92 +40,87 @@ export interface CustomerQueryParams {
 
 export class CustomerService {
   static async getAll(params: CustomerQueryParams = {}) {
-    try {
-      const {
-        limit = PAGINATION.PAGE_SIZE,
-        page = PAGINATION.PAGE,
-        sort,
-        order: sortOrder = "ASC",
-        query = {
-          withSpecialPricing: false,
-          withBalance: false,
-          withTemporaryBalanceOnly: false,
-          selectedBarangays: [],
-          term: "",
-        },
-      } = params;
-      const {
-        withSpecialPricing = false,
-        withBalance = false,
-        withTemporaryBalanceOnly = false,
-        selectedBarangays,
-        term,
-      } = query || {};
+    const {
+      limit = PAGINATION.PAGE_SIZE,
+      page = PAGINATION.PAGE,
+      sort,
+      order: sortOrder = "ASC",
+      query = {
+        withSpecialPricing: false,
+        withBalance: false,
+        withTemporaryBalanceOnly: false,
+        selectedBarangays: [],
+        term: "",
+      },
+    } = params;
+    const {
+      withSpecialPricing = false,
+      withBalance = false,
+      withTemporaryBalanceOnly = false,
+      selectedBarangays,
+      term,
+    } = query || {};
 
-      const where: any = {};
-      if (selectedBarangays && selectedBarangays.length > 0) {
-        where.barangayId = { [Op.in]: selectedBarangays };
-      }
-      if (term) {
-        const searchOp =
-          sequelize.getDialect() === "postgres" ? Op.iLike : Op.like;
-        where.searchText = { [searchOp]: `%${term}%` };
-      }
-
-      const equipmentBalanceWhere: any = withTemporaryBalanceOnly
-        ? { quantityTemporaryOwed: { [Op.gt]: 0 } }
-        : undefined;
-
-      const include: any[] = [
-        {
-          model: CustomerEquipmentBalance,
-          required: Boolean(withTemporaryBalanceOnly || withBalance),
-          where: equipmentBalanceWhere,
-          include: [{ model: ProductInventory, as: "product" }],
-          as: "equipmentBalances",
-        },
-        {
-          model: CustomerSpecialPricing,
-          required: Boolean(withSpecialPricing),
-          include: [{ model: ProductInventory, as: "product" }],
-          as: "specialPricings",
-        },
-      ];
-
-      const offset = (page - 1) * limit;
-
-      const orderByMap: Record<string, string> = {
-        customerId: "customerId",
-        name: "name",
-        barangay: "barangayId",
-        status: "status",
-      };
-
-      const orderByField =
-        sort && orderByMap[sort] ? orderByMap[sort] : "customerId";
-      const orderBy: OrderItem = [orderByField, sortOrder];
-
-      const { rows, count } = await Customer.findAndCountAll({
-        where,
-        limit,
-        offset,
-        include,
-        order: [orderBy],
-        distinct: true,
-      });
-
-      return {
-        rows: rows.map((r) => r.get({ plain: true })),
-        pagination: {
-          total: count,
-          totalPages: Math.ceil(count / limit),
-          currentPage: Number(offset / limit) + 1,
-        },
-      };
-    } catch (error) {
-      console.log(123, error);
-      throw error;
+    const where: any = {};
+    if (selectedBarangays && selectedBarangays.length > 0) {
+      where.barangayId = { [Op.in]: selectedBarangays };
     }
+    if (term) {
+      const searchOp =
+        sequelize.getDialect() === "postgres" ? Op.iLike : Op.like;
+      where.searchText = { [searchOp]: `%${term}%` };
+    }
+
+    const equipmentBalanceWhere: any = withTemporaryBalanceOnly
+      ? { quantityTemporaryOwed: { [Op.gt]: 0 } }
+      : undefined;
+
+    const include: any[] = [
+      {
+        model: CustomerEquipmentBalance,
+        required: Boolean(withTemporaryBalanceOnly || withBalance),
+        where: equipmentBalanceWhere,
+        include: [{ model: ProductInventory, as: "product" }],
+        as: "equipmentBalances",
+      },
+      {
+        model: CustomerSpecialPricing,
+        required: Boolean(withSpecialPricing),
+        include: [{ model: ProductInventory, as: "product" }],
+        as: "specialPricings",
+      },
+    ];
+
+    const offset = (page - 1) * limit;
+
+    const orderByMap: Record<string, string> = {
+      customerId: "customerId",
+      name: "name",
+      barangay: "barangayId",
+      status: "status",
+    };
+
+    const orderByField =
+      sort && orderByMap[sort] ? orderByMap[sort] : "customerId";
+    const orderBy: OrderItem = [orderByField, sortOrder];
+
+    const { rows, count } = await Customer.findAndCountAll({
+      where,
+      limit,
+      offset,
+      include,
+      order: [orderBy],
+      distinct: true,
+    });
+
+    return {
+      rows: rows.map((r) => r.get({ plain: true })),
+      pagination: {
+        total: count,
+        totalPages: Math.ceil(count / limit),
+        currentPage: Number(offset / limit) + 1,
+      },
+    };
   }
 
   static async get(id: number | string) {
@@ -224,27 +219,12 @@ export class CustomerService {
     return customers.map((c) => c.get({ plain: true }));
   }
 
-  static async getWithTemporaryBalance() {
-    const result = await CustomerService.getAll({
-      query: { withTemporaryBalanceOnly: true },
-    });
-    return result.rows;
-  }
-
   static async getCustomerBalances(customerId: number | string) {
     const balances = await CustomerEquipmentBalance.findAll({
       where: { customerId: Number(customerId) },
       include: [{ model: ProductInventory, as: "product" }],
     });
     return balances.map((b) => b.get({ plain: true }));
-  }
-
-  static async getCustomerPricing(customerId: number | string) {
-    const pricing = await CustomerSpecialPricing.findAll({
-      where: { customerId: Number(customerId) },
-      include: [{ model: ProductInventory, as: "product" }],
-    });
-    return pricing.map((p) => p.get({ plain: true }));
   }
 
   static async setSpecialPricing(input: SpecialPricingFormData) {

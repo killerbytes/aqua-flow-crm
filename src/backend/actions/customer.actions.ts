@@ -13,13 +13,6 @@ import {
 import { CustomerService } from "../services/customer.service";
 import { EquipmentService } from "../services/equipment.service";
 
-export const getCustomersAction = createProtectedAction({
-  permission: "VIEW_CUSTOMERS",
-  handler: async () => {
-    return await CustomerService.getAll();
-  },
-});
-
 export const createCustomerAction = createProtectedAction({
   permission: "CREATE_CUSTOMER",
   schema: CustomerSchema,
@@ -62,7 +55,7 @@ export const logEquipmentAction = createProtectedAction({
   schema: EquipmentLogSchema,
   handler: async (ctx, input: EquipmentLogFormData) => {
     const result = await EquipmentService.logEquipment(input, ctx.user.userId);
-    revalidatePath("/inventory");
+    revalidatePath("/products");
     revalidatePath("/customers");
     return result;
   },

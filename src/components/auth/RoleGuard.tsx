@@ -2,8 +2,7 @@
 
 import { UserRole } from "@/lib/definitions";
 import { useAuthStore } from "@/lib/store";
-import { useRouter } from "next/navigation";
-import React, { useEffect } from "react";
+import React from "react";
 
 /**
  * Checks if the current user's role is within allowed roles.
@@ -35,47 +34,6 @@ export function RoleGuard({
 
   if (!isAuthenticated || !hasRole(user?.role, allowedRoles)) {
     return <>{fallback}</>;
-  }
-
-  return <>{children}</>;
-}
-
-interface ProtectedPageProps {
-  allowedRoles: UserRole[];
-  children: React.ReactNode;
-}
-
-/**
- * Page-level wrapper to protect routes and redirect unauthorized users to root '/'.
- */
-export function ProtectedPage({ allowedRoles, children }: ProtectedPageProps) {
-  const user = useAuthStore((state) => state.user);
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const router = useRouter();
-
-  useEffect(() => {
-    if (isAuthenticated && !hasRole(user?.role, allowedRoles)) {
-      router.replace("/");
-    }
-  }, [isAuthenticated, user?.role, allowedRoles, router]);
-
-  if (!isAuthenticated || !hasRole(user?.role, allowedRoles)) {
-    return (
-      <div className="flex h-[70vh] flex-col items-center justify-center space-y-4">
-        <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-6 text-center shadow-lg backdrop-blur-md">
-          <h2 className="text-xl font-bold text-destructive">
-            Access Restricted
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Your role (
-            <span className="font-semibold text-foreground">
-              {user?.role || "Guest"}
-            </span>
-            ) does not have permission to view this page.
-          </p>
-        </div>
-      </div>
-    );
   }
 
   return <>{children}</>;

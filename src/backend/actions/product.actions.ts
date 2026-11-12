@@ -50,13 +50,6 @@ export const deleteProductAction = createProtectedAction({
   },
 });
 
-export const getInventoryAction = createProtectedAction({
-  permission: "ADJUST_INVENTORY",
-  handler: async () => {
-    return await InventoryService.getAll();
-  },
-});
-
 export const createAdjustmentAction = createProtectedAction({
   permission: "ADJUST_INVENTORY",
   schema: AdjustmentSchema,

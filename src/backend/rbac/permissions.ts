@@ -17,7 +17,6 @@ export type PermissionAction =
   | "CREATE_ORDER"
   | "UPDATE_ORDER"
   | "CANCEL_ORDER"
-  | "DELETE_ORDER"
   | "CREATE_INVOICE"
   | "PAY_INVOICE"
   | "VOID_INVOICE"
@@ -45,7 +44,6 @@ const ROLE_PERMISSIONS: Record<UserRole, PermissionAction[]> = {
     "CREATE_ORDER",
     "UPDATE_ORDER",
     "CANCEL_ORDER",
-    "DELETE_ORDER",
     "CREATE_INVOICE",
     "PAY_INVOICE",
     "VOID_INVOICE",
@@ -97,13 +95,6 @@ const ROLE_PERMISSIONS: Record<UserRole, PermissionAction[]> = {
   [UserRole.DELIVERY]: ["VIEW_ORDERS", "UPDATE_DELIVERY_STATUS"],
 };
 
-const ROLE_HIERARCHY: Record<UserRole, number> = {
-  [UserRole.ADMIN]: 4,
-  [UserRole.MANAGER]: 3,
-  [UserRole.CASHIER]: 2,
-  [UserRole.DELIVERY]: 1,
-};
-
 /**
  * Check if a role has permission for a specific action
  */
@@ -128,16 +119,4 @@ export function getPageRedirect(
   if (checkPermission(role, "VIEW_DASHBOARD")) return "/";
   if (checkPermission(role, "VIEW_ORDERS")) return "/orders";
   return "/login";
-}
-
-/**
- * Compare role hierarchy levels
- */
-export function hasRole(
-  currentRole: UserRole,
-  requiredRole: UserRole,
-): boolean {
-  return (
-    (ROLE_HIERARCHY[currentRole] || 0) >= (ROLE_HIERARCHY[requiredRole] || 0)
-  );
 }

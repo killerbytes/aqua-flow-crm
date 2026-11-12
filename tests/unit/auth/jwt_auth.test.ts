@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkPermission, hasRole } from "../../../src/backend/rbac/permissions";
+import { checkPermission } from "../../../src/backend/rbac/permissions";
 import {
   comparePassword,
   hashPassword,
@@ -54,7 +54,6 @@ describe("Unit - RBAC Permissions & Roles Engine", () => {
     expect(checkPermission(UserRole.ADMIN, "ADJUST_INVENTORY")).toBe(true);
     expect(checkPermission(UserRole.ADMIN, "CREATE_ORDER")).toBe(true);
     expect(checkPermission(UserRole.ADMIN, "UPDATE_ORDER")).toBe(true);
-    expect(checkPermission(UserRole.ADMIN, "DELETE_ORDER")).toBe(true);
     expect(checkPermission(UserRole.ADMIN, "LOG_EQUIPMENT")).toBe(true);
     expect(checkPermission(UserRole.ADMIN, "UPDATE_DELIVERY_STATUS")).toBe(
       true,
@@ -85,10 +84,5 @@ describe("Unit - RBAC Permissions & Roles Engine", () => {
     expect(checkPermission(UserRole.CASHIER, "UPDATE_DELIVERY_STATUS")).toBe(
       true,
     );
-  });
-
-  it("should correctly validate role hierarchy using hasRole", () => {
-    expect(hasRole(UserRole.ADMIN, UserRole.MANAGER)).toBe(true);
-    expect(hasRole(UserRole.CASHIER, UserRole.ADMIN)).toBe(false);
   });
 });

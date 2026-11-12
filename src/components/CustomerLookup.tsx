@@ -87,7 +87,7 @@ function CustomerLookupContent({
             </CommandEmpty>
             <CommandGroup>
               {debouncedTerm &&
-                lookupCustomers.map((c, i) => (
+                lookupCustomers.map((c) => (
                   <CommandItem
                     key={c.customerId}
                     onSelect={handleSelect}

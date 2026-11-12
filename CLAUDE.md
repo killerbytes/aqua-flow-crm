@@ -76,7 +76,7 @@ Sessions are revoked with `AuthService.revokeSessions`, which increments `users.
 - **Deleting products:** `ProductService.delete` refuses while units are with customers (regular or temporary) or an undelivered order includes the product. Stock still in the station doesn't block it.
 - **Deleting customers:** `CustomerService.delete` refuses while a customer has unpaid or undelivered orders, open invoices, or containers out, and always refuses the walk-in account. Includes on historical records use `paranoid: false` so deleted customers, products, and users still show their names.
 - **Soft deletes:** `Customer`, `CustomerSpecialPricing`, `ProductInventory`, and `User` are paranoid. Use `{ paranoid: false }` to include deleted rows.
-- **Date filtering** uses the `Asia/Manila` timezone via `moment-timezone`.
+- **Date filtering** uses the `Asia/Manila` timezone via `date-fns-tz` (`src/lib/business-time.ts`).
 
 ### Test layout
 

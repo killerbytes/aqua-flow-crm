@@ -66,18 +66,3 @@ export function handleServiceError(error: any): never {
     typeof error === "string" ? error : "An unexpected error occurred.",
   );
 }
-
-/**
- * Higher-order function to wrap any async service function with standardized error handling.
- */
-export function withErrorHandling<T extends (...args: any[]) => Promise<any>>(
-  fn: T,
-): T {
-  return (async (...args: Parameters<T>) => {
-    try {
-      return await fn(...args);
-    } catch (error) {
-      handleServiceError(error);
-    }
-  }) as T;
-}
