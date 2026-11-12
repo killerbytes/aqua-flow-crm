@@ -4,6 +4,7 @@ import {
   LedgerReferenceType,
   PAGINATION,
 } from "@/lib/definitions";
+import { toPagination } from "@/lib/pagination";
 import { Op, Transaction } from "sequelize";
 import {
   Customer,
@@ -27,6 +28,71 @@ export interface EquipmentLogQueryParams {
     actionType?: string;
   };
 }
+
+type AccountPair = { from: LedgerAccountType; to: LedgerAccountType };
+
+/** The ledger accounts each action moves containers between. */
+const ACTION_ACCOUNTS: Record<EquipmentActionType, AccountPair> = {
+  [EquipmentActionType.ISSUE]: {
+    from: LedgerAccountType.STATION,
+    to: LedgerAccountType.CUSTOMER,
+  },
+  [EquipmentActionType.RETURNED]: {
+    from: LedgerAccountType.CUSTOMER,
+    to: LedgerAccountType.STATION,
+  },
+  [EquipmentActionType.LOST]: {
+    from: LedgerAccountType.CUSTOMER,
+    to: LedgerAccountType.SCRAP_LOST,
+  },
+  [EquipmentActionType.DAMAGED]: {
+    from: LedgerAccountType.CUSTOMER,
+    to: LedgerAccountType.SCRAP_DAMAGED,
+  },
+  [EquipmentActionType.TEMPORARY]: {
+    from: LedgerAccountType.STATION,
+    to: LedgerAccountType.CUSTOMER_TEMP,
+  },
+  [EquipmentActionType.TEMPORARY_RETURNED]: {
+    from: LedgerAccountType.CUSTOMER_TEMP,
+    to: LedgerAccountType.STATION,
+  },
+  [EquipmentActionType.TEMPORARY_LOST]: {
+    from: LedgerAccountType.CUSTOMER_TEMP,
+    to: LedgerAccountType.SCRAP_LOST,
+  },
+  [EquipmentActionType.TEMPORARY_DAMAGED]: {
+    from: LedgerAccountType.CUSTOMER_TEMP,
+    to: LedgerAccountType.SCRAP_DAMAGED,
+  },
+};
+
+const isCustomerAccount = (type: LedgerAccountType) =>
+  type === LedgerAccountType.CUSTOMER ||
+  type === LedgerAccountType.CUSTOMER_TEMP;
+
+/**
+ * The action a ledger entry shows as. Stock written off straight from the
+ * station has no customer action, so it reads as plain lost or damaged.
+ */
+const actionOf = (entry: {
+  fromAccountType: string;
+  toAccountType: string;
+  referenceType?: string | null;
+}): string => {
+  const match = Object.entries(ACTION_ACCOUNTS).find(
+    ([, pair]) =>
+      pair.from === entry.fromAccountType && pair.to === entry.toAccountType,
+  );
+  if (match) return match[0];
+  if (entry.toAccountType === LedgerAccountType.SCRAP_LOST) {
+    return EquipmentActionType.LOST;
+  }
+  if (entry.toAccountType === LedgerAccountType.SCRAP_DAMAGED) {
+    return EquipmentActionType.DAMAGED;
+  }
+  return entry.referenceType || "LEDGER";
+};
 
 export class EquipmentService {
   static async getAll(params: EquipmentLogQueryParams = {}) {
@@ -62,45 +128,14 @@ export class EquipmentService {
     return {
       rows: rows.map((r) => {
         const plain = r.get({ plain: true });
-        let mappedAction: string = plain.referenceType || "LEDGER";
-        if (
-          plain.fromAccountType === LedgerAccountType.STATION &&
-          plain.toAccountType === LedgerAccountType.CUSTOMER
-        ) {
-          mappedAction = EquipmentActionType.ISSUE;
-        } else if (
-          plain.fromAccountType === LedgerAccountType.CUSTOMER &&
-          plain.toAccountType === LedgerAccountType.STATION
-        ) {
-          mappedAction = EquipmentActionType.RETURNED;
-        } else if (
-          plain.fromAccountType === LedgerAccountType.STATION &&
-          plain.toAccountType === LedgerAccountType.CUSTOMER_TEMP
-        ) {
-          mappedAction = EquipmentActionType.TEMPORARY;
-        } else if (
-          plain.fromAccountType === LedgerAccountType.CUSTOMER_TEMP &&
-          plain.toAccountType === LedgerAccountType.STATION
-        ) {
-          mappedAction = EquipmentActionType.TEMPORARY_RETURNED;
-        } else if (plain.toAccountType === LedgerAccountType.SCRAP_LOST) {
-          mappedAction = EquipmentActionType.LOST;
-        } else if (plain.toAccountType === LedgerAccountType.SCRAP_DAMAGED) {
-          mappedAction = EquipmentActionType.DAMAGED;
-        }
-
         return {
           ...plain,
           logId: plain.entryId,
-          actionType: mappedAction,
+          actionType: actionOf(plain),
           customerId: plain.toAccountId || plain.fromAccountId,
         };
       }),
-      pagination: {
-        total: count,
-        totalPages: Math.ceil(count / limit),
-        currentPage: Number(offset / limit) + 1,
-      },
+      pagination: toPagination(count, limit, page),
     };
   }
 
@@ -197,60 +232,10 @@ export class EquipmentService {
       }
     }
 
-    // Map EquipmentActionType to Double-Entry Ledger Accounts
-    let fromAccountType: LedgerAccountType = LedgerAccountType.STATION;
-    let fromAccountId: number | null = null;
-    let toAccountType: LedgerAccountType = LedgerAccountType.CUSTOMER;
-    let toAccountId: number | null = customerId;
-
-    switch (actionType) {
-      case EquipmentActionType.ISSUE:
-        fromAccountType = LedgerAccountType.STATION;
-        toAccountType = LedgerAccountType.CUSTOMER;
-        toAccountId = customerId;
-        break;
-      case EquipmentActionType.RETURNED:
-        fromAccountType = LedgerAccountType.CUSTOMER;
-        fromAccountId = customerId;
-        toAccountType = LedgerAccountType.STATION;
-        toAccountId = null;
-        break;
-      case EquipmentActionType.TEMPORARY:
-        fromAccountType = LedgerAccountType.STATION;
-        toAccountType = LedgerAccountType.CUSTOMER_TEMP;
-        toAccountId = customerId;
-        break;
-      case EquipmentActionType.TEMPORARY_RETURNED:
-        fromAccountType = LedgerAccountType.CUSTOMER_TEMP;
-        fromAccountId = customerId;
-        toAccountType = LedgerAccountType.STATION;
-        toAccountId = null;
-        break;
-      case EquipmentActionType.LOST:
-        fromAccountType = LedgerAccountType.CUSTOMER;
-        fromAccountId = customerId;
-        toAccountType = LedgerAccountType.SCRAP_LOST;
-        toAccountId = null;
-        break;
-      case EquipmentActionType.TEMPORARY_LOST:
-        fromAccountType = LedgerAccountType.CUSTOMER_TEMP;
-        fromAccountId = customerId;
-        toAccountType = LedgerAccountType.SCRAP_LOST;
-        toAccountId = null;
-        break;
-      case EquipmentActionType.DAMAGED:
-        fromAccountType = LedgerAccountType.CUSTOMER;
-        fromAccountId = customerId;
-        toAccountType = LedgerAccountType.SCRAP_DAMAGED;
-        toAccountId = null;
-        break;
-      case EquipmentActionType.TEMPORARY_DAMAGED:
-        fromAccountType = LedgerAccountType.CUSTOMER_TEMP;
-        fromAccountId = customerId;
-        toAccountType = LedgerAccountType.SCRAP_DAMAGED;
-        toAccountId = null;
-        break;
-    }
+    const { from: fromAccountType, to: toAccountType } =
+      ACTION_ACCOUNTS[actionType];
+    const fromAccountId = isCustomerAccount(fromAccountType) ? customerId : null;
+    const toAccountId = isCustomerAccount(toAccountType) ? customerId : null;
 
     const entry = await EquipmentLedgerEntry.create(
       {

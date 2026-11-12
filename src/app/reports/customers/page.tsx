@@ -5,7 +5,7 @@ import {
   ReportService,
 } from "@/backend/services";
 import LastOrderList from "@/features/reports/LastOrderList";
-import { PAGINATION } from "@/lib/definitions";
+import { parsePageParams } from "@/lib/pagination";
 import { Users } from "lucide-react";
 
 interface CustomersPageProps {
@@ -19,8 +19,7 @@ export default async function CustomersPage({
   await requirePagePermission("VIEW_REPORTS");
 
   const params = await searchParams;
-  const page = Number(params?.page) || PAGINATION.PAGE;
-  const limit = Number(params?.limit) || PAGINATION.PAGE_SIZE;
+  const { page, limit } = parsePageParams(params);
   const productId = params?.query?.productId
     ? Number(params.query.productId)
     : (params as any)?.productId

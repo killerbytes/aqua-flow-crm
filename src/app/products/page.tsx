@@ -19,7 +19,8 @@ import { InventoryAdjustmentModal } from "@/features/products/components/Invento
 import { InventoryAdjustmentModalButton } from "@/features/products/components/InventoryAdjustmentModalButton";
 import { ProductFormModal } from "@/features/products/components/ProductFormModal";
 import { ProductFormModalButton } from "@/features/products/components/ProductFormModalButton";
-import { PAGINATION, UserRole } from "@/lib/definitions";
+import { UserRole } from "@/lib/definitions";
+import { parsePageParams } from "@/lib/pagination";
 import { formatCurrency } from "@/lib/utils";
 import { Paginated } from "@/types";
 import {
@@ -52,8 +53,7 @@ export default async function ProductsPage({ searchParams }: ProductPageProps) {
   await requirePagePermission("VIEW_PRODUCTS");
   const params = await searchParams;
 
-  const page = Number(params?.page) || PAGINATION.PAGE;
-  const limit = Number(params?.limit) || PAGINATION.PAGE_SIZE;
+  const { page, limit } = parsePageParams(params);
 
   let products: any[] = [];
   const logsPromise: Promise<Paginated<any>> = EquipmentService.getAll({

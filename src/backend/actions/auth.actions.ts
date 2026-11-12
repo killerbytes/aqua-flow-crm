@@ -1,5 +1,6 @@
 "use server";
 
+import { sessionCookieOptions } from "@/lib/auth.edge";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { initDatabase } from "../db/database";
@@ -19,13 +20,7 @@ export async function loginAction(username: string, password: string) {
 
     try {
       const cookieStore = await cookies();
-      cookieStore.set("token", token, {
-        httpOnly: true,
-        path: "/",
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 60 * 60 * 24 * 7, // 7 days
-        sameSite: "lax",
-      });
+      cookieStore.set("token", token, sessionCookieOptions());
     } catch (err) {
       console.warn("Cookie set error (outside request context):", err);
     }

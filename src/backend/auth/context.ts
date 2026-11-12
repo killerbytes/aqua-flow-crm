@@ -1,4 +1,5 @@
 import { verifyOrRefreshToken } from "@/lib/auth";
+import { sessionCookieOptions } from "@/lib/auth.edge";
 import { UserRole } from "@/lib/definitions";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -82,13 +83,7 @@ export async function getAuthContext(): Promise<AuthContext> {
       if (result) {
         if (result.newToken && cookieStore) {
           try {
-            cookieStore.set("token", result.newToken, {
-              httpOnly: true,
-              path: "/",
-              secure: process.env.NODE_ENV === "production",
-              maxAge: 60 * 60 * 24 * 7,
-              sameSite: "lax",
-            });
+            cookieStore.set("token", result.newToken, sessionCookieOptions());
           } catch {
             // Ignore if cookie store is read-only in rendering phase
           }

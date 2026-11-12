@@ -5,6 +5,7 @@ import {
   PAGINATION,
   PaymentStatus,
 } from "@/lib/definitions";
+import { toPagination } from "@/lib/pagination";
 import { Op, OrderItem, Transaction } from "sequelize";
 import { sequelize } from "../db/database";
 import {
@@ -20,9 +21,24 @@ import {
   SpecialPricingFormData,
   SpecialPricingSchema,
 } from "../schemas/zodSchemas";
+import { countContainersOut, countLabel } from "./deleteBlockers";
 import { handleServiceError } from "./errorHandler";
 
 export const WALK_IN_CUSTOMER_NAME = "Walk-In / Counter Sales";
+
+/** A customer's container balances and special prices, with product names. */
+const CUSTOMER_DETAIL_INCLUDES = [
+  {
+    model: CustomerEquipmentBalance,
+    include: [{ model: ProductInventory, as: "product" }],
+    as: "equipmentBalances",
+  },
+  {
+    model: CustomerSpecialPricing,
+    include: [{ model: ProductInventory, as: "product" }],
+    as: "specialPricings",
+  },
+];
 
 export interface CustomerQueryParams {
   limit?: number;
@@ -115,28 +131,13 @@ export class CustomerService {
 
     return {
       rows: rows.map((r) => r.get({ plain: true })),
-      pagination: {
-        total: count,
-        totalPages: Math.ceil(count / limit),
-        currentPage: Number(offset / limit) + 1,
-      },
+      pagination: toPagination(count, limit, page),
     };
   }
 
   static async get(id: number | string) {
     const customer = await Customer.findByPk(Number(id), {
-      include: [
-        {
-          model: CustomerEquipmentBalance,
-          include: [{ model: ProductInventory, as: "product" }],
-          as: "equipmentBalances",
-        },
-        {
-          model: CustomerSpecialPricing,
-          include: [{ model: ProductInventory, as: "product" }],
-          as: "specialPricings",
-        },
-      ],
+      include: CUSTOMER_DETAIL_INCLUDES,
     });
 
     return customer?.get({ plain: true });
@@ -203,18 +204,7 @@ export class CustomerService {
     const customers = await Customer.findAll({
       where,
       limit: 10,
-      include: [
-        {
-          model: CustomerEquipmentBalance,
-          include: [{ model: ProductInventory, as: "product" }],
-          as: "equipmentBalances",
-        },
-        {
-          model: CustomerSpecialPricing,
-          include: [{ model: ProductInventory, as: "product" }],
-          as: "specialPricings",
-        },
-      ],
+      include: CUSTOMER_DETAIL_INCLUDES,
     });
     return customers.map((c) => c.get({ plain: true }));
   }
@@ -272,9 +262,6 @@ export class CustomerService {
   }
 }
 
-const countLabel = (count: number, label: string) =>
-  `${count} ${label}${count === 1 ? "" : "s"}`;
-
 const getDeleteBlockers = async (customerId: number, transaction: Transaction) => {
   const blockers: string[] = [];
 
@@ -304,15 +291,7 @@ const getDeleteBlockers = async (customerId: number, transaction: Transaction) =
     blockers.push(countLabel(openInvoices, "open invoice"));
   }
 
-  const balances = await CustomerEquipmentBalance.findAll({
-    where: { customerId },
-    transaction,
-  });
-  const containersOut = balances.reduce(
-    (sum, balance) =>
-      sum + balance.quantityOwed + balance.quantityTemporaryOwed,
-    0,
-  );
+  const containersOut = await countContainersOut({ customerId }, transaction);
   if (containersOut > 0) {
     blockers.push(countLabel(containersOut, "container") + " still out");
   }

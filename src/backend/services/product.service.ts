@@ -1,13 +1,13 @@
 import { OrderStatus } from "@/lib/definitions";
 import { Transaction } from "sequelize";
 import {
-  CustomerEquipmentBalance,
   Order,
   OrderDetail,
   ProductInventory,
   sequelize,
 } from "../models";
 import { ProductDetailsSchema } from "../schemas/zodSchemas";
+import { countContainersOut, countLabel } from "./deleteBlockers";
 import { handleServiceError } from "./errorHandler";
 
 const STOCK_FIELDS = [
@@ -24,6 +24,17 @@ const rejectStockFields = (input: any) => {
     throw new Error(
       "Stock can only be changed with a stock adjustment, so it's recorded in the ledger",
     );
+  }
+};
+
+/** Only one product is the default, so the previous one gives it up. */
+const clearDefaultProduct = async (exceptProductId?: number) => {
+  const existingDefault = await ProductInventory.findOne({
+    where: { isDefault: true },
+  });
+  if (existingDefault && existingDefault.productId !== exceptProductId) {
+    existingDefault.isDefault = false;
+    await existingDefault.save();
   }
 };
 
@@ -44,17 +55,7 @@ export class ProductService {
     rejectStockFields(input);
     const validatedData = ProductDetailsSchema.parse(input);
     try {
-      if (validatedData.isDefault) {
-        const existingDefault = await ProductInventory.findOne({
-          where: {
-            isDefault: true,
-          },
-        });
-        if (existingDefault) {
-          existingDefault.isDefault = false;
-          await existingDefault.save();
-        }
-      }
+      if (validatedData.isDefault) await clearDefaultProduct();
       const product = await ProductInventory.create(validatedData);
       return product?.get({ plain: true });
     } catch (error) {
@@ -70,15 +71,7 @@ export class ProductService {
 
     try {
       if (validatedData.isDefault) {
-        const existingDefault = await ProductInventory.findOne({
-          where: {
-            isDefault: true,
-          },
-        });
-        if (existingDefault && existingDefault.productId !== id) {
-          existingDefault.isDefault = false;
-          await existingDefault.save();
-        }
+        await clearDefaultProduct(product.productId);
       }
 
       await product.update(validatedData);
@@ -116,21 +109,10 @@ export class ProductService {
   }
 }
 
-const countLabel = (count: number, label: string) =>
-  `${count} ${label}${count === 1 ? "" : "s"}`;
-
 const getDeleteBlockers = async (productId: number, transaction: Transaction) => {
   const blockers: string[] = [];
 
-  const balances = await CustomerEquipmentBalance.findAll({
-    where: { productId },
-    transaction,
-  });
-  const containersOut = balances.reduce(
-    (sum, balance) =>
-      sum + balance.quantityOwed + balance.quantityTemporaryOwed,
-    0,
-  );
+  const containersOut = await countContainersOut({ productId }, transaction);
   if (containersOut > 0) {
     blockers.push(countLabel(containersOut, "unit") + " still with customers");
   }

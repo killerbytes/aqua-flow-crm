@@ -1,5 +1,6 @@
 import { initDatabase } from "@/backend/db/database";
 import { AuthenticationError, AuthService } from "@/backend/services/auth.service";
+import { sessionCookieOptions } from "@/lib/auth.edge";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
@@ -22,15 +23,7 @@ export async function POST(request: Request) {
       user,
     });
 
-    response.cookies.set({
-      name: "token",
-      value: token,
-      httpOnly: true,
-      path: "/",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-      sameSite: "lax",
-    });
+    response.cookies.set("token", token, sessionCookieOptions());
 
     return response;
   } catch (err) {

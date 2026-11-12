@@ -8,6 +8,13 @@ describe("UI - OrderFormModal Component Structure & Action Binding", () => {
     "src/features/orders/components/OrderFormModal.tsx",
   );
   const content = fs.readFileSync(filePath, "utf-8");
+  const itemsContent = fs.readFileSync(
+    path.resolve(
+      process.cwd(),
+      "src/features/orders/components/OrderItemsField.tsx",
+    ),
+    "utf-8",
+  );
 
   it("should import createOrderAction and OrderSchema", () => {
     expect(content).toContain("createOrderAction");
@@ -20,8 +27,9 @@ describe("UI - OrderFormModal Component Structure & Action Binding", () => {
   });
 
   it("should display special discount indicator when item product has special pricing", () => {
-    expect(content).toContain("discountAmount");
-    expect(content).toContain("Special Discount");
+    expect(content).toContain("OrderItemsField");
+    expect(itemsContent).toContain("discountAmount");
+    expect(itemsContent).toContain("Special Discount");
   });
 
   it("should display equipment balances when customer is selected", () => {

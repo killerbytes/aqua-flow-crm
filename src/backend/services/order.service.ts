@@ -1,4 +1,5 @@
 import { OrderStatus, PAGINATION, PaymentStatus } from "@/lib/definitions";
+import { toPagination } from "@/lib/pagination";
 import { fromCents, toCents } from "@/lib/money";
 import { endOfBusinessDay, startOfBusinessDay } from "@/lib/business-time";
 import { Op, OrderItem, Transaction } from "sequelize";
@@ -136,11 +137,7 @@ export class OrderService {
 
       return {
         rows: rows.map((r) => r.get({ plain: true })),
-        pagination: {
-          total: count,
-          totalPages: Math.ceil(count / limit),
-          currentPage: Number(offset / limit) + 1,
-        },
+        pagination: toPagination(count, limit, page),
         summary: await getSummary(where),
       };
     } catch (error) {
@@ -503,25 +500,21 @@ const getSummary = async (where: any) => {
     where: {
       ...salesWhere,
       ...(orderDateFilter ? { deliveredAt: orderDateFilter } : {}),
-      status: { [Op.in]: [OrderStatus.DELIVERED] },
+      status: OrderStatus.DELIVERED,
     },
   });
 
   const pendingOrders = await Order.count({
     where: {
       ...where,
-      ...{
-        status: { [Op.in]: [OrderStatus.PENDING] },
-      },
+      status: OrderStatus.PENDING,
     },
   });
 
   const cancelledOrders = await Order.count({
     where: {
       ...where,
-      ...{
-        status: { [Op.in]: [OrderStatus.CANCELLED] },
-      },
+      status: OrderStatus.CANCELLED,
     },
   });
 
@@ -530,16 +523,14 @@ const getSummary = async (where: any) => {
     where: {
       ...where,
       status: { ...where.status, [Op.ne]: OrderStatus.CANCELLED },
-      paymentStatus: { [Op.in]: [PaymentStatus.UNPAID] },
+      paymentStatus: PaymentStatus.UNPAID,
     },
   });
 
   const deliveryOrders = await Order.count({
     where: {
       ...where,
-      ...{
-        status: { [Op.in]: [OrderStatus.OUT_FOR_DELIVERY] },
-      },
+      status: OrderStatus.OUT_FOR_DELIVERY,
     },
   });
 

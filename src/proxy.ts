@@ -1,4 +1,4 @@
-import { verifyOrRefreshToken } from "@/lib/auth.edge";
+import { sessionCookieOptions, verifyOrRefreshToken } from "@/lib/auth.edge";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
@@ -36,13 +36,7 @@ export async function proxy(request: NextRequest) {
   }
   const response = NextResponse.next();
   if (result.newToken) {
-    response.cookies.set("token", result.newToken, {
-      httpOnly: true,
-      path: "/",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 7,
-      sameSite: "lax",
-    });
+    response.cookies.set("token", result.newToken, sessionCookieOptions());
   }
   return response;
 }

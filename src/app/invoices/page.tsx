@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import InvoiceList from "@/features/invoices/components/InvoiceList";
-import { PAGINATION } from "@/lib/definitions";
+import { parsePageParams } from "@/lib/pagination";
 import { formatCurrency } from "@/lib/utils";
 import { Paginated } from "@/types";
 import { Receipt } from "lucide-react";
@@ -22,8 +22,7 @@ export default async function InvoicesPage({ searchParams }: InvoicePageProps) {
   await requirePagePermission("VIEW_INVOICES");
   const params = await searchParams;
 
-  const page = Number(params?.page) || PAGINATION.PAGE;
-  const limit = Number(params?.limit) || PAGINATION.PAGE_SIZE;
+  const { page, limit } = parsePageParams(params);
   const sort = params?.sort;
   const order = params?.order;
 
