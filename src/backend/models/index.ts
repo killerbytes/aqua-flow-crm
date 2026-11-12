@@ -13,6 +13,28 @@ import { OrderPayment } from "./OrderPayment";
 import { ProductInventory } from "./ProductInventory";
 import { User } from "./User";
 
+// In dev, hot reload can re-run this file while some model modules stay cached
+// with the associations and hooks from the previous run. Start from a clean
+// slate so re-running is safe; on a first load this is a no-op.
+const LEDGER_HOOK_NAME = "equipmentLedgerTotals";
+for (const model of [
+  Customer,
+  CustomerEquipmentBalance,
+  CustomerSpecialPricing,
+  EquipmentLedgerEntry,
+  Invoice,
+  InvoiceDetail,
+  InvoicePayment,
+  Order,
+  OrderDetail,
+  OrderPayment,
+  ProductInventory,
+  User,
+]) {
+  (model as unknown as { associations: object }).associations = {};
+}
+EquipmentLedgerEntry.removeHook("afterCreate", LEDGER_HOOK_NAME);
+
 Customer.hasMany(CustomerEquipmentBalance, {
   foreignKey: "customerId",
   as: "equipmentBalances",
@@ -121,7 +143,7 @@ CustomerSpecialPricing.belongsTo(ProductInventory, {
 ProductInventory.hasMany(EquipmentLedgerEntry, { foreignKey: "productId" });
 
 // Pattern 1 Unified Double-Entry Equipment Ledger Hook
-EquipmentLedgerEntry.afterCreate(async (entry, options) => {
+EquipmentLedgerEntry.afterCreate(LEDGER_HOOK_NAME, async (entry, options) => {
   const transaction = options.transaction;
   const {
     productId,

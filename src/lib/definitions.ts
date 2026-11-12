@@ -192,7 +192,7 @@ export const ORDER_STATUS_OPTIONS = [
   {
     value: OrderStatus.OUT_FOR_DELIVERY,
     label: "Out For Delivery",
-    color: "text-purple-400 border-purple-500/30",
+    color: "text-yellow-400 border-yellow-500/30",
   },
   {
     value: OrderStatus.DELIVERED,
@@ -260,19 +260,19 @@ export const EQUIPMENT_BADGE_COLOR: Record<EquipmentActionType, string> = {
 };
 
 export const PAYMENT_STATUS_BADGE_COLOR: Record<PaymentStatus, string> = {
-  [PaymentStatus.UNPAID]: "bg-orange-100 text-black border-orange-500",
+  [PaymentStatus.UNPAID]: "bg-gray-100 text-black border-gray-500",
   [PaymentStatus.PAID]: "bg-green-100 text-black border-green-500",
 };
 
 export const PAYMENT_METHOD_BADGE_COLOR: Record<PaymentMethod, string> = {
-  [PaymentMethod.CASH]: "bg-gray-100 text-black border-gray-500",
+  [PaymentMethod.CASH]: "bg-green-500 text-white border-green-100",
   [PaymentMethod.GCASH]: "bg-blue-100 text-black border-blue-500",
   [PaymentMethod.ONLINE]: "bg-purple-100 text-black border-purple-500",
 };
 
 export const ORDER_STATUS_BADGE_COLOR: Record<OrderStatus, string> = {
   [OrderStatus.PENDING]: "bg-yellow-100 text-black border-yellow-500",
-  [OrderStatus.OUT_FOR_DELIVERY]: "bg-purple-100 text-black border-purple-500",
+  [OrderStatus.OUT_FOR_DELIVERY]: "bg-orange-100 text-black border-orange-500",
   [OrderStatus.DELIVERED]: "bg-green-100 text-black border-green-500",
   [OrderStatus.CANCELLED]: "bg-red-100 text-black border-red-500",
 };
