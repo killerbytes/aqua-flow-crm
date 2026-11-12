@@ -83,6 +83,11 @@ export const OrderSchema = z.object({
   paymentStatus: z.nativeEnum(PaymentStatus),
   createdAt: z.union([z.date(), z.string()]).optional(),
   items: OrderItemsSchema,
+  /** A flat fee on the whole order, set by staff. Zero or missing means none. */
+  surcharge: z
+    .number("Surcharge must be a number")
+    .min(0, "Surcharge can't be negative")
+    .optional(),
 });
 
 export const PaymentSchema = OrderSchema.omit({
