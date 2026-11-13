@@ -120,6 +120,9 @@ const OrderFormModalContent = () => {
             error.message ||
             (editingOrder ? "Failed to update order" : "Failed to create order"),
         });
+        // A refused edit usually means the order changed. The form stays open
+        // so nothing typed is lost, and the page behind it shows the order now.
+        if (editingOrder) router.refresh();
       }
     });
   };

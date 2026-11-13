@@ -26,6 +26,7 @@ import {
 import {
   CustomerService,
   EquipmentService,
+  InvoiceService,
   OrderService,
   ProductService,
 } from "@/backend/services";
@@ -50,6 +51,7 @@ import { SpecialPricingModal } from "@/features/customers/components/SpecialPric
 import { SpecialPricingModalButton } from "@/features/customers/components/SpecialPricingModalButton";
 import { InvoiceFormModal } from "@/features/invoices/components/InvoiceFormModal";
 import { InvoiceFormModalButton } from "@/features/invoices/components/InvoiceFormModalButton";
+import InvoiceList from "@/features/invoices/components/InvoiceList";
 import { OrderFormModal } from "@/features/orders/components/OrderFormModal";
 import { OrderFormModalButton } from "@/features/orders/components/OrderFormModalButton";
 import OrderList from "@/features/orders/components/OrderList";
@@ -106,6 +108,15 @@ export default async function CustomerPage({
     },
   });
   const orders = await OrderService.getAll({
+    limit,
+    page,
+    sort,
+    order,
+    query: {
+      customerId: Number(id),
+    },
+  });
+  const invoices = await InvoiceService.getAll({
     limit,
     page,
     sort,
@@ -303,9 +314,8 @@ export default async function CustomerPage({
                 </span>
               </div>
               <div
-                className={`text-xl font-bold tabular-nums sm:text-2xl ${
-                  stat.warning ? "text-rose-500" : ""
-                }`}
+                className={`text-xl font-bold tabular-nums sm:text-2xl ${stat.warning ? "text-rose-500" : ""
+                  }`}
               >
                 {stat.value}
               </div>
@@ -392,6 +402,7 @@ export default async function CustomerPage({
         <TabsList>
           <TabsTrigger value="history">Order History</TabsTrigger>
           <TabsTrigger value="logs">Equipment Logs</TabsTrigger>
+          <TabsTrigger value="invoices">Invoices</TabsTrigger>
         </TabsList>
         <TabsContent value="history">
           <Card>
@@ -414,6 +425,19 @@ export default async function CustomerPage({
             </CardHeader>
             <CardContent>
               <EquipmentLogs logsPromise={logsPromise} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="invoices">
+          <Card>
+            <CardHeader>
+              <CardTitle>Invoices</CardTitle>
+              <CardDescription>
+                Every invoice issued to this customer
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <InvoiceList invoices={invoices} hideCustomer />
             </CardContent>
           </Card>
         </TabsContent>

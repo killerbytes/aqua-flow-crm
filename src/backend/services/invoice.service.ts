@@ -33,6 +33,7 @@ export interface InvoiceQueryParams {
   order?: string;
   query?: {
     status?: InvoiceStatus;
+    customerId?: number;
   };
 }
 
@@ -42,14 +43,17 @@ export class InvoiceService {
       limit = PAGINATION.PAGE_SIZE,
       page = PAGINATION.PAGE,
       sort,
-      order: sortOrder = "ASC",
+      order: sortOrder,
       query,
     } = params;
-    const { status } = query || {};
+    const { status, customerId } = query || {};
 
     const where: any = {};
     if (status) {
       where.status = status;
+    }
+    if (customerId) {
+      where.customerId = customerId;
     }
 
     const include: any[] = [
@@ -70,9 +74,13 @@ export class InvoiceService {
       status: "status",
     };
 
-    const orderByField =
-      sort && orderByMap[sort] ? orderByMap[sort] : "customerId";
-    const orderBy: OrderItem = [orderByField, sortOrder];
+    // One customer's invoices read newest first; the full list groups by customer.
+    const orderBy: OrderItem =
+      sort && orderByMap[sort]
+        ? [orderByMap[sort], sortOrder ?? "ASC"]
+        : customerId
+          ? ["dateIssued", sortOrder ?? "DESC"]
+          : ["customerId", sortOrder ?? "ASC"];
 
     const { rows, count } = await Invoice.findAndCountAll({
       where,

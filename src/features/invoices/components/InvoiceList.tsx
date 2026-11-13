@@ -5,7 +5,7 @@ import DataTable from "@/components/DataTable";
 import Pager from "@/components/Pager";
 import ColorBadge, { CustomerName, MonoText } from "@/components/presentation";
 import { INVOICE_STATUS_BADGE_COLOR } from "@/lib/definitions";
-import { formatDateTime } from "@/lib/utils";
+import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { Paginated } from "@/types";
 import { createColumnHelper } from "@tanstack/react-table";
 import { cx } from "class-variance-authority";
@@ -16,14 +16,20 @@ import React from "react";
 
 interface InvoiceListProps {
   invoices: Paginated<Invoice>;
+  /** Drop the customer column, for lists that belong to one customer. */
+  hideCustomer?: boolean;
 }
 
-export default function InvoiceList({ invoices }: InvoiceListProps) {
+export default function InvoiceList({
+  invoices,
+  hideCustomer = false,
+}: InvoiceListProps) {
   const router = useRouter();
 
   const columnHelper = createColumnHelper<Invoice>();
   const columns = React.useMemo(
-    () => [
+    () =>
+      [
       columnHelper.accessor("invoiceId", {
         header: "ID",
         size: 50,
@@ -31,6 +37,7 @@ export default function InvoiceList({ invoices }: InvoiceListProps) {
         cell: (info) => <MonoText>#{info.getValue()}</MonoText>,
       }),
       columnHelper.accessor("customer.name", {
+        id: "customer",
         header: ({ column }) => {
           return <ColumnSort column={column}>Name</ColumnSort>;
         },
@@ -58,7 +65,7 @@ export default function InvoiceList({ invoices }: InvoiceListProps) {
       }),
       columnHelper.accessor("dueDate", {
         header: ({ column }) => {
-          return <ColumnSort column={column}>Date Issued</ColumnSort>;
+          return <ColumnSort column={column}>Due Date</ColumnSort>;
         },
         cell: (info) => <MonoText>{formatDateTime(info.getValue())}</MonoText>,
       }),
@@ -86,12 +93,12 @@ export default function InvoiceList({ invoices }: InvoiceListProps) {
         },
         cell: (info) => (
           <MonoText className="flex justify-end font-semibold">
-            {info.getValue()}
+            {formatCurrency(Number(info.getValue() || 0))}
           </MonoText>
         ),
       }),
-    ],
-    [],
+      ].filter((column) => !(hideCustomer && column.id === "customer")),
+    [hideCustomer],
   );
 
   return (

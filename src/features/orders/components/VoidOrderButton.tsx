@@ -45,6 +45,9 @@ export function VoidOrderButton({
           setReasonError(fieldError);
         } else {
           toast.add({ type: "error", description: res.error });
+          // Refused because the order changed, so show it as it is now.
+          close();
+          router.refresh();
         }
         return;
       }

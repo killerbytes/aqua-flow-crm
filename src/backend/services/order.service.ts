@@ -193,6 +193,18 @@ export class OrderService {
   }
 
   /**
+   * The invoice an order is on, if any. Voided invoices don't count, as voiding
+   * one frees its orders.
+   */
+  static async getActiveInvoiceId(id: number | string) {
+    const detail = await InvoiceDetail.findOne({
+      attributes: ["invoiceId"],
+      where: { orderId: Number(id), voidedAt: null },
+    });
+    return detail?.invoiceId ?? null;
+  }
+
+  /**
    * Order creation for requests from staff. Only walk-in sales are recorded as
    * already delivered, paid, and dated by the cashier. Everything else starts
    * as a new unpaid order, whatever the request says.

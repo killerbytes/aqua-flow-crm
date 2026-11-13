@@ -94,8 +94,10 @@ describe("Integration - Voiding Orders", () => {
 
     await expect(voidOrder(order.orderId)).rejects.toThrow(/on an invoice/);
     expect((await OrderService.get(order.orderId))?.status).toBe(OrderStatus.DELIVERED);
+    expect(await OrderService.getActiveInvoiceId(order.orderId)).toBe(invoice.invoiceId);
 
     await InvoiceService.voidInvoice(invoice.invoiceId, { reason: "Wrong orders" }, USER_ID);
+    expect(await OrderService.getActiveInvoiceId(order.orderId)).toBeNull();
     await voidOrder(order.orderId);
     expect((await OrderService.get(order.orderId))?.status).toBe(OrderStatus.CANCELLED);
   });

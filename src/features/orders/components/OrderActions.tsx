@@ -20,6 +20,11 @@ interface OrderActionsProps {
   className?: string;
   showPayment?: boolean;
   /**
+   * The order is on an active invoice, so it can't be paid directly, edited, or
+   * voided. Those buttons are hidden, as the server would refuse them.
+   */
+  isInvoiced?: boolean;
+  /**
    * "list" shows only the delivery steps (Out For Delivery, Mark as
    * Delivered). Void, Back to Pending, and Payment stay on the details page.
    */
@@ -31,12 +36,15 @@ export default function OrderActions({
   size = "default",
   className,
   showPayment = false,
+  isInvoiced = false,
   variant = "detail",
 }: OrderActionsProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const { setPaymentModalOpen, setOrderFormModalOpen } = useUIStore();
   const isDetail = variant === "detail";
+  // Void, Payment, and Edit: details page only, and never for an invoiced order.
+  const canChangeOrder = isDetail && !isInvoiced;
   // Resolves once the update and refresh are done, so ConfirmDialog can close.
   const handleClick = (status: OrderStatus) =>
     new Promise<void>((resolve) =>
@@ -56,6 +64,9 @@ export default function OrderActions({
         type: "error",
         title: res.error || "Failed to update order status",
       });
+      // A refusal usually means someone else changed the order, so show it as
+      // it is now.
+      router.refresh();
       return;
     }
     toast.add({
@@ -70,7 +81,7 @@ export default function OrderActions({
       className={cn("flex items-center gap-2", className)}
       onClick={(e) => e.stopPropagation()}
     >
-      {isDetail && order.status !== OrderStatus.CANCELLED && (
+      {canChangeOrder && order.status !== OrderStatus.CANCELLED && (
         <VoidOrderButton
           orderId={order.orderId}
           isPaid={order.paymentStatus === PaymentStatus.PAID}
@@ -90,7 +101,7 @@ export default function OrderActions({
           <RoleGuard
             allowedRoles={[UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER]}
           >
-            {isDetail && showPayment && order.paymentStatus !== PaymentStatus.PAID &&
+            {canChangeOrder && showPayment && order.paymentStatus !== PaymentStatus.PAID &&
               order.status !== OrderStatus.CANCELLED && (
                 <Button
                   size={size}
@@ -99,7 +110,7 @@ export default function OrderActions({
                   <Banknote className="w-4 h-4" /> Payment
                 </Button>
               )}
-            {isDetail &&
+            {canChangeOrder &&
               order.status === OrderStatus.PENDING &&
               order.paymentStatus !== PaymentStatus.PAID && (
                 <Button

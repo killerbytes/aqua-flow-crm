@@ -10,6 +10,7 @@ import {
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { createColumnHelper } from "@tanstack/react-table";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import React from "react";
 
 export default function InvoiceDetailList({
@@ -17,6 +18,8 @@ export default function InvoiceDetailList({
 }: {
   invoiceDetails: InvoiceDetail[];
 }) {
+  const router = useRouter();
+
   const columnHelper = createColumnHelper<InvoiceDetail>();
   const columns = React.useMemo(
     () => [
@@ -80,6 +83,8 @@ export default function InvoiceDetailList({
           columns={columns}
           data={invoiceDetails}
           emptyMessage="No invoices found."
+          onRowClick={(row) => router.push(`/orders/${row.orderId}`)}
+
         />
       </motion.div>
     </>

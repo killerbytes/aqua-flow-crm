@@ -155,6 +155,9 @@ export default async function OrderDetailsPage({
   }
   if (!order) redirect("/orders");
 
+  // An invoiced order is paid, changed, and voided through its invoice.
+  const invoiceId = await OrderService.getActiveInvoiceId(order.orderId);
+
   const payments: any[] = (order as any).orderPayments ?? [];
   const deliveredBy = (order as any).deliveredByUser?.name;
 
@@ -248,8 +251,26 @@ export default async function OrderDetailsPage({
                 voidReason={order.voidReason}
               />
             </div>
-            <OrderActions showPayment order={order} className="flex-wrap" />
+            <OrderActions
+              showPayment
+              order={order}
+              isInvoiced={invoiceId !== null}
+              className="flex-wrap"
+            />
           </div>
+          {invoiceId !== null && (
+            <p className="text-sm text-muted-foreground">
+              This order is on{" "}
+              <Link
+                className="text-primary hover:underline"
+                href={`/invoices/${invoiceId}`}
+              >
+                invoice #{invoiceId}
+              </Link>
+              . Payments are recorded on the invoice, and the order can&apos;t
+              be edited or voided while it is on one.
+            </p>
+          )}
         </CardContent>
       </Card>
 

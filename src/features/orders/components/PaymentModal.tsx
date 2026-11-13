@@ -67,6 +67,9 @@ export function PaymentModalContent({ onClose }: { onClose: () => void }) {
           priority: "high",
           title: err.message || "Failed to settle order payment",
         });
+        // Refused because the order changed, so show it as it is now.
+        onClose();
+        router.refresh();
       }
     });
   };
