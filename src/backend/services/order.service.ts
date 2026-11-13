@@ -22,6 +22,8 @@ import {
   PaymentSchema,
   ReversePaymentFormData,
   ReversePaymentSchema,
+  VoidOrderFormData,
+  VoidOrderSchema,
 } from "../schemas/zodSchemas";
 import { CustomerService, WALK_IN_CUSTOMER_NAME } from "./customer.service";
 import { ProductService } from "./product.service";
@@ -170,6 +172,7 @@ export class OrderService {
         },
         { model: User, as: "user", paranoid: false },
         { model: User, as: "deliveredByUser", paranoid: false },
+        { model: User, as: "voidedByUser", paranoid: false },
         {
           model: OrderDetail,
           as: "orderDetails",
@@ -413,6 +416,63 @@ export class OrderService {
           status: targetStatus,
           ...(targetStatus === OrderStatus.DELIVERED
             ? { deliveredAt: new Date(), deliveredBy: currentUser?.userId ?? null }
+            : {}),
+        },
+        { transaction: t },
+      );
+      return order.get({ plain: true });
+    });
+  }
+
+  /**
+   * Voids an order at any stage. It becomes cancelled and keeps the reason, who
+   * voided it, and when. A direct payment on it is reversed with the same
+   * reason. An order on an invoice is refused, as the invoice holds its total.
+   */
+  static async voidOrder(
+    id: number | string,
+    input: VoidOrderFormData,
+    userId: number,
+  ) {
+    const { reason } = VoidOrderSchema.parse(input);
+
+    return await sequelize.transaction(async (t) => {
+      // The order lock keeps a payment from landing while this is being voided.
+      const order = await Order.findByPk(Number(id), {
+        transaction: t,
+        lock: t.LOCK.UPDATE,
+      });
+      if (!order) {
+        throw new Error(`Order with ID ${id} not found`);
+      }
+      if (order.status === OrderStatus.CANCELLED) {
+        throw new Error("This order is already cancelled");
+      }
+      if (await isInvoiced(order.orderId, t)) {
+        throw new Error(
+          "This order is on an invoice. Void the invoice before voiding the order.",
+        );
+      }
+
+      const voidedAt = new Date();
+      const [reversed] = await OrderPayment.update(
+        { reversedAt: voidedAt, reversedBy: userId, reversalReason: reason },
+        { where: { orderId: order.orderId, reversedAt: null }, transaction: t },
+      );
+
+      await order.update(
+        {
+          status: OrderStatus.CANCELLED,
+          voidedAt,
+          voidedBy: userId,
+          voidReason: reason,
+          // Nothing is paid once its payment is reversed.
+          ...(reversed > 0
+            ? {
+                paymentStatus: PaymentStatus.UNPAID,
+                paymentMethod: null,
+                paymentNotes: null,
+              }
             : {}),
         },
         { transaction: t },

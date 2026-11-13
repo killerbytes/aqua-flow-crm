@@ -50,11 +50,23 @@ const STEPS = [
   { status: OrderStatus.DELIVERED, label: "Delivered", icon: Check },
 ];
 
-function StatusSteps({ status }: { status: OrderStatus }) {
+function StatusSteps({
+  status,
+  voidReason,
+}: {
+  status: OrderStatus;
+  voidReason?: string | null;
+}) {
   if (status === OrderStatus.CANCELLED) {
     return (
-      <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive">
-        <Ban className="size-4" /> This order was cancelled
+      <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <div className="flex items-center gap-2 font-medium">
+          <Ban className="size-4" /> This order was{" "}
+          {voidReason ? "voided" : "cancelled"}
+        </div>
+        {voidReason && (
+          <p className="mt-1 whitespace-pre-wrap pl-6">{voidReason}</p>
+        )}
       </div>
     );
   }
@@ -231,7 +243,10 @@ export default async function OrderDetailsPage({
 
           <div className="flex flex-col gap-4 border-t pt-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="lg:max-w-lg lg:flex-1">
-              <StatusSteps status={order.status} />
+              <StatusSteps
+                status={order.status}
+                voidReason={order.voidReason}
+              />
             </div>
             <OrderActions showPayment order={order} className="flex-wrap" />
           </div>
@@ -366,6 +381,21 @@ export default async function OrderDetailsPage({
                   label="Delivered by"
                 >
                   {deliveredBy || (
+                    <span className="text-muted-foreground">Not recorded</span>
+                  )}
+                </InfoRow>
+              )}
+              {order.voidedAt && (
+                <InfoRow icon={<Ban className="size-4" />} label="Voided">
+                  {formatDateTime(order.voidedAt)}
+                </InfoRow>
+              )}
+              {order.voidedAt && (
+                <InfoRow
+                  icon={<UserCheck className="size-4" />}
+                  label="Voided by"
+                >
+                  {(order as any).voidedByUser?.name || (
                     <span className="text-muted-foreground">Not recorded</span>
                   )}
                 </InfoRow>

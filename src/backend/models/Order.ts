@@ -20,6 +20,9 @@ export class Order extends Model {
   declare createdBy: number;
   declare deliveredAt: Date | null;
   declare deliveredBy: number | null;
+  declare voidedAt: Date | null;
+  declare voidedBy: number | null;
+  declare voidReason: string | null;
 
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
@@ -55,6 +58,9 @@ Order.init(
     createdBy: { type: DataTypes.INTEGER, allowNull: false },
     deliveredAt: { type: DataTypes.DATE, allowNull: true, field: "delivered_at" },
     deliveredBy: { type: DataTypes.INTEGER, allowNull: true, field: "delivered_by" },
+    voidedAt: { type: DataTypes.DATE, allowNull: true, field: "voided_at" },
+    voidedBy: { type: DataTypes.INTEGER, allowNull: true, field: "voided_by" },
+    voidReason: { type: DataTypes.TEXT, allowNull: true, field: "void_reason" },
   },
   { sequelize, modelName: "Order", tableName: "orders", timestamps: true },
 );

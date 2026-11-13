@@ -83,6 +83,7 @@ OrderDetail.belongsTo(Order, { foreignKey: "orderId", as: "order" });
 
 Order.belongsTo(User, { foreignKey: "createdBy", as: "user" });
 Order.belongsTo(User, { foreignKey: "deliveredBy", as: "deliveredByUser" });
+Order.belongsTo(User, { foreignKey: "voidedBy", as: "voidedByUser" });
 Order.hasMany(OrderPayment, { foreignKey: "orderId", as: "orderPayments" });
 OrderPayment.belongsTo(Order, { foreignKey: "orderId", as: "order" });
 OrderPayment.belongsTo(User, { foreignKey: "loggedBy", as: "user" });

@@ -12,6 +12,7 @@ import { useUIStore } from "@/store/uiStore";
 import { Banknote, Check, Pencil, RotateCcw, Truck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
+import { VoidOrderButton } from "./VoidOrderButton";
 
 interface OrderActionsProps {
   order: Order;
@@ -20,7 +21,7 @@ interface OrderActionsProps {
   showPayment?: boolean;
   /**
    * "list" shows only the delivery steps (Out For Delivery, Mark as
-   * Delivered). Cancel, Back to Pending, and Payment stay on the details page.
+   * Delivered). Void, Back to Pending, and Payment stay on the details page.
    */
   variant?: "list" | "detail";
 }
@@ -69,23 +70,13 @@ export default function OrderActions({
       className={cn("flex items-center gap-2", className)}
       onClick={(e) => e.stopPropagation()}
     >
-      <RoleGuard allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]}>
-        <div>
-          {isDetail && order.status === OrderStatus.DELIVERED && (
-            <ConfirmDialog
-              isLoading={isPending}
-              onConfirm={() => handleClick(OrderStatus.CANCELLED)}
-              title="Are you sure you want to cancel this order?"
-              description="This action cannot be undone."
-              actionButtonText="Cancel Order"
-            >
-              <Button variant="destructive" size={size}>
-                Cancel Order
-              </Button>
-            </ConfirmDialog>
-          )}
-        </div>
-      </RoleGuard>
+      {isDetail && order.status !== OrderStatus.CANCELLED && (
+        <VoidOrderButton
+          orderId={order.orderId}
+          isPaid={order.paymentStatus === PaymentStatus.PAID}
+          size={size}
+        />
+      )}
 
       <RoleGuard
         allowedRoles={[

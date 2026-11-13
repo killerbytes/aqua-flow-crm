@@ -10,6 +10,7 @@ import {
   getOrdersAction,
   makePaymentAction,
   updateOrderStatusAction,
+  voidOrderAction,
 } from "../../../src/backend/actions/order.actions";
 import * as authContext from "../../../src/backend/auth/context";
 import {
@@ -174,22 +175,48 @@ describe("Unit - Action Permissions", () => {
     });
   });
 
-  describe("Cancelling orders", () => {
+  describe("Voiding orders", () => {
+    const mockVoid = () =>
+      vi
+        .spyOn(OrderService, "voidOrder")
+        .mockResolvedValue({ orderId: 1, customerId: 1 } as any);
+
     it.each([ADMIN, MANAGER])("should be allowed for %s", async (role) => {
       signInAs(role);
-      mockStatusUpdate();
+      const voidOrder = mockVoid();
 
-      const res = await updateOrderStatusAction(1, OrderStatus.CANCELLED);
+      const res = await voidOrderAction(1, { reason: "Entered twice" });
       expect(res.success).toBe(true);
+      expect(voidOrder).toHaveBeenCalledWith(1, { reason: "Entered twice" }, 1);
     });
 
-    it("should be refused for cashiers, matching the order screen", async () => {
-      signInAs(CASHIER);
+    it.each([CASHIER, DELIVERY])("should be refused for %s", async (role) => {
+      signInAs(role);
+      const voidOrder = mockVoid();
+      voidOrder.mockClear();
+
+      const res = await voidOrderAction(1, { reason: "Entered twice" });
+      expect(res).toMatchObject({ error: expect.stringMatching(/Forbidden/) });
+      expect(voidOrder).not.toHaveBeenCalled();
+    });
+
+    it("should need a reason", async () => {
+      signInAs(ADMIN);
+      const voidOrder = mockVoid();
+      voidOrder.mockClear();
+
+      const res = await voidOrderAction(1, { reason: " " });
+      expect(res.success).toBe(false);
+      expect(voidOrder).not.toHaveBeenCalled();
+    });
+
+    it("should be the only way to cancel, so a reason is always recorded", async () => {
+      signInAs(ADMIN);
       const update = mockStatusUpdate();
       update.mockClear();
 
       const res = await updateOrderStatusAction(1, OrderStatus.CANCELLED);
-      expect(res).toMatchObject({ error: expect.stringMatching(/Forbidden/) });
+      expect(res.success).toBe(false);
       expect(update).not.toHaveBeenCalled();
     });
   });

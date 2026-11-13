@@ -168,7 +168,11 @@ export const VoidInvoiceSchema = z.object({
   reason: z.string().trim().min(3, "Please give a reason"),
 });
 
-export const ReversePaymentSchema = z.object({
+export const VoidOrderSchema = z.object({
+  reason: z.string().trim().min(3, "Please give a reason"),
+});
+
+export const ReversePaymentSchema =z.object({
   reason: z.string().trim().min(3, "Please give a reason"),
 });
 
@@ -195,4 +199,5 @@ export type OrderItemsFormData =z.infer<typeof OrderItemsSchema>;
 export type InvoiceFormData = z.infer<typeof InvoiceSchema>;
 export type InvoicePaymentFormData = z.infer<typeof InvoicePaymentSchema>;
 export type VoidInvoiceFormData = z.infer<typeof VoidInvoiceSchema>;
-export type ReversePaymentFormData = z.infer<typeof ReversePaymentSchema>;
+export type VoidOrderFormData = z.infer<typeof VoidOrderSchema>;
+export type ReversePaymentFormData =z.infer<typeof ReversePaymentSchema>;
