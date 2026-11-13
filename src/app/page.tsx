@@ -3,6 +3,7 @@ import { initDatabase } from "@/backend/db/database";
 import { checkPermission } from "@/backend/rbac/permissions";
 import { DashboardService } from "@/backend/services/dashboard.service";
 import { MotionCard } from "@/components/animations/MotionCard";
+import PageHeader from "@/components/shared/PageHeader";
 import { SalesTrendChart } from "@/features/dashboard/SalesTrendChart";
 import { OrderStatus } from "@/lib/definitions";
 import {
@@ -17,6 +18,8 @@ import {
   UserCheck,
   UserX,
   Wallet,
+  Users,
+  SquareActivity,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -89,9 +92,8 @@ function StatCard({
         <IconBadge tone={tone}>{icon}</IconBadge>
       </div>
       <div
-        className={`mt-3 text-2xl font-bold tracking-tight tabular-nums sm:text-3xl ${
-          tone === "warning" ? "text-rose-500" : ""
-        }`}
+        className={`mt-3 text-2xl font-bold tracking-tight tabular-nums sm:text-3xl ${tone === "warning" ? "text-rose-500" : ""
+          }`}
       >
         {value}
       </div>
@@ -201,10 +203,11 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Sales, deliveries, money owed, and customers to follow up.
-          </p>
+          <PageHeader>
+            <SquareActivity />
+            Dashboard
+          </PageHeader>
+
         </div>
         <p className="text-sm font-medium text-muted-foreground">
           {todayLabel}
@@ -312,11 +315,10 @@ export default async function DashboardPage() {
           href="/invoices"
         >
           <div
-            className={`flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-xs ${
-              hasOverdue
-                ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
-                : "bg-muted text-muted-foreground"
-            }`}
+            className={`flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-xs ${hasOverdue
+              ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+              : "bg-muted text-muted-foreground"
+              }`}
           >
             <span className="flex items-center gap-1.5">
               {hasOverdue && <AlertTriangle className="size-3.5" />}
@@ -457,11 +459,10 @@ export default async function DashboardPage() {
                       )}
                     </td>
                     <td
-                      className={`py-2.5 text-right tabular-nums ${
-                        product.isLow
-                          ? "font-semibold text-amber-700 dark:text-amber-400"
-                          : ""
-                      }`}
+                      className={`py-2.5 text-right tabular-nums ${product.isLow
+                        ? "font-semibold text-amber-700 dark:text-amber-400"
+                        : ""
+                        }`}
                     >
                       {product.inStation}
                     </td>

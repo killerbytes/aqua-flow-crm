@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/card";
 import OrderActions from "@/features/orders/components/OrderActions";
 import { OrderFormModal } from "@/features/orders/components/OrderFormModal";
-import OrderDetailList from"@/features/orders/components/OrderDetailList";
+import OrderDetailList from "@/features/orders/components/OrderDetailList";
 import { OrderPaymentList } from "@/features/orders/components/OrderPaymentList";
 import { PaymentModal } from "@/features/orders/components/PaymentModal";
 import {
@@ -209,7 +209,7 @@ export default async function OrderDetailsPage({
                   </ColorBadge>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">
+              <div className="text-sm text-muted-foreground">
                 Placed {formatDateTime(order.createdAt)} for{" "}
                 <Link
                   className="text-primary hover:underline"
@@ -217,7 +217,7 @@ export default async function OrderDetailsPage({
                 >
                   <CustomerName customer={order.customer} />
                 </Link>
-              </p>
+              </div>
             </div>
 
             <div className="md:text-right">
@@ -358,8 +358,8 @@ export default async function OrderDetailsPage({
                 {[order.customer?.address, order.customer?.barangay]
                   .filter(Boolean)
                   .join(", ") || (
-                  <span className="text-muted-foreground">Not recorded</span>
-                )}
+                    <span className="text-muted-foreground">Not recorded</span>
+                  )}
               </InfoRow>
               <InfoRow icon={<Phone className="size-4" />} label="Phone">
                 {order.customer?.phone ? (
