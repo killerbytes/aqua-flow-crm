@@ -70,3 +70,12 @@ export const setSpecialPricingAction = createProtectedAction({
     return result;
   },
 });
+
+export const deleteSpecialPricingAction = createProtectedAction({
+  permission: "MANAGE_CUSTOMERS",
+  handler: async (_ctx, pricingId: number | string) => {
+    const result = await CustomerService.deleteSpecialPricing(pricingId);
+    revalidatePath(`/customers/${result.customerId}`);
+    return result;
+  },
+});

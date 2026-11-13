@@ -5,6 +5,7 @@ import { UserRole } from "../../../src/lib/definitions";
 import {
   createCustomerAction,
   deleteCustomerAction,
+  deleteSpecialPricingAction,
   updateCustomerAction,
 } from "../../../src/backend/actions/customer.actions";
 
@@ -59,5 +60,30 @@ describe("Unit - Customer Server Actions", () => {
 
     const res = await deleteCustomerAction(10);
     expect(res.success).toBe(true);
+  });
+
+  it("should allow a cashier to delete a special discount", async () => {
+    vi.spyOn(authContext, "getAuthContext").mockResolvedValue({
+      user: { userId: 3, name: "Cashier", role: UserRole.CASHIER },
+    } as any);
+    const spy = vi
+      .spyOn(CustomerService, "deleteSpecialPricing")
+      .mockResolvedValue({ pricingId: 4, customerId: 10 });
+
+    const res = await deleteSpecialPricingAction(4);
+    expect(res.success).toBe(true);
+    expect(spy).toHaveBeenCalledWith(4);
+  });
+
+  it("should refuse a delivery user deleting a special discount", async () => {
+    vi.spyOn(authContext, "getAuthContext").mockResolvedValue({
+      user: { userId: 4, name: "Rider", role: UserRole.DELIVERY },
+    } as any);
+    const spy = vi.spyOn(CustomerService, "deleteSpecialPricing");
+    spy.mockClear();
+
+    const res = await deleteSpecialPricingAction(4);
+    expect(res.success).toBe(false);
+    expect(spy).not.toHaveBeenCalled();
   });
 });

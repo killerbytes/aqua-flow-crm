@@ -243,6 +243,18 @@ export class CustomerService {
     }
   }
 
+  /**
+   * Removes a customer's special discount for good, so one can be set for the
+   * same product again later. Orders already priced keep their own discount.
+   */
+  static async deleteSpecialPricing(pricingId: number | string) {
+    const pricing = await CustomerSpecialPricing.findByPk(Number(pricingId));
+    if (!pricing) throw new Error("Special discount not found");
+
+    await pricing.destroy({ force: true });
+    return { pricingId: pricing.pricingId, customerId: pricing.customerId };
+  }
+
   static async getOrCreateWalkIn() {
     let customer = await Customer.findOne({
       where: { name: WALK_IN_CUSTOMER_NAME },

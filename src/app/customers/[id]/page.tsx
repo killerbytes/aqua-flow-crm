@@ -9,6 +9,7 @@ import {
   MapPin,
   Package,
   Phone,
+  Plus,
   Receipt,
   ShoppingBag,
   StickyNote,
@@ -37,6 +38,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import TabWrapper from "@/components/TabWrapper";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -45,6 +47,7 @@ import {
 import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CustomerFormModal } from "@/features/customers/components/CustomerFormModal";
 import { CustomerFormModalButton } from "@/features/customers/components/CustomerFormModalButton";
+import { DeleteSpecialPricingButton } from "@/features/customers/components/DeleteSpecialPricingButton";
 import { LogEquipmentModal } from "@/features/customers/components/LogEquipmentModal";
 import { LogEquipmentModalButton } from "@/features/customers/components/LogEquipmentModalButton";
 import { SpecialPricingModal } from "@/features/customers/components/SpecialPricingModal";
@@ -212,6 +215,11 @@ export default async function CustomerPage({
                 <ColorBadge colorMap={CUSTOMER_STATUS_BADGE_COLOR}>
                   {customer.status}
                 </ColorBadge>
+                <CustomerFormModalButton customer={customer} variant="ghost">
+                  <Edit className="size-4" />
+                  Edit
+                </CustomerFormModalButton>
+
               </div>
               <div className="flex flex-col gap-1.5 text-sm text-muted-foreground sm:flex-row sm:flex-wrap sm:gap-x-5">
                 <span className="inline-flex items-center gap-1.5">
@@ -261,14 +269,6 @@ export default async function CustomerPage({
                 <ArrowRightLeft className="size-4" />
                 Log Equipment
               </LogEquipmentModalButton>
-              <SpecialPricingModalButton customer={customer} variant="outline">
-                <Tag className="size-4 text-orange-500" />
-                Special Discount
-              </SpecialPricingModalButton>
-              <CustomerFormModalButton customer={customer} variant="ghost">
-                <Edit className="size-4" />
-                Edit
-              </CustomerFormModalButton>
             </div>
           </RoleGuard>
         </CardContent>
@@ -360,6 +360,13 @@ export default async function CustomerPage({
               <Tag className="size-4 text-orange-500" /> Special Discounts
             </CardTitle>
             <CardDescription>Taken off the price of each unit</CardDescription>
+            <CardAction>
+              <SpecialPricingModalButton customer={customer} variant="outline">
+                <Plus />
+                Add
+              </SpecialPricingModalButton>
+
+            </CardAction>
           </CardHeader>
           <CardContent>
             {specialPricings.length === 0 ? (
@@ -372,8 +379,14 @@ export default async function CustomerPage({
                     className="flex items-center justify-between py-2"
                   >
                     <span>{pricing.product?.name}</span>
-                    <span className="rounded-md bg-orange-500/10 px-2 py-0.5 text-sm font-semibold tabular-nums text-orange-600 dark:text-orange-400">
-                      −{formatCurrency(pricing.discountAmount)}
+                    <span className="flex items-center gap-1">
+                      <span className="rounded-md bg-orange-500/10 px-2 py-0.5 text-sm font-semibold tabular-nums text-orange-600 dark:text-orange-400">
+                        −{formatCurrency(pricing.discountAmount)}
+                      </span>
+                      <DeleteSpecialPricingButton
+                        pricingId={pricing.pricingId}
+                        productName={pricing.product?.name}
+                      />
                     </span>
                   </li>
                 ))}

@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
+import { CustomerSpecialPricing } from "../../src/backend/models";
 import { Customer } from "../../src/backend/models/Customer";
 import { CustomerService } from "../../src/backend/services/customer.service";
 import { EquipmentService } from "../../src/backend/services/equipment.service";
@@ -26,6 +27,49 @@ describe("Integration - Customer Service & Queries", () => {
 
       expect(updated.name).toBe("Edited Customer Name");
       expect(updated.address).toBe("200 Updated Address");
+    });
+  });
+
+  describe("Special Discounts", () => {
+    it("should delete a special discount and allow setting it again", async () => {
+      const customer = await CustomerService.create({
+        name: "Discount Customer",
+        address: "1 Discount St",
+        phone: "+639170001111",
+        status: CustomerStatus.ACTIVE,
+      });
+      const input = {
+        customerId: customer.customerId,
+        productId: 1,
+        discountAmount: 5,
+      };
+      const pricing = await CustomerService.setSpecialPricing(input);
+
+      const result = await CustomerService.deleteSpecialPricing(
+        pricing.pricingId,
+      );
+      expect(result.customerId).toBe(customer.customerId);
+
+      // Gone for good, not soft-deleted, so the unique index is free again.
+      expect(
+        await CustomerSpecialPricing.findByPk(pricing.pricingId, {
+          paranoid: false,
+        }),
+      ).toBeNull();
+      const after = await CustomerService.get(customer.customerId);
+      expect(after.specialPricings).toHaveLength(0);
+
+      const again = await CustomerService.setSpecialPricing({
+        ...input,
+        discountAmount: 10,
+      });
+      expect(Number(again.discountAmount)).toBe(10);
+    });
+
+    it("should refuse to delete a special discount that doesn't exist", async () => {
+      await expect(CustomerService.deleteSpecialPricing(999999)).rejects.toThrow(
+        "Special discount not found",
+      );
     });
   });
 
