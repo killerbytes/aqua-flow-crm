@@ -3,7 +3,6 @@
 import { OrderStatus } from "@/lib/definitions";
 import { revalidatePath } from "next/cache";
 import { createProtectedAction } from "../lib/safe-action";
-import { checkPermission } from "../rbac/permissions";
 import {
   OrderFormData,
   OrderSchema,
@@ -11,6 +10,8 @@ import {
   PaymentSchema,
   ReversePaymentFormData,
   ReversePaymentSchema,
+  VoidOrderFormData,
+  VoidOrderSchema,
 } from "../schemas/zodSchemas";
 import { CustomerService } from "../services/customer.service";
 import { OrderQueryParams, OrderService } from "../services/order.service";
@@ -43,11 +44,9 @@ export const createOrderAction = createProtectedAction({
 export const updateOrderStatusAction = createProtectedAction({
   permission: "UPDATE_DELIVERY_STATUS",
   handler: async (ctx, id: number | string, status: OrderStatus) => {
-    if (
-      status === OrderStatus.CANCELLED &&
-      !checkPermission(ctx.user.role, "CANCEL_ORDER")
-    ) {
-      throw new Error("Forbidden: insufficient permissions");
+    // Cancelling goes through voidOrderAction, which records a reason.
+    if (status === OrderStatus.CANCELLED) {
+      throw new Error("Orders are cancelled by voiding them");
     }
 
     console.log(
@@ -60,7 +59,20 @@ export const updateOrderStatusAction = createProtectedAction({
   },
 });
 
-export const makePaymentAction = createProtectedAction({
+export const voidOrderAction = createProtectedAction({
+  permission: "CANCEL_ORDER",
+  schema: VoidOrderSchema,
+  inputIndex: 1,
+  handler: async (ctx, id: number | string, input: VoidOrderFormData) => {
+    const result = await OrderService.voidOrder(id, input, ctx.user.userId);
+    revalidatePath("/orders");
+    revalidatePath(`/orders/${result.orderId}`);
+    revalidatePath(`/customers/${result.customerId}`);
+    return result;
+  },
+});
+
+export const makePaymentAction =createProtectedAction({
   permission: "UPDATE_ORDER",
   schema: PaymentSchema,
   handler: async (ctx, input: PaymentFormData, id: number | string) => {
