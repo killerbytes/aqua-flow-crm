@@ -78,6 +78,7 @@ Sessions are revoked with `AuthService.revokeSessions`, which increments `users.
 - **Deleting customers:** `CustomerService.delete` refuses while a customer has unpaid or undelivered orders, open invoices, or containers out, and always refuses the walk-in account. Includes on historical records use `paranoid: false` so deleted customers, products, and users still show their names.
 - **Soft deletes:** `Customer`, `CustomerSpecialPricing`, `ProductInventory`, and `User` are paranoid. Use `{ paranoid: false }` to include deleted rows.
 - **Date filtering** uses the `Asia/Manila` timezone via `date-fns-tz` (`src/lib/business-time.ts`).
+- **Reports:** each one lives at `/reports/<slug>`, with a `print` page (the browser saves it as a PDF) and a read-only `csv` Route Handler beside it. Columns are defined once in `src/features/reports/definitions.ts` and shared by the screen, the printout, and the CSV. Report routes call `requirePagePermission("VIEW_REPORTS")`, and `page_permissions.test.ts` checks every `route.ts` outside `/api` as well as every page.
 
 ### Test layout
 

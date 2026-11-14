@@ -41,31 +41,52 @@ const PAGES: Record<string, PermissionAction> = {
   "orders/[id]/page.tsx": "VIEW_ORDERS",
   "products/page.tsx": "VIEW_PRODUCTS",
   "reports/page.tsx": "VIEW_REPORTS",
-  "reports/customers/page.tsx": "VIEW_REPORTS",
+  "reports/inactive-customers/page.tsx": "VIEW_REPORTS",
+  "reports/inactive-customers/print/page.tsx": "VIEW_REPORTS",
+  "reports/inactive-with-equipment/page.tsx": "VIEW_REPORTS",
+  "reports/inactive-with-equipment/print/page.tsx": "VIEW_REPORTS",
+  "reports/temporary-equipment/page.tsx": "VIEW_REPORTS",
+  "reports/temporary-equipment/print/page.tsx": "VIEW_REPORTS",
   "users/page.tsx": "VIEW_USERS",
 };
 
 const PUBLIC_PAGES = ["login/page.tsx"];
 
-const findPages = (dir: string): string[] =>
+/** Route Handlers outside /api, which the proxy still sends through login. */
+const ROUTES: Record<string, PermissionAction> = {
+  "reports/inactive-customers/csv/route.ts": "VIEW_REPORTS",
+  "reports/inactive-with-equipment/csv/route.ts": "VIEW_REPORTS",
+  "reports/temporary-equipment/csv/route.ts": "VIEW_REPORTS",
+};
+
+const findFiles = (dir: string, name: string): string[] =>
   fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) return findPages(full);
-    return entry.name === "page.tsx" ? [full] : [];
+    if (entry.isDirectory()) return findFiles(full, name);
+    return entry.name === name ? [full] : [];
   });
 
 describe("Unit - Page Permissions", () => {
   const appDir = path.resolve(process.cwd(), "src/app");
+  const relative = (file: string) =>
+    path.relative(appDir, file).split(path.sep).join("/");
 
   it("should list every page, so a new one can't ship unguarded", () => {
-    const found = findPages(appDir)
-      .map((file) => path.relative(appDir, file).split(path.sep).join("/"))
-      .sort();
+    const found = findFiles(appDir, "page.tsx").map(relative).sort();
 
     expect(found).toEqual([...Object.keys(PAGES), ...PUBLIC_PAGES].sort());
   });
 
-  it.each(Object.entries(PAGES))(
+  it("should list every route outside /api, so a new one can't ship unguarded", () => {
+    const found = findFiles(appDir, "route.ts")
+      .map(relative)
+      .filter((file) => !file.startsWith("api/"))
+      .sort();
+
+    expect(found).toEqual(Object.keys(ROUTES).sort());
+  });
+
+  it.each(Object.entries({ ...PAGES, ...ROUTES }))(
     "should guard %s with %s",
     (page, permission) => {
       const source = fs.readFileSync(path.join(appDir, page), "utf8");
@@ -75,7 +96,7 @@ describe("Unit - Page Permissions", () => {
 
   it.each([
     ["VIEW_USERS", [ADMIN, MANAGER]],
-    ["VIEW_REPORTS", [ADMIN, MANAGER]],
+    ["VIEW_REPORTS", [ADMIN, MANAGER, CASHIER]],
     ["VIEW_DASHBOARD", [ADMIN, MANAGER, CASHIER]],
     ["VIEW_CUSTOMERS", [ADMIN, MANAGER, CASHIER]],
     ["VIEW_PRODUCTS", [ADMIN, MANAGER, CASHIER]],

@@ -1,4 +1,9 @@
-import { addDays, endOfDay, startOfDay } from "date-fns";
+import {
+  addDays,
+  differenceInCalendarDays,
+  endOfDay,
+  startOfDay,
+} from "date-fns";
 import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
 
 /** Business days follow Philippine time, whatever timezone the server runs in. */
@@ -24,3 +29,13 @@ export const endOfBusinessDay = (date: Date) =>
 /** The Philippine calendar date of `date`, as YYYY-MM-DD. */
 export const businessDateKey = (date: Date) =>
   formatInTimeZone(date, BUSINESS_TIMEZONE, "yyyy-MM-dd");
+
+/**
+ * Whole Philippine calendar days from `from` to `to`. An order placed late
+ * yesterday is one day old this morning, even though fewer than 24 hours passed.
+ */
+export const businessDaysBetween = (from: Date, to: Date) =>
+  differenceInCalendarDays(
+    toZonedTime(to, BUSINESS_TIMEZONE),
+    toZonedTime(from, BUSINESS_TIMEZONE),
+  );

@@ -91,6 +91,7 @@ const ROLE_PERMISSIONS: Record<UserRole, PermissionAction[]> = {
     "VIEW_INVOICES",
     "LOG_EQUIPMENT",
     "UPDATE_DELIVERY_STATUS",
+    "VIEW_REPORTS",
   ],
   [UserRole.DELIVERY]: ["VIEW_ORDERS", "UPDATE_DELIVERY_STATUS"],
 };

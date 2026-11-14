@@ -381,7 +381,7 @@ export default async function DashboardPage() {
             tone={customers.noRecentOrder > 0 ? "warning" : "default"}
             href={
               canViewReports
-                ? `/reports/customers?days=${customers.churnDays}`
+                ? `/reports/inactive-customers?days=${customers.churnDays}`
                 : undefined
             }
           />
