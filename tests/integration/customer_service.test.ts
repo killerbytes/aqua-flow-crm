@@ -30,6 +30,78 @@ describe("Integration - Customer Service & Queries", () => {
     });
   });
 
+  describe("Setting a customer inactive", () => {
+    const newCustomer = (name: string) =>
+      CustomerService.create({
+        name,
+        address: "300 Status Street",
+        phone: "",
+        status: CustomerStatus.ACTIVE,
+      });
+
+    const log = (customerId: number, actionType: EquipmentActionType) =>
+      EquipmentService.logEquipment(
+        { customerId, productId: 1, actionType, quantity: 1 },
+        1,
+      );
+
+    const statusOf = async (customerId: number) =>
+      (await Customer.findByPk(customerId))?.status;
+
+    it.each([
+      ["regular", EquipmentActionType.ISSUE, EquipmentActionType.RETURNED],
+      [
+        "temporary",
+        EquipmentActionType.TEMPORARY,
+        EquipmentActionType.TEMPORARY_RETURNED,
+      ],
+    ])(
+      "should be refused while %s equipment is out, and allowed once it's back",
+      async (kind, give, takeBack) => {
+        const customer = await newCustomer(`Holder ${kind}`);
+        await log(customer.customerId, give);
+
+        await expect(
+          CustomerService.update(customer.customerId, {
+            status: CustomerStatus.INACTIVE,
+          }),
+        ).rejects.toThrow(
+          "Can't set this customer to inactive: 1 container still out",
+        );
+        expect(await statusOf(customer.customerId)).toBe(CustomerStatus.ACTIVE);
+
+        await log(customer.customerId, takeBack);
+        const updated = await CustomerService.update(customer.customerId, {
+          status: CustomerStatus.INACTIVE,
+        });
+        expect(updated.status).toBe(CustomerStatus.INACTIVE);
+      },
+    );
+
+    it("should still allow other edits while equipment is out", async () => {
+      const customer = await newCustomer("Holder Editing");
+      await log(customer.customerId, EquipmentActionType.ISSUE);
+
+      const updated = await CustomerService.update(customer.customerId, {
+        address: "301 Status Street",
+        status: CustomerStatus.ACTIVE,
+      });
+      expect(updated.address).toBe("301 Status Street");
+    });
+
+    it("should allow setting an inactive customer active again", async () => {
+      const customer = await newCustomer("Returning Customer");
+      await CustomerService.update(customer.customerId, {
+        status: CustomerStatus.INACTIVE,
+      });
+
+      const updated = await CustomerService.update(customer.customerId, {
+        status: CustomerStatus.ACTIVE,
+      });
+      expect(updated.status).toBe(CustomerStatus.ACTIVE);
+    });
+  });
+
   describe("Special Discounts", () => {
     it("should delete a special discount and allow setting it again", async () => {
       const customer = await CustomerService.create({

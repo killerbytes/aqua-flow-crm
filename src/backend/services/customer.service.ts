@@ -154,17 +154,45 @@ export class CustomerService {
     }
   }
 
+  /**
+   * Edits a customer. Setting one inactive is refused while they hold any
+   * equipment, regular or temporary, so nothing out goes untracked: inactive
+   * customers drop out of the reports that chase equipment.
+   */
   static async update(id: number | string, input: any) {
     const validatedData = CustomerSchema.partial().parse(input);
-    const customer = await Customer.findByPk(Number(id));
-    if (!customer) throw new Error("Customer not found");
 
-    try {
-      await customer.update(validatedData);
-      return customer.get({ plain: true });
-    } catch (error) {
-      handleServiceError(error);
-    }
+    return await sequelize.transaction(async (t) => {
+      // Locked, as equipment logging locks it, so nothing can be issued
+      // between the count below and the save.
+      const customer = await Customer.findByPk(Number(id), {
+        transaction: t,
+        lock: t.LOCK.UPDATE,
+      });
+      if (!customer) throw new Error("Customer not found");
+
+      const deactivating =
+        validatedData.status === CustomerStatus.INACTIVE &&
+        customer.status !== CustomerStatus.INACTIVE;
+      if (deactivating) {
+        const containersOut = await countContainersOut(
+          { customerId: customer.customerId },
+          t,
+        );
+        if (containersOut > 0) {
+          throw new Error(
+            `Can't set this customer to inactive: ${countLabel(containersOut, "container")} still out`,
+          );
+        }
+      }
+
+      try {
+        await customer.update(validatedData, { transaction: t });
+        return customer.get({ plain: true });
+      } catch (error) {
+        handleServiceError(error);
+      }
+    });
   }
 
   /**

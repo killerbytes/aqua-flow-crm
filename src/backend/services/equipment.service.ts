@@ -1,4 +1,5 @@
 import {
+  CustomerStatus,
   EquipmentActionType,
   LedgerAccountType,
   LedgerReferenceType,
@@ -163,10 +164,30 @@ export class EquipmentService {
       throw new Error("Product not found");
     }
 
-    if (
+    // Locked so the customer can't be deleted while this is being recorded,
+    // and so setting them inactive waits for this to finish.
+    const customer = await Customer.findByPk(customerId, {
+      transaction: t,
+      lock: t.LOCK.UPDATE,
+    });
+    if (!customer) {
+      throw new Error("Customer not found");
+    }
+
+    const isGiving =
       actionType === EquipmentActionType.ISSUE ||
-      actionType === EquipmentActionType.TEMPORARY
-    ) {
+      actionType === EquipmentActionType.TEMPORARY;
+
+    // Inactive customers drop out of the reports that chase equipment, so
+    // nothing new goes out to them. Returns, losses, and damage stay allowed
+    // so anything already out can still be closed.
+    if (isGiving && customer.status === CustomerStatus.INACTIVE) {
+      throw new Error(
+        "Can't give equipment to an inactive customer. Set them active first.",
+      );
+    }
+
+    if (isGiving) {
       if (quantity > product.stockInStation) {
         if (actionType === EquipmentActionType.ISSUE) {
           throw new Error(
@@ -178,15 +199,6 @@ export class EquipmentService {
           );
         }
       }
-    }
-
-    // Locked so the customer can't be deleted while this is being recorded.
-    const customer = await Customer.findByPk(customerId, {
-      transaction: t,
-      lock: t.LOCK.UPDATE,
-    });
-    if (!customer) {
-      throw new Error("Customer not found");
     }
 
     const isTemporaryAction =
