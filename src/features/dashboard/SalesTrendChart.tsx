@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatPeso } from "@/lib/money";
 
 export interface SalesDay {
   /** YYYY-MM-DD in Philippine time */
@@ -17,10 +18,7 @@ const PLOT_H = HEIGHT - PAD.top - PAD.bottom;
 const MAX_BAR_W = 24;
 const RADIUS = 4;
 
-const peso = (amount: number) =>
-  new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(
-    amount,
-  );
+const peso = formatPeso;
 
 const dayLabel = (date: string) =>
   new Date(`${date}T00:00:00Z`).toLocaleDateString("en-PH", {

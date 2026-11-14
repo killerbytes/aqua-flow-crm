@@ -24,7 +24,8 @@ export type PermissionAction =
   | "VIEW_INVOICES"
   | "LOG_EQUIPMENT"
   | "UPDATE_DELIVERY_STATUS"
-  | "VIEW_REPORTS";
+  | "VIEW_REPORTS"
+  | "EXPORT_REPORTS";
 
 const ROLE_PERMISSIONS: Record<UserRole, PermissionAction[]> = {
   [UserRole.ADMIN]: [
@@ -52,6 +53,7 @@ const ROLE_PERMISSIONS: Record<UserRole, PermissionAction[]> = {
     "LOG_EQUIPMENT",
     "UPDATE_DELIVERY_STATUS",
     "VIEW_REPORTS",
+    "EXPORT_REPORTS",
   ],
   [UserRole.MANAGER]: [
     "VIEW_DASHBOARD",

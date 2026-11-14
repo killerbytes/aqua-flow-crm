@@ -23,7 +23,7 @@ export default async function InactiveWithEquipmentPrintPage({
   return (
     <PrintableReport
       report={inactiveWithEquipmentReport}
-      rows={rows}
+      sections={[{ table: inactiveWithEquipmentReport, rows }]}
       backQuery={`days=${days}`}
       filters={[
         `No order in ${days}+ days, plus customers who have never ordered`,

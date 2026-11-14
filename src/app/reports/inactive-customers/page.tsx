@@ -1,4 +1,5 @@
 import { requirePagePermission } from "@/backend/auth/context";
+import { checkPermission } from "@/backend/rbac/permissions";
 import { initDatabase } from "@/backend/db/database";
 import { parseMinDays, ReportService } from "@/backend/services";
 import DaysFilter from "@/features/reports/DaysFilter";
@@ -13,7 +14,7 @@ export default async function InactiveCustomersPage({
   searchParams: Promise<{ days?: string }>;
 }) {
   await initDatabase();
-  await requirePagePermission("VIEW_REPORTS");
+  const user = await requirePagePermission("VIEW_REPORTS");
 
   const days = parseMinDays((await searchParams).days);
   const rows = await ReportService.getInactiveCustomers({ minDays: days });
@@ -21,8 +22,9 @@ export default async function InactiveCustomersPage({
 
   return (
     <ReportView
+      canExport={checkPermission(user.role, "EXPORT_REPORTS")}
       report={inactiveCustomersReport}
-      rows={rows}
+      sections={[{ table: inactiveCustomersReport, rows }]}
       query={`days=${days}`}
       filters={<DaysFilter days={days} />}
       summary={`${rows.length - neverOrdered} with no order in ${days}+ days, ${neverOrdered} never ordered`}

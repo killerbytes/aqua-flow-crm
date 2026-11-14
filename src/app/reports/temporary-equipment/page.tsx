@@ -1,4 +1,5 @@
 import { requirePagePermission } from "@/backend/auth/context";
+import { checkPermission } from "@/backend/rbac/permissions";
 import { initDatabase } from "@/backend/db/database";
 import { ReportService } from "@/backend/services";
 import { temporaryEquipmentReport } from "@/features/reports/definitions";
@@ -8,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function TemporaryEquipmentPage() {
   await initDatabase();
-  await requirePagePermission("VIEW_REPORTS");
+  const user = await requirePagePermission("VIEW_REPORTS");
 
   const rows = await ReportService.getTemporaryEquipment();
   const units = rows.reduce((sum, row) => sum + row.quantity, 0);
@@ -16,8 +17,9 @@ export default async function TemporaryEquipmentPage() {
 
   return (
     <ReportView
+      canExport={checkPermission(user.role, "EXPORT_REPORTS")}
       report={temporaryEquipmentReport}
-      rows={rows}
+      sections={[{ table: temporaryEquipmentReport, rows }]}
       summary={`${units} ${units === 1 ? "unit" : "units"} with ${customers} ${customers === 1 ? "customer" : "customers"}`}
     />
   );

@@ -47,6 +47,12 @@ const PAGES: Record<string, PermissionAction> = {
   "reports/inactive-with-equipment/print/page.tsx": "VIEW_REPORTS",
   "reports/temporary-equipment/page.tsx": "VIEW_REPORTS",
   "reports/temporary-equipment/print/page.tsx": "VIEW_REPORTS",
+  "reports/sales/page.tsx": "VIEW_REPORTS",
+  "reports/sales/print/page.tsx": "VIEW_REPORTS",
+  "reports/receivables/page.tsx": "VIEW_REPORTS",
+  "reports/receivables/print/page.tsx": "VIEW_REPORTS",
+  "reports/voids/page.tsx": "VIEW_REPORTS",
+  "reports/voids/print/page.tsx": "VIEW_REPORTS",
   "users/page.tsx": "VIEW_USERS",
 };
 
@@ -54,9 +60,12 @@ const PUBLIC_PAGES = ["login/page.tsx"];
 
 /** Route Handlers outside /api, which the proxy still sends through login. */
 const ROUTES: Record<string, PermissionAction> = {
-  "reports/inactive-customers/csv/route.ts": "VIEW_REPORTS",
-  "reports/inactive-with-equipment/csv/route.ts": "VIEW_REPORTS",
-  "reports/temporary-equipment/csv/route.ts": "VIEW_REPORTS",
+  "reports/inactive-customers/csv/route.ts": "EXPORT_REPORTS",
+  "reports/inactive-with-equipment/csv/route.ts": "EXPORT_REPORTS",
+  "reports/temporary-equipment/csv/route.ts": "EXPORT_REPORTS",
+  "reports/sales/csv/route.ts": "EXPORT_REPORTS",
+  "reports/receivables/csv/route.ts": "EXPORT_REPORTS",
+  "reports/voids/csv/route.ts": "EXPORT_REPORTS",
 };
 
 const findFiles = (dir: string, name: string): string[] =>
@@ -97,6 +106,7 @@ describe("Unit - Page Permissions", () => {
   it.each([
     ["VIEW_USERS", [ADMIN, MANAGER]],
     ["VIEW_REPORTS", [ADMIN, MANAGER, CASHIER]],
+    ["EXPORT_REPORTS", [ADMIN]],
     ["VIEW_DASHBOARD", [ADMIN, MANAGER, CASHIER]],
     ["VIEW_CUSTOMERS", [ADMIN, MANAGER, CASHIER]],
     ["VIEW_PRODUCTS", [ADMIN, MANAGER, CASHIER]],

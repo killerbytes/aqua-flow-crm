@@ -22,13 +22,11 @@ import {
   SquareActivity,
 } from "lucide-react";
 import Link from "next/link";
+import { formatPeso } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
-const peso = (amount: number) =>
-  new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(
-    amount,
-  );
+const peso = formatPeso;
 
 const plural = (count: number, word: string) =>
   `${count} ${word}${count === 1 ? "" : "s"}`;

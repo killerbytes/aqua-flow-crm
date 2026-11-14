@@ -16,7 +16,7 @@ export default async function TemporaryEquipmentPrintPage() {
   return (
     <PrintableReport
       report={temporaryEquipmentReport}
-      rows={rows}
+      sections={[{ table: temporaryEquipmentReport, rows }]}
       filters={[`${units} ${units === 1 ? "unit" : "units"} out on loan`]}
     />
   );

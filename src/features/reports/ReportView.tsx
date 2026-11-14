@@ -2,27 +2,46 @@ import PageHeader from "@/components/shared/PageHeader";
 import { buttonVariants } from "@/components/ui/button";
 import { Download, Printer } from "lucide-react";
 import Link from "next/link";
-import type { ReportDefinition } from "./definitions";
+import type { ReportMeta, ReportSection } from "./definitions";
 import ReportTable from "./ReportTable";
 
+export interface ReportDownload {
+  label: string;
+  href: string;
+}
+
 /**
- * The on-screen page of a report: title, filters, the print and CSV links, and
- * the table. `query` carries the current filters to the printout and the CSV.
+ * The on-screen page of a report: title, filters, the print link, the CSV
+ * links for those who may export, and its tables. `query` carries the current
+ * filters to the printout and the CSV. Hiding the CSV links is only for tidiness:
+ * the CSV routes check EXPORT_REPORTS themselves.
  */
-export default function ReportView<Row>({
+export default function ReportView({
   report,
-  rows,
+  sections,
   query = "",
   filters,
   summary,
+  canExport = false,
+  downloads,
 }: {
-  report: ReportDefinition<Row>;
-  rows: Row[];
+  report: ReportMeta;
+  sections: ReportSection[];
   query?: string;
   filters?: React.ReactNode;
   summary?: string;
+  /** Whether to show the CSV links: checkPermission(role, "EXPORT_REPORTS"). */
+  canExport?: boolean;
+  /** Defaults to one CSV of the whole report. */
+  downloads?: ReportDownload[];
 }) {
   const suffix = query ? `?${query}` : "";
+  const links = canExport
+    ? (downloads ?? [
+        { label: "CSV", href: `/reports/${report.slug}/csv${suffix}` },
+      ])
+    : [];
+  const showHeadings = sections.length > 1;
 
   return (
     <div className="space-y-6">
@@ -33,28 +52,36 @@ export default function ReportView<Row>({
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">{filters}</div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link
             href={`/reports/${report.slug}/print${suffix}`}
             className={buttonVariants({ variant: "outline", size: "sm" })}
           >
             <Printer /> Print / PDF
           </Link>
-          <a
-            href={`/reports/${report.slug}/csv${suffix}`}
-            download
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-          >
-            <Download /> CSV
-          </a>
+          {links.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              download
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              <Download /> {link.label}
+            </a>
+          ))}
         </div>
       </div>
 
-      <p className="text-sm text-muted-foreground">
-        {summary ?? `${rows.length} ${rows.length === 1 ? "row" : "rows"}`}
-      </p>
+      {summary && <p className="text-sm text-muted-foreground">{summary}</p>}
 
-      <ReportTable report={report} rows={rows} />
+      {sections.map((section, index) => (
+        <section key={section.table.heading ?? index} className="space-y-2">
+          {showHeadings && section.table.heading && (
+            <h2 className="text-base font-semibold">{section.table.heading}</h2>
+          )}
+          <ReportTable {...section} />
+        </section>
+      ))}
     </div>
   );
 }

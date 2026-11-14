@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   await initDatabase();
-  await requirePagePermission("VIEW_REPORTS");
+  await requirePagePermission("EXPORT_REPORTS");
 
   const days = parseMinDays(request.nextUrl.searchParams.get("days"));
   const rows = await ReportService.getInactiveCustomersWithEquipment({

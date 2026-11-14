@@ -1,28 +1,89 @@
 import Image from "next/image";
 import {
   formatGeneratedAt,
-  type ReportDefinition,
+  type ReportMeta,
+  type ReportSection,
 } from "./definitions";
 import PrintToolbar from "./PrintToolbar";
+
+function PrintTable({ table, rows, total }: ReportSection) {
+  const align = (a?: "left" | "right") =>
+    a === "right" ? "text-right tabular-nums" : "";
+
+  return (
+    <table className="w-full border-collapse text-sm">
+      <thead>
+        <tr className="border-b-2 border-slate-300 text-left">
+          {table.columns.map((column) => (
+            <th
+              key={column.header}
+              className={`px-2 py-2 font-semibold ${column.align === "right" ? "text-right" : ""}`}
+            >
+              {column.header}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.length === 0 ? (
+          <tr>
+            <td
+              colSpan={table.columns.length}
+              className="px-2 py-8 text-center text-slate-500"
+            >
+              {table.emptyMessage}
+            </td>
+          </tr>
+        ) : (
+          rows.map((row, index) => (
+            <tr key={index} className="break-inside-avoid border-b border-slate-200">
+              {table.columns.map((column) => (
+                <td
+                  key={column.header}
+                  className={`px-2 py-1.5 align-top ${align(column.align)}`}
+                >
+                  {column.value(row) ?? "—"}
+                </td>
+              ))}
+            </tr>
+          ))
+        )}
+      </tbody>
+      {total && rows.length > 0 && (
+        <tfoot>
+          <tr className="border-t-2 border-slate-300 font-semibold">
+            {table.columns.map((column) => (
+              <td key={column.header} className={`px-2 py-2 ${align(column.align)}`}>
+                {column.value(total) ?? ""}
+              </td>
+            ))}
+          </tr>
+        </tfoot>
+      )}
+    </table>
+  );
+}
 
 /**
  * A report laid out for paper, in fixed light colors whatever the app's theme.
  * The browser's print dialog saves it as a PDF.
  */
-export default function PrintableReport<Row>({
+export default function PrintableReport({
   report,
-  rows,
+  sections,
   filters = [],
   backQuery = "",
   generatedAt = new Date(),
 }: {
-  report: ReportDefinition<Row>;
-  rows: Row[];
+  report: ReportMeta;
+  sections: ReportSection[];
   /** Lines describing the filters in effect, such as "No order in 30+ days". */
   filters?: string[];
   backQuery?: string;
   generatedAt?: Date;
 }) {
+  const showHeadings = sections.length > 1;
+
   return (
     <div className="min-h-screen bg-slate-50 p-4 text-slate-900 sm:p-8 print:bg-white print:p-0">
       <PrintToolbar
@@ -43,8 +104,7 @@ export default function PrintableReport<Row>({
               </p>
             ))}
             <p className="text-xs text-slate-500">
-              Generated {formatGeneratedAt(generatedAt)} · {rows.length}{" "}
-              {rows.length === 1 ? "row" : "rows"}
+              Generated {formatGeneratedAt(generatedAt)}
             </p>
           </div>
           <Image
@@ -55,48 +115,17 @@ export default function PrintableReport<Row>({
           />
         </header>
 
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-b-2 border-slate-300 text-left">
-              {report.columns.map((column) => (
-                <th
-                  key={column.header}
-                  className={`px-2 py-2 font-semibold ${column.align === "right" ? "text-right" : ""}`}
-                >
-                  {column.header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={report.columns.length}
-                  className="px-2 py-8 text-center text-slate-500"
-                >
-                  {report.emptyMessage}
-                </td>
-              </tr>
-            ) : (
-              rows.map((row, index) => (
-                <tr
-                  key={index}
-                  className="break-inside-avoid border-b border-slate-200"
-                >
-                  {report.columns.map((column) => (
-                    <td
-                      key={column.header}
-                      className={`px-2 py-1.5 align-top ${column.align === "right" ? "text-right tabular-nums" : ""}`}
-                    >
-                      {column.value(row) ?? "—"}
-                    </td>
-                  ))}
-                </tr>
-              ))
+        {sections.map((section, index) => (
+          <section
+            key={section.table.heading ?? index}
+            className="space-y-2 break-inside-avoid-page"
+          >
+            {showHeadings && section.table.heading && (
+              <h2 className="text-base font-semibold">{section.table.heading}</h2>
             )}
-          </tbody>
-        </table>
+            <PrintTable {...section} />
+          </section>
+        ))}
       </div>
     </div>
   );

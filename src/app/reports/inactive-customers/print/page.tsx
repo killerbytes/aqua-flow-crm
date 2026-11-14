@@ -20,10 +20,11 @@ export default async function InactiveCustomersPrintPage({
   return (
     <PrintableReport
       report={inactiveCustomersReport}
-      rows={rows}
+      sections={[{ table: inactiveCustomersReport, rows }]}
       backQuery={`days=${days}`}
       filters={[
         `No order in ${days}+ days, plus customers who have never ordered`,
+        `${rows.length} ${rows.length === 1 ? "customer" : "customers"}`,
       ]}
     />
   );

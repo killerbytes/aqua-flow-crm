@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   await initDatabase();
-  await requirePagePermission("VIEW_REPORTS");
+  await requirePagePermission("EXPORT_REPORTS");
 
   const rows = await ReportService.getTemporaryEquipment();
 
