@@ -8,6 +8,7 @@ import type {
   VoidsReport,
   VoidTypeRow,
 } from "@/backend/services/finance-report.service";
+import type { EquipmentService } from "@/backend/services/equipment.service";
 import type {
   InactiveCustomerRow,
   InactiveCustomerWithEquipmentRow,
@@ -294,6 +295,112 @@ export const voidsByTypeTable: ReportTableDefinition<VoidTypeRow> = {
   emptyMessage: "Nothing was voided or reversed in this range.",
 };
 
+type BalanceRow = Awaited<
+  ReturnType<typeof EquipmentService.getBalanceSheetReport>
+>[number];
+type LossesRow = Awaited<ReturnType<typeof EquipmentService.getLossesReport>>[number];
+
+/** A balance sheet row, or the totals row, which has no product of its own. */
+type BalanceSheetRow = Omit<BalanceRow, "productId"> & {
+  productId: number | null;
+  /** Totals row only: how many products have drifted from their ledger. */
+  drifted?: number;
+};
+
+export const equipmentLedgerReport: ReportMeta = {
+  slug: "equipment-ledger",
+  title: "Equipment Ledger",
+  description:
+    "Every product's containers and equipment: where they are now, and how many were lost or damaged, with customers or at the station. Figures come from the equipment ledger.",
+};
+
+const ledgerText = (row: BalanceSheetRow) => {
+  if (row.productId === null) {
+    return row.drifted ? `${row.drifted} drifted` : "All match";
+  }
+  if (row.matchesLedger) return "Matches";
+  const l = row.ledger;
+  return `Drifted: ledger has station ${l.stationStock}, customers ${l.customerOwed}, damaged ${l.scrapDamaged}, lost ${l.scrapLost}`;
+};
+
+export const balanceSheetTable: ReportTableDefinition<BalanceSheetRow> = {
+  heading: "Balance Sheet",
+  columns: [
+    { header: "Product", value: (row) => row.productName },
+    { header: "In Station", value: (row) => row.stationStock, align: "right" },
+    { header: "With Customers", value: (row) => row.customerOwed, align: "right" },
+    { header: "Damaged", value: (row) => row.scrapDamaged, align: "right" },
+    { header: "Lost", value: (row) => row.scrapLost, align: "right" },
+    { header: "Total Fleet", value: (row) => row.totalFleet, align: "right" },
+    { header: "Ledger", value: ledgerText },
+  ],
+  emptyMessage: "No products yet.",
+};
+
+type LossesTableRow = Omit<LossesRow, "productId"> & { productId: number | null };
+
+export const lossesTable: ReportTableDefinition<LossesTableRow> = {
+  heading: "Losses",
+  columns: [
+    { header: "Product", value: (row) => row.productName },
+    { header: "Lost with Customers", value: (row) => row.lostWithCustomers, align: "right" },
+    { header: "Lost at Station", value: (row) => row.lostAtStation, align: "right" },
+    { header: "Damaged with Customers", value: (row) => row.damagedWithCustomers, align: "right" },
+    { header: "Damaged at Station", value: (row) => row.damagedAtStation, align: "right" },
+    { header: "Total", value: (row) => row.total, align: "right" },
+  ],
+  emptyMessage: "No products yet.",
+};
+
+/** The Equipment Ledger report's tables, by the `table` param its CSV route takes. */
+export const EQUIPMENT_LEDGER_CSV_TABLES = {
+  balance: { table: balanceSheetTable, name: "equipment-balance-sheet" },
+  losses: { table: lossesTable, name: "equipment-losses" },
+} as const;
+export type EquipmentLedgerCsvTable = keyof typeof EQUIPMENT_LEDGER_CSV_TABLES;
+
+const sum = <T>(rows: T[], pick: (row: T) => number) =>
+  rows.reduce((total, row) => total + pick(row), 0);
+
+/** The balance sheet and losses tables, each with a totals row. */
+export const equipmentLedgerSections = (
+  balance: BalanceRow[],
+  losses: LossesRow[],
+): {
+  balance: ReportSection<BalanceSheetRow>;
+  losses: ReportSection<LossesTableRow>;
+} => ({
+  balance: {
+    table: balanceSheetTable,
+    rows: balance,
+    total: {
+      productId: null,
+      productName: "Total",
+      stationStock: sum(balance, (r) => r.stationStock),
+      customerOwed: sum(balance, (r) => r.customerOwed),
+      scrapDamaged: sum(balance, (r) => r.scrapDamaged),
+      scrapLost: sum(balance, (r) => r.scrapLost),
+      totalFleet: sum(balance, (r) => r.totalFleet),
+      ledger: { stationStock: 0, customerOwed: 0, scrapDamaged: 0, scrapLost: 0 },
+      matchesLedger: balance.every((r) => r.matchesLedger),
+      drifted: balance.filter((r) => !r.matchesLedger).length,
+    },
+  },
+  losses: {
+    table: lossesTable,
+    rows: losses,
+    total: {
+      productId: null,
+      productName: "Total",
+      lostWithCustomers: sum(losses, (r) => r.lostWithCustomers),
+      lostAtStation: sum(losses, (r) => r.lostAtStation),
+      damagedWithCustomers: sum(losses, (r) => r.damagedWithCustomers),
+      damagedAtStation: sum(losses, (r) => r.damagedAtStation),
+      total: sum(losses, (r) => r.total),
+    },
+  },
+});
+
 /** The Sales report's tables, in the order they show. */
 export const salesSections = (report: SalesReport): ReportSection[] => [
   { table: salesByPeriodTable, rows: report.periods, total: report.periodTotal },
@@ -322,6 +429,7 @@ export const REPORTS = [
   salesReport,
   receivablesReport,
   voidsReport,
+  equipmentLedgerReport,
 ].map(({ slug, title, description }) => ({
   slug,
   title,

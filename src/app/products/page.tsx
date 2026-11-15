@@ -13,7 +13,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import EquipmentLedgerReports from "@/features/products/components/EquipmentLedgerReports";
 import EquipmentLogs from "@/features/products/components/EquipmentLogs";
 import { InventoryAdjustmentModal } from "@/features/products/components/InventoryAdjustmentModal";
 import { InventoryAdjustmentModalButton } from "@/features/products/components/InventoryAdjustmentModalButton";
@@ -65,16 +64,6 @@ export default async function ProductsPage({ searchParams }: ProductPageProps) {
       productId: params?.productId,
     },
   });
-
-  const reportsPromise = Promise.all([
-    EquipmentService.getBalanceSheetReport(),
-    EquipmentService.getCustomerLiabilityAgingReport(),
-    EquipmentService.getShrinkageRateReport(),
-  ]).then(([balanceSheet, agingReport, shrinkageReport]) => ({
-    balanceSheet,
-    agingReport,
-    shrinkageReport,
-  }));
 
   try {
     products = await ProductService.getAll();
@@ -211,23 +200,7 @@ export default async function ProductsPage({ searchParams }: ProductPageProps) {
         )}
       </div>
 
-      <Tabs defaultValue="equipmentLogs">
-        {/* <TabsList>
-          <TabsTrigger value="equipmentLogs">
-            Equipment Movement Ledger
-          </TabsTrigger>
-          <TabsTrigger value="pattern1Reports" className="gap-1.5">
-            <BarChart3 className="w-4 h-4 text-primary" />
-            Ledger Reports
-          </TabsTrigger>
-        </TabsList> */}
-        <TabsContent value="equipmentLogs">
-          <EquipmentLogs logsPromise={logsPromise} />
-        </TabsContent>
-        <TabsContent value="pattern1Reports">
-          <EquipmentLedgerReports reportsPromise={reportsPromise} />
-        </TabsContent>
-      </Tabs>
+      <EquipmentLogs logsPromise={logsPromise} />
       <ProductFormModal />
       <InventoryAdjustmentModal />
     </div>

@@ -53,6 +53,8 @@ const PAGES: Record<string, PermissionAction> = {
   "reports/receivables/print/page.tsx": "VIEW_REPORTS",
   "reports/voids/page.tsx": "VIEW_REPORTS",
   "reports/voids/print/page.tsx": "VIEW_REPORTS",
+  "reports/equipment-ledger/page.tsx": "VIEW_REPORTS",
+  "reports/equipment-ledger/print/page.tsx": "VIEW_REPORTS",
   "users/page.tsx": "VIEW_USERS",
 };
 
@@ -66,6 +68,7 @@ const ROUTES: Record<string, PermissionAction> = {
   "reports/sales/csv/route.ts": "EXPORT_REPORTS",
   "reports/receivables/csv/route.ts": "EXPORT_REPORTS",
   "reports/voids/csv/route.ts": "EXPORT_REPORTS",
+  "reports/equipment-ledger/csv/route.ts": "EXPORT_REPORTS",
 };
 
 const findFiles = (dir: string, name: string): string[] =>

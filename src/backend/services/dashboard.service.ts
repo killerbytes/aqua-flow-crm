@@ -70,7 +70,7 @@ export class DashboardService {
           startOfToday,
           startOfTomorrow,
         ),
-        DashboardService.getContainersHeldLongest(),
+        DashboardService.getContainersHeldLongest(now),
       ]);
 
     return {
@@ -202,8 +202,8 @@ export class DashboardService {
   }
 
   /** Customers who have held containers longest without any activity. */
-  static async getContainersHeldLongest() {
-    const report = await EquipmentService.getCustomerLiabilityAgingReport();
+  static async getContainersHeldLongest(now: Date = new Date()) {
+    const report = await EquipmentService.getCustomerLiabilityAgingReport(now);
     return report
       .filter((row) => row.totalHoldings > 0)
       .sort((a, b) => b.daysIdle - a.daysIdle)

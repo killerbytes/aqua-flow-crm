@@ -1,21 +1,17 @@
 "use client";
 
 import { checkPermission, PermissionAction } from "@/backend/rbac/permissions";
-import { REPORTS } from "@/features/reports/definitions";
 import { useAuthStore } from "@/lib/store";
 import { cx } from "class-variance-authority";
 import {
-  Clock,
   FileChartColumn,
   LayoutDashboard,
-  PackageOpen,
   Receipt,
   Search,
   ShoppingCart,
   Tag,
   UserCog,
   Users,
-  UserX,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -38,11 +34,6 @@ import {
   useSidebar,
 } from "../ui/sidebar";
 import { NavUser } from "./NavUser";
-const REPORT_ICONS: Record<string, any> = {
-  "inactive-customers": UserX,
-  "inactive-with-equipment": PackageOpen,
-  "temporary-equipment": Clock,
-};
 
 interface NavItem {
   name: string;
