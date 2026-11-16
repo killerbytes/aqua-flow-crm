@@ -1,6 +1,6 @@
 "use client";
 
-import { Invoice } from "@/backend/models";
+import type { Invoice } from "@/types/models";
 import { Button } from "@/components/ui/button";
 import { useUIStore } from "@/store/uiStore";
 

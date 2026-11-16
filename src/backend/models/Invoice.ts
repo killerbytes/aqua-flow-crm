@@ -1,21 +1,37 @@
 import { InvoiceStatus } from "@/lib/definitions";
-import { CreationOptional, DataTypes, Model, NonAttribute } from "sequelize";
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from "sequelize";
 import { sequelize } from "../db/database";
 import { Customer } from "./Customer";
 import { InvoiceDetail } from "./InvoiceDetail";
+import type { InvoicePayment } from "./InvoicePayment";
 import { moneyColumn } from "./moneyColumn";
+import { columns } from "./plain";
 import { User } from "./User";
 
-export class Invoice extends Model {
-  declare invoiceId: number;
+export class Invoice extends Model<
+  InferAttributes<Invoice>,
+  // status has a default, so it is optional on create
+  InferCreationAttributes<Invoice, { omit: "status" }> & {
+    status?: InvoiceStatus;
+  }
+> {
+  declare invoiceId: CreationOptional<number>;
   declare customerId: number;
   declare dateIssued: Date;
-  declare dueDate: Date;
+  declare dueDate: Date | null;
   declare amount: number;
-  declare discount: number;
+  declare discount: CreationOptional<number>;
   declare status: InvoiceStatus;
-  declare paymentDate: Date;
-  declare createdBy: number;
+  declare paymentDate: Date | null;
+  /** The user who created the invoice. */
+  declare loggedBy: number;
   declare voidedAt: Date | null;
   declare voidedBy: number | null;
   declare voidReason: string | null;
@@ -25,12 +41,13 @@ export class Invoice extends Model {
 
   declare customer: NonAttribute<Customer>;
   declare invoiceDetails: NonAttribute<InvoiceDetail[]>;
+  declare invoicePayments?: NonAttribute<InvoicePayment[]>;
   declare user: NonAttribute<User>;
-  declare voidedByUser: NonAttribute<User>;
+  declare voidedByUser?: NonAttribute<User>;
 }
 
 Invoice.init(
-  {
+  columns<Invoice>({
     invoiceId: {
       type: DataTypes.INTEGER,
       autoIncrement: true,
@@ -68,7 +85,7 @@ Invoice.init(
     voidedAt: { type: DataTypes.DATE, allowNull: true, field: "voided_at" },
     voidedBy: { type: DataTypes.INTEGER, allowNull: true, field: "voided_by" },
     voidReason: { type: DataTypes.TEXT, allowNull: true, field: "void_reason" },
-  },
+  }),
   {
     sequelize,
     modelName: "Invoice",

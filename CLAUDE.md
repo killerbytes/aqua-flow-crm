@@ -50,6 +50,14 @@ src/features (Client Components) ─► src/backend/actions ─────► s
 - **`src/backend/services`** holds business logic as classes with static methods. This is the layer integration tests target.
 - **`src/backend/models`** holds Sequelize models. Associations are all declared in `models/index.ts`, so import models from there.
 
+### Types
+
+- **Models declare their columns.** Each class extends `Model<InferAttributes<X>, InferCreationAttributes<X>>`, so `create`, `update`, and `where` are checked. A new column needs a `declare` line (`CreationOptional<T>` when it has a default, `T | null` when nullable) and a new association needs a `NonAttribute<...>` line. Column definitions go through `columns<X>({...})` (`models/plain.ts`), which lets the timestamp columns be left out.
+- **Services return plain records through `toPlain(instance)`**, not `instance.get({ plain: true })`, which Sequelize types as the columns only. Outside `src/backend`, import record types from `@/types/models` (`Customer`, `Order`, and so on are the plain shapes there), not from the models.
+- **Unvalidated input is `unknown`.** Service methods that parse with Zod take `input: unknown`, and catch blocks read messages with `errorMessage` (`src/lib/errors.ts`).
+- **`any` is not allowed in `src`.** `tests/unit/no_explicit_any.test.ts` fails on a new one. Its allowlist holds the two places that need it, each explained beside the code.
+- **Session tokens:** `decodeToken` rejects a token whose `userId`, `tokenVersion`, or `sessionStart` is not a number, and `getAuthContext` treats a token without a complete user (id, name, username, valid role) as no session.
+
 ### Authentication and permissions
 
 There are three separate layers, and each covers something different:
@@ -89,7 +97,7 @@ Sessions are revoked with `AuthService.revokeSessions`, which increments `users.
 ## Next.js rules
 
 - Default to Server Components. Add `"use client"` only for state, effects, or browser APIs, and keep it as low in the tree as possible.
-- Client code must not import from `src/backend` at runtime, except for calling Server Actions. Use `import type` for model and service types.
+- Client code must not import from `src/backend` at runtime, except for calling Server Actions. Use `import type` for service types, and take record types from `@/types/models`.
 - Keep `src/proxy.ts` free of database access. It runs on every request, including static ones, so checks that need the database belong in `requirePagePermission` and `createProtectedAction`.
 - `params`, `searchParams`, `cookies()`, and `headers()` are async since Next 15, so always `await` them.
 - Cookies can only be written in Server Actions and Route Handlers, not while rendering.

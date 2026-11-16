@@ -1,10 +1,22 @@
 import { PaymentMethod } from "@/lib/definitions";
-import { CreationOptional, DataTypes, Model, NonAttribute } from "sequelize";
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from "sequelize";
 import { sequelize } from "../db/database";
 import { Invoice } from "./Invoice";
 import { moneyColumn } from "./moneyColumn";
+import { columns } from "./plain";
+import type { User } from "./User";
 
-export class InvoicePayment extends Model {
+export class InvoicePayment extends Model<
+  InferAttributes<InvoicePayment>,
+  InferCreationAttributes<InvoicePayment>
+> {
   declare id: CreationOptional<number>;
   declare invoiceId: number;
   declare paymentDate: Date;
@@ -19,10 +31,12 @@ export class InvoicePayment extends Model {
   declare updatedAt: CreationOptional<Date>;
 
   declare invoice?: NonAttribute<Invoice>;
+  declare user?: NonAttribute<User>;
+  declare reversedByUser?: NonAttribute<User>;
 }
 
 InvoicePayment.init(
-  {
+  columns<InvoicePayment>({
     id: {
       type: DataTypes.INTEGER,
       autoIncrement: true,
@@ -66,7 +80,7 @@ InvoicePayment.init(
       allowNull: true,
       field: "reversal_reason",
     },
-  },
+  }),
   {
     sequelize,
     modelName: "InvoicePayment",

@@ -1,5 +1,7 @@
 "use client";
 
+import type { CustomerEquipmentBalance } from "@/types/models";
+import { errorMessage } from "@/lib/errors";
 import { createOrderAction, updateOrderAction } from "@/backend/actions";
 import { OrderFormData, OrderSchema } from "@/backend/schemas/zodSchemas";
 import Modal from "@/components/Modal";
@@ -26,7 +28,7 @@ import {
   OrderSurchargeField,
 } from "./OrderSurchargeField";
 
-const hasContainersOut = (balance: any) =>
+const hasContainersOut = (balance: CustomerEquipmentBalance) =>
   (balance.quantityOwed ?? 0) > 0 || (balance.quantityTemporaryOwed ?? 0) > 0;
 
 const OrderFormModalContent = () => {
@@ -50,7 +52,7 @@ const OrderFormModalContent = () => {
           status: OrderStatus.PENDING,
           paymentStatus: PaymentStatus.UNPAID,
           // Previewed at today's prices, which is what saving will charge.
-          items: editingOrder.orderDetails.map((d: any) => ({
+          items: editingOrder.orderDetails.map((d) => ({
             productId: d.productId,
             quantity: d.quantity,
             unitPrice: Number(d.product?.unitPrice ?? d.unitPrice),
@@ -112,12 +114,12 @@ const OrderFormModalContent = () => {
         } else {
           router.push("/orders");
         }
-      } catch (error: any) {
+      } catch (error) {
         toast.add({
           type: "error",
           priority: "high",
           description:
-            error.message ||
+            errorMessage(error) ||
             (editingOrder ? "Failed to update order" : "Failed to create order"),
         });
         // A refused edit usually means the order changed. The form stays open
@@ -150,7 +152,7 @@ const OrderFormModalContent = () => {
 
         {balancesOut.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
-            {balancesOut.map((b: any) => (
+            {balancesOut.map((b) => (
               <span
                 key={b.balanceId || b.productId}
                 className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted text-muted-foreground border font-mono text-[11px]"

@@ -1,9 +1,21 @@
-import { CreationOptional, DataTypes, Model, NonAttribute } from "sequelize";
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from "sequelize";
 import { sequelize } from "../db/database";
 import { Invoice } from "./Invoice";
 import { Order } from "./Order";
+import { columns } from "./plain";
 
-export class InvoiceDetail extends Model {
+export class InvoiceDetail extends Model<
+  InferAttributes<InvoiceDetail>,
+  InferCreationAttributes<InvoiceDetail>
+> {
+  declare id: CreationOptional<number>;
   declare orderId: number;
   declare invoiceId: number;
   declare voidedAt: Date | null;
@@ -15,7 +27,7 @@ export class InvoiceDetail extends Model {
 }
 
 InvoiceDetail.init(
-  {
+  columns<InvoiceDetail>({
     id: {
       type: DataTypes.INTEGER,
       autoIncrement: true,
@@ -32,7 +44,7 @@ InvoiceDetail.init(
       field: "order_id",
     },
     voidedAt: { type: DataTypes.DATE, allowNull: true, field: "voided_at" },
-  },
+  }),
   {
     sequelize,
     modelName: "InvoiceDetail",

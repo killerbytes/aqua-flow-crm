@@ -1,3 +1,4 @@
+import { toPlain } from "../models/plain";
 import {
   CustomerStatus,
   InvoiceStatus,
@@ -6,7 +7,14 @@ import {
   PaymentStatus,
 } from "@/lib/definitions";
 import { toPagination } from "@/lib/pagination";
-import { Op, OrderItem, Transaction } from "sequelize";
+import {
+  Attributes,
+  Includeable,
+  Op,
+  OrderItem,
+  Transaction,
+  WhereAttributeHash,
+} from "sequelize";
 import { sequelize } from "../db/database";
 import {
   Customer,
@@ -39,6 +47,12 @@ const CUSTOMER_DETAIL_INCLUDES = [
     as: "specialPricings",
   },
 ];
+
+/** Case-insensitive search. SQLite's LIKE already ignores case; PostgreSQL's doesn't. */
+const containsText = (term: string) =>
+  sequelize.getDialect() === "postgres"
+    ? { [Op.iLike]: `%${term}%` }
+    : { [Op.like]: `%${term}%` };
 
 export interface CustomerQueryParams {
   limit?: number;
@@ -77,21 +91,17 @@ export class CustomerService {
       term,
     } = query || {};
 
-    const where: any = {};
+    const where: WhereAttributeHash<Attributes<Customer>> = {};
     if (selectedBarangays && selectedBarangays.length > 0) {
       where.barangayId = { [Op.in]: selectedBarangays };
     }
-    if (term) {
-      const searchOp =
-        sequelize.getDialect() === "postgres" ? Op.iLike : Op.like;
-      where.searchText = { [searchOp]: `%${term}%` };
-    }
+    if (term) where.searchText = containsText(term);
 
-    const equipmentBalanceWhere: any = withTemporaryBalanceOnly
+    const equipmentBalanceWhere = withTemporaryBalanceOnly
       ? { quantityTemporaryOwed: { [Op.gt]: 0 } }
       : undefined;
 
-    const include: any[] = [
+    const include: Includeable[] = [
       {
         model: CustomerEquipmentBalance,
         required: Boolean(withTemporaryBalanceOnly || withBalance),
@@ -130,7 +140,7 @@ export class CustomerService {
     });
 
     return {
-      rows: rows.map((r) => r.get({ plain: true })),
+      rows: rows.map((r) => toPlain(r)),
       pagination: toPagination(count, limit, page),
     };
   }
@@ -140,15 +150,15 @@ export class CustomerService {
       include: CUSTOMER_DETAIL_INCLUDES,
     });
 
-    return customer?.get({ plain: true });
+    return customer ? toPlain(customer) : undefined;
   }
 
-  static async create(input: any) {
+  static async create(input: unknown) {
     const validatedData = CustomerSchema.parse(input);
 
     try {
       const customer = await Customer.create(validatedData);
-      return customer.get({ plain: true });
+      return toPlain(customer);
     } catch (error) {
       handleServiceError(error);
     }
@@ -159,7 +169,7 @@ export class CustomerService {
    * equipment, regular or temporary, so nothing out goes untracked: inactive
    * customers drop out of the reports that chase equipment.
    */
-  static async update(id: number | string, input: any) {
+  static async update(id: number | string, input: unknown) {
     const validatedData = CustomerSchema.partial().parse(input);
 
     return await sequelize.transaction(async (t) => {
@@ -188,7 +198,7 @@ export class CustomerService {
 
       try {
         await customer.update(validatedData, { transaction: t });
-        return customer.get({ plain: true });
+        return toPlain(customer);
       } catch (error) {
         handleServiceError(error);
       }
@@ -222,9 +232,8 @@ export class CustomerService {
   }
 
   static async lookup(term: string, isActiveOnly: boolean = false) {
-    const searchOp = sequelize.getDialect() === "postgres" ? Op.iLike : Op.like;
-    const where: any = {
-      searchText: { [searchOp]: `%${term}%` },
+    const where: WhereAttributeHash<Attributes<Customer>> = {
+      searchText: containsText(term),
     };
     if (isActiveOnly) {
       where.status = CustomerStatus.ACTIVE;
@@ -234,7 +243,7 @@ export class CustomerService {
       limit: 10,
       include: CUSTOMER_DETAIL_INCLUDES,
     });
-    return customers.map((c) => c.get({ plain: true }));
+    return customers.map((c) => toPlain(c));
   }
 
   static async getCustomerBalances(customerId: number | string) {
@@ -242,7 +251,7 @@ export class CustomerService {
       where: { customerId: Number(customerId) },
       include: [{ model: ProductInventory, as: "product" }],
     });
-    return balances.map((b) => b.get({ plain: true }));
+    return balances.map((b) => toPlain(b));
   }
 
   static async setSpecialPricing(input: SpecialPricingFormData) {
@@ -265,7 +274,7 @@ export class CustomerService {
       if (!created) {
         await pricing.update(validatedData);
       }
-      return pricing.get({ plain: true });
+      return toPlain(pricing);
     } catch (error) {
       handleServiceError(error);
     }
@@ -298,7 +307,7 @@ export class CustomerService {
       });
     }
 
-    return customer.get({ plain: true });
+    return toPlain(customer);
   }
 }
 

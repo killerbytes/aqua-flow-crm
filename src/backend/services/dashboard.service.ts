@@ -193,7 +193,7 @@ export class DashboardService {
 
     const counts = new Map<string, number>();
     for (const order of orders) {
-      const name = (order as any).deliveredByUser?.name ?? "Not recorded";
+      const name = order.deliveredByUser?.name ?? "Not recorded";
       counts.set(name, (counts.get(name) ?? 0) + 1);
     }
     return [...counts]

@@ -1,3 +1,4 @@
+import { toPlain } from "../models/plain";
 import { OrderStatus } from "@/lib/definitions";
 import { Transaction } from "sequelize";
 import {
@@ -19,8 +20,10 @@ const STOCK_FIELDS = [
 
 // Stock totals must match the ledger, so they only change through ledger
 // entries. Refusing, rather than ignoring, makes a caller's mistake visible.
-const rejectStockFields = (input: any) => {
-  if (STOCK_FIELDS.some((field) => input?.[field] !== undefined)) {
+const rejectStockFields = (input: unknown) => {
+  if (typeof input !== "object" || input === null) return;
+  const fields: Record<string, unknown> = { ...input };
+  if (STOCK_FIELDS.some((field) => fields[field] !== undefined)) {
     throw new Error(
       "Stock can only be changed with a stock adjustment, so it's recorded in the ledger",
     );
@@ -43,27 +46,27 @@ export class ProductService {
     const products = await ProductInventory.findAll({
       order: [["productId", "ASC"]],
     });
-    return products.map((r) => r.get({ plain: true }));
+    return products.map((r) => toPlain(r));
   }
 
   static async get(id: number | string) {
     const product = await ProductInventory.findByPk(Number(id));
-    return product?.get({ plain: true });
+    return product ? toPlain(product) : undefined;
   }
 
-  static async create(input: any) {
+  static async create(input: unknown) {
     rejectStockFields(input);
     const validatedData = ProductDetailsSchema.parse(input);
     try {
       if (validatedData.isDefault) await clearDefaultProduct();
       const product = await ProductInventory.create(validatedData);
-      return product?.get({ plain: true });
+      return product ? toPlain(product) : undefined;
     } catch (error) {
       handleServiceError(error);
     }
   }
 
-  static async update(id: number | string, input: any) {
+  static async update(id: number | string, input: unknown) {
     rejectStockFields(input);
     const validatedData = ProductDetailsSchema.partial().parse(input);
     const product = await ProductInventory.findByPk(Number(id));
@@ -75,7 +78,7 @@ export class ProductService {
       }
 
       await product.update(validatedData);
-      return product?.get({ plain: true });
+      return product ? toPlain(product) : undefined;
     } catch (error) {
       handleServiceError(error);
     }

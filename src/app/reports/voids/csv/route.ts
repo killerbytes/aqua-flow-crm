@@ -26,15 +26,16 @@ export async function GET(request: NextRequest) {
     name && name in VOIDS_CSV_TABLES ? (name as VoidsCsvTable) : "list";
 
   const report = await FinanceReportService.getVoidsAndReversals(range);
-  const data = {
-    list: [report.rows, undefined],
-    users: [report.byUser, report.byUserTotal],
-  } as const;
-  const [rows, total] = data[key];
-  const { table, name: file } = VOIDS_CSV_TABLES[key];
+  // Each table is paired with its own rows here, so the two can't be mixed up.
+  const tables = VOIDS_CSV_TABLES;
+  const csv: Record<VoidsCsvTable, () => string> = {
+    list: () => reportCsv(tables.list.table, report.rows),
+    users: () =>
+      reportCsv(tables.users.table, report.byUser, report.byUserTotal),
+  };
 
   return csvResponse(
-    `${file}-${range.from}-to-${range.to}.csv`,
-    reportCsv(table as any, rows as any[], total),
+    `${tables[key].name}-${range.from}-to-${range.to}.csv`,
+    csv[key](),
   );
 }

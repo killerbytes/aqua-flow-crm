@@ -4,8 +4,9 @@ export interface Pagination {
   currentPage: number;
 }
 
-export interface Paginated<T> {
+export interface Paginated<T, Summary = unknown> {
   rows: T[];
   pagination: Pagination;
-  summary?: any;
+  /** Totals for the whole list, where the list has them. */
+  summary?: Summary;
 }

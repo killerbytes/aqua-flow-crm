@@ -2,11 +2,11 @@
 
 import { Button } from "@/components/ui/button";
 import { useUIStore } from "@/store/uiStore";
-import { UseFormReturn } from "react-hook-form";
 
 interface OrderCustomerLookupButtonProps {
   children: React.ReactNode;
-  form: UseFormReturn<any>;
+  /** Any form with a customerId field. */
+  form: { setValue: (name: "customerId", value: number) => void };
 }
 
 export const OrderCustomerLookupButton = ({

@@ -1,5 +1,6 @@
 "use server";
 
+import { errorMessage } from "@/lib/errors";
 import { sessionCookieOptions } from "@/lib/auth.edge";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
@@ -8,8 +9,10 @@ import { createProtectedAction } from "../lib/safe-action";
 import {
   ChangePasswordData,
   ChangePasswordSchema,
+  UserFormData,
   UserFormSchema,
   UserFormUpdateSchema,
+  UserUpdateFormData,
 } from "../schemas/zodSchemas";
 import { AuthService } from "../services/auth.service";
 
@@ -27,10 +30,10 @@ export async function loginAction(username: string, password: string) {
 
     // The token stays in the httpOnly cookie and is never sent to page scripts.
     return { success: true as const, user };
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false as const,
-      error: err.message || "Invalid credentials",
+      error: errorMessage(err) || "Invalid credentials",
     };
   }
 }
@@ -38,7 +41,7 @@ export async function loginAction(username: string, password: string) {
 export const createUserAction = createProtectedAction({
   permission: "CREATE_USER",
   schema: UserFormSchema,
-  handler: async (_ctx, input: any) => {
+  handler: async (_ctx, input: UserFormData) => {
     const result = await AuthService.createUser(input);
     revalidatePath("/users");
     return result;
@@ -49,7 +52,7 @@ export const updateUserAction = createProtectedAction({
   permission: "MANAGE_USERS",
   schema: UserFormUpdateSchema,
   inputIndex: 1,
-  handler: async (_ctx, id: number | string, input: any) => {
+  handler: async (_ctx, id: number | string, input: UserUpdateFormData) => {
     const result = await AuthService.updateUser(id, input);
     revalidatePath("/users");
     return result;

@@ -1,5 +1,5 @@
 "use client";
-import { InvoiceDetail } from "@/backend/models";
+import type { InvoiceDetail } from "@/types/models";
 import ColumnSort from "@/components/ColumnSort";
 import DataTable from "@/components/DataTable";
 import ColorBadge, { MonoText } from "@/components/presentation";
@@ -35,7 +35,7 @@ export default function InvoiceDetailList({
         cell: (info) => <MonoText>{formatDate(info.getValue())}</MonoText>,
       }),
 
-      columnHelper.accessor((row: any) => row.order?.status, {
+      columnHelper.accessor((row) => row.order?.status, {
         id: "orderStatus",
         header: "Status",
         cell: (info) => (
@@ -44,7 +44,7 @@ export default function InvoiceDetailList({
           </ColorBadge>
         ),
       }),
-      columnHelper.accessor((row: any) => row.order?.paymentStatus, {
+      columnHelper.accessor((row) => row.order?.paymentStatus, {
         id: "orderPaymentStatus",
         header: "Payment Status",
         cell: (info) => (
@@ -53,7 +53,7 @@ export default function InvoiceDetailList({
           </ColorBadge>
         ),
       }),
-      columnHelper.accessor((row: any) => row.order?.totalAmount, {
+      columnHelper.accessor((row) => row.order?.totalAmount, {
         id: "orderAmount",
         header: ({ column }) => {
           return <ColumnSort column={column}>Amount</ColumnSort>;

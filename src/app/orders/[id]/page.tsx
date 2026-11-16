@@ -17,7 +17,7 @@ import {
 import Link from "next/link";
 
 import { initDatabase } from "@/backend/db/database";
-import { Order } from "@/backend/models";
+import type { Order } from "@/types/models";
 import { OrderService } from "@/backend/services";
 import { ColorBadge, CustomerName } from "@/components/presentation";
 import PageHeader from "@/components/shared/PageHeader";
@@ -158,8 +158,8 @@ export default async function OrderDetailsPage({
   // An invoiced order is paid, changed, and voided through its invoice.
   const invoiceId = await OrderService.getActiveInvoiceId(order.orderId);
 
-  const payments: any[] = (order as any).orderPayments ?? [];
-  const deliveredBy = (order as any).deliveredByUser?.name;
+  const payments = order.orderPayments ?? [];
+  const deliveredBy = order.deliveredByUser?.name;
 
   // Line totals, in centavos.
   const grossCents = order.orderDetails.reduce(
@@ -416,7 +416,7 @@ export default async function OrderDetailsPage({
                   icon={<UserCheck className="size-4" />}
                   label="Voided by"
                 >
-                  {(order as any).voidedByUser?.name || (
+                  {order.voidedByUser?.name || (
                     <span className="text-muted-foreground">Not recorded</span>
                   )}
                 </InfoRow>

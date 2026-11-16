@@ -12,6 +12,7 @@ import {
   Tag,
   UserCog,
   Users,
+  type LucideIcon,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -38,7 +39,7 @@ import { NavUser } from "./NavUser";
 interface NavItem {
   name: string;
   href: string;
-  icon: any;
+  icon: LucideIcon;
   subMenu?: NavItem[];
 }
 export default function Sidebar() {

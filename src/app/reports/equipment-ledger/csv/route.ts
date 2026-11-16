@@ -28,10 +28,21 @@ export async function GET(request: NextRequest) {
     EquipmentService.getBalanceSheetReport(),
     EquipmentService.getLossesReport(),
   ]);
-  const { table, rows, total } = equipmentLedgerSections(balance, losses)[key];
+  const sections = equipmentLedgerSections(balance, losses);
+  // Each table is paired with its own rows here, so the two can't be mixed up.
+  const csv: Record<EquipmentLedgerCsvTable, () => string> = {
+    balance: () => {
+      const { table, rows, total } = sections.balance;
+      return reportCsv(table, rows, total);
+    },
+    losses: () => {
+      const { table, rows, total } = sections.losses;
+      return reportCsv(table, rows, total);
+    },
+  };
 
   return csvResponse(
     `${EQUIPMENT_LEDGER_CSV_TABLES[key].name}-${businessDateKey(new Date())}.csv`,
-    reportCsv(table as any, rows, total),
+    csv[key](),
   );
 }

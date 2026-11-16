@@ -1,6 +1,6 @@
 "use client";
 
-import { Customer } from "@/backend/models";
+import type { Customer } from "@/types/models";
 import { Button } from "@/components/ui/button";
 import { useUIStore } from "@/store/uiStore";
 

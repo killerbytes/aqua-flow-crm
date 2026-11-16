@@ -8,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatDate(
-  date: string | number | Date | undefined,
+  date: string | number | Date | null | undefined,
   formatStr: string = "MM/dd/yyyy",
 ) {
   if (!date) return "N/A";

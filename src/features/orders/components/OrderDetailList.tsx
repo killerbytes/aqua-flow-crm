@@ -1,5 +1,5 @@
 "use client";
-import { OrderDetail } from "@/backend/models";
+import type { OrderDetail } from "@/types/models";
 import DataTable from "@/components/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";

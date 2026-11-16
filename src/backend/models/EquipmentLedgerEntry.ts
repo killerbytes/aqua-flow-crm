@@ -1,19 +1,30 @@
 import { LedgerAccountType, LedgerReferenceType } from "@/lib/definitions";
-import { CreationOptional, DataTypes, Model, NonAttribute } from "sequelize";
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from "sequelize";
 import { sequelize } from "../db/database";
 import { Customer } from "./Customer";
+import { columns } from "./plain";
 import { ProductInventory } from "./ProductInventory";
 import { User } from "./User";
 
-export class EquipmentLedgerEntry extends Model {
-  declare entryId: number;
+export class EquipmentLedgerEntry extends Model<
+  InferAttributes<EquipmentLedgerEntry>,
+  InferCreationAttributes<EquipmentLedgerEntry>
+> {
+  declare entryId: CreationOptional<number>;
   declare productId: number;
   declare fromAccountType: LedgerAccountType;
   declare fromAccountId: number | null;
   declare toAccountType: LedgerAccountType;
   declare toAccountId: number | null;
   declare quantity: number;
-  declare referenceType: LedgerReferenceType | string;
+  declare referenceType: CreationOptional<LedgerReferenceType | string>;
   declare referenceId: number | null;
   declare notes: string | null;
   declare loggedBy: number | null;
@@ -26,7 +37,7 @@ export class EquipmentLedgerEntry extends Model {
 }
 
 EquipmentLedgerEntry.init(
-  {
+  columns<EquipmentLedgerEntry>({
     entryId: {
       type: DataTypes.INTEGER,
       autoIncrement: true,
@@ -76,7 +87,7 @@ EquipmentLedgerEntry.init(
       type: DataTypes.INTEGER,
       allowNull: true,
     },
-  },
+  }),
   {
     sequelize,
     modelName: "EquipmentLedgerEntry",

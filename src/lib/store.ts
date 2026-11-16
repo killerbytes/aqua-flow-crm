@@ -1,11 +1,11 @@
-import { User } from "@/backend/models";
+import type { UserSession } from "@/backend/auth/context";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 interface AuthState {
-  user: User | null;
+  user: UserSession | null;
   isAuthenticated: boolean;
-  setUser: (user: User | null) => void;
+  setUser: (user: UserSession | null) => void;
   logout: () => void;
 }
 

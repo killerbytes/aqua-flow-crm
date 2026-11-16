@@ -1,5 +1,6 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
 import { createUserAction, updateUserAction } from "@/backend/actions";
 import {
   UserFormData,
@@ -36,7 +37,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { UserCog, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useTransition } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, type Resolver } from "react-hook-form";
 
 export function UserFormModal() {
   const { isUserModalOpen, setUserModalOpen } = useUIStore();
@@ -62,9 +63,11 @@ export const UserFormModalContent = () => {
     control,
     formState: { errors },
   } = useForm<UserFormData>({
+    // Editing leaves the password alone, so it validates with the schema that
+    // has no password fields while the form keeps one shape for both.
     resolver: zodResolver(
       isEditing ? UserFormUpdateSchema : UserFormSchema,
-    ) as any,
+    ) as unknown as Resolver<UserFormData>,
     values: React.useMemo(
       () => ({
         name: editingUser?.name || "",
@@ -105,11 +108,11 @@ export const UserFormModalContent = () => {
         setUserModalOpen(false, null);
         router.refresh();
       });
-    } catch (err: any) {
+    } catch (err) {
       toast.add({
         type: "error",
         priority: "high",
-        title: err.message || "Failed to save user account",
+        title: errorMessage(err) || "Failed to save user account",
       });
     }
   };

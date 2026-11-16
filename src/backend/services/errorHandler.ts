@@ -2,24 +2,35 @@
  * Generic Service Error Handler
  * Centralizes error handling and normalization for all backend services and ORM queries.
  */
-export function handleServiceError(error: any): never {
+const prop = (value: unknown, key: string): unknown =>
+  typeof value === "object" && value !== null
+    ? (value as Record<string, unknown>)[key]
+    : undefined;
+
+export function handleServiceError(error: unknown): never {
   if (!error) {
     throw new Error("An unexpected error occurred.");
   }
+  const name = prop(error, "name");
 
   // Handle Unique Constraint Violations (PostgreSQL / SQLite / Sequelize)
   if (
-    error.name === "SequelizeUniqueConstraintError" ||
-    error.name === "UniqueConstraintError"
+    name === "SequelizeUniqueConstraintError" ||
+    name === "UniqueConstraintError"
   ) {
+    const fields = prop(error, "fields");
+    const errors = prop(error, "errors");
     let fieldList: string[] = [];
-    if (Array.isArray(error.fields)) {
-      fieldList = error.fields;
-    } else if (error.fields && typeof error.fields === "object") {
-      fieldList = Object.keys(error.fields);
+    if (Array.isArray(fields)) {
+      fieldList = fields.map(String);
+    } else if (fields && typeof fields === "object") {
+      fieldList = Object.keys(fields);
     }
-    if (!fieldList.length && Array.isArray(error.errors)) {
-      fieldList = error.errors.map((e: any) => e.path).filter(Boolean);
+    if (!fieldList.length && Array.isArray(errors)) {
+      fieldList = errors
+        .map((e: unknown) => prop(e, "path"))
+        .filter(Boolean)
+        .map(String);
     }
 
     const fieldStr = fieldList.join(", ");
@@ -40,18 +51,20 @@ export function handleServiceError(error: any): never {
 
   // Handle Validation Errors
   if (
-    error.name === "SequelizeValidationError" ||
-    error.name === "ValidationError"
+    name === "SequelizeValidationError" || name === "ValidationError"
   ) {
-    const message =
-      error.errors?.[0]?.message || error.message || "Validation error";
+    const errors = prop(error, "errors");
+    const first = Array.isArray(errors) ? prop(errors[0], "message") : undefined;
+    const message = String(
+      first || prop(error, "message") || "Validation error",
+    );
     throw new Error(message.replace(/^Validation error:?\s*/i, ""));
   }
 
   // Handle Foreign Key Constraint Violations
   if (
-    error.name === "SequelizeForeignKeyConstraintError" ||
-    error.name === "ForeignKeyConstraintError"
+    name === "SequelizeForeignKeyConstraintError" ||
+    name === "ForeignKeyConstraintError"
   ) {
     throw new Error(
       "Cannot process request: referenced item does not exist or is currently in use.",

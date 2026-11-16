@@ -1,5 +1,6 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
 import { makePaymentAction } from "@/backend/actions";
 import { PaymentFormData, PaymentSchema } from "@/backend/schemas/zodSchemas";
 import Modal from "@/components/Modal";
@@ -61,11 +62,11 @@ export function PaymentModalContent({ onClose }: { onClose: () => void }) {
         });
         onClose();
         router.refresh();
-      } catch (err: any) {
+      } catch (err) {
         toast.add({
           type: "error",
           priority: "high",
-          title: err.message || "Failed to settle order payment",
+          title: errorMessage(err) || "Failed to settle order payment",
         });
         // Refused because the order changed, so show it as it is now.
         onClose();

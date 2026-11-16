@@ -1,8 +1,15 @@
+import { toPlain } from "../models/plain";
 import { OrderStatus, PAGINATION, PaymentStatus } from "@/lib/definitions";
 import { toPagination } from "@/lib/pagination";
 import { fromCents, toCents } from "@/lib/money";
 import { endOfBusinessDay, startOfBusinessDay } from "@/lib/business-time";
-import { Op, OrderItem, Transaction } from "sequelize";
+import {
+  Attributes,
+  Op,
+  OrderItem,
+  Transaction,
+  WhereAttributeHash,
+} from "sequelize";
 import { getAuthContext, UserSession } from "../auth/context";
 import {
   Customer,
@@ -28,11 +35,16 @@ import {
 import { CustomerService, WALK_IN_CUSTOMER_NAME } from "./customer.service";
 import { ProductService } from "./product.service";
 
+/** The order list's filter. Its status conditions are built up in steps. */
+type OrderWhere = Omit<WhereAttributeHash<Attributes<Order>>, "status"> & {
+  status?: { [Op.ne]?: OrderStatus; [Op.eq]?: OrderStatus };
+};
+
 export interface OrderQueryParams {
   limit?: number;
   page?: number;
   query?: {
-    status?: string;
+    status?: OrderStatus;
     customerId?: number;
     startDate?: string;
     endDate?: string;
@@ -53,7 +65,7 @@ export class OrderService {
       order: sortOrder = "ASC",
     } = params;
     try {
-      const where: any = {};
+      const where: OrderWhere = {};
       const {
         startDate,
         endDate,
@@ -82,7 +94,7 @@ export class OrderService {
       if (paymentStatus) where.paymentStatus = paymentStatus;
 
       if (startDate || endDate) {
-        const createdAtFilter: any = {};
+        const createdAtFilter: { [Op.gte]?: Date; [Op.lte]?: Date } = {};
         if (startDate) {
           createdAtFilter[Op.gte] = startOfBusinessDay(
             new Date(Number(startDate)),
@@ -94,7 +106,10 @@ export class OrderService {
         where.createdAt = createdAtFilter;
       }
 
-      const orderByMap: Record<string, any> = {
+      const orderByMap: Record<
+        string,
+        string | [{ model: typeof Customer; as: string }, string]
+      > = {
         customer_name: [{ model: Customer, as: "customer" }, "name"],
         "customer.name": [{ model: Customer, as: "customer" }, "name"],
         createdAt: "createdAt",
@@ -139,7 +154,7 @@ export class OrderService {
       });
 
       return {
-        rows: rows.map((r) => r.get({ plain: true })),
+        rows: rows.map((r) => toPlain(r)),
         pagination: toPagination(count, limit, page),
         summary: await getSummary(where),
       };
@@ -189,7 +204,7 @@ export class OrderService {
       ],
       order: [[{ model: OrderPayment, as: "orderPayments" }, "paidAt", "ASC"]],
     });
-    return order ? order.get({ plain: true }) : null;
+    return order ? toPlain(order) : null;
   }
 
   /**
@@ -226,7 +241,9 @@ export class OrderService {
   }
 
   static async create(input: OrderFormData, createdByUserId: number) {
-    const { customerId, status, paymentStatus, items, createdAt } = input;
+    const { customerId, status, paymentStatus, items } = input;
+    // The form may send the date as text.
+    const createdAt = input.createdAt ? new Date(input.createdAt) : undefined;
     const createdBy = createdByUserId;
 
     const customer = await CustomerService.get(customerId);
@@ -355,7 +372,7 @@ export class OrderService {
   static async updateStatus(
     id: number | string,
     status: OrderStatus | string,
-    user?: UserSession | any,
+    user?: UserSession,
   ) {
     const targetStatus = status as OrderStatus;
 
@@ -376,7 +393,7 @@ export class OrderService {
       const currentStatus = order.status;
 
       if (currentStatus === targetStatus) {
-        return order.get({ plain: true });
+        return toPlain(order);
       }
 
       if (currentStatus === OrderStatus.CANCELLED) {
@@ -432,7 +449,7 @@ export class OrderService {
         },
         { transaction: t },
       );
-      return order.get({ plain: true });
+      return toPlain(order);
     });
   }
 
@@ -504,7 +521,7 @@ export class OrderService {
         },
         { transaction: t },
       );
-      return order.get({ plain: true });
+      return toPlain(order);
     });
   }
 
@@ -559,7 +576,7 @@ export class OrderService {
         },
         { transaction: t },
       );
-      return order.get({ plain: true });
+      return toPlain(order);
     });
   }
 
@@ -605,7 +622,7 @@ export class OrderService {
         { transaction: t },
       );
 
-      return payment!.get({ plain: true });
+      return toPlain(payment!);
     });
   }
 }
@@ -658,7 +675,7 @@ const isInvoiced = async (orderId: number, transaction: Transaction) =>
     transaction,
   })) > 0;
 
-const getSummary = async (where: any) => {
+const getSummary = async (where: OrderWhere) => {
   // Sales count by when orders were delivered, matching the dashboard. The other
   // figures describe the orders in the list, so they keep its order-date filter.
   const { createdAt: orderDateFilter, ...salesWhere } = where;
@@ -723,3 +740,6 @@ const getSummary = async (where: any) => {
     },
   };
 };
+
+/** A page of the order list, with its summary tiles. */
+export type OrderListPage = Awaited<ReturnType<typeof OrderService.getAll>>;

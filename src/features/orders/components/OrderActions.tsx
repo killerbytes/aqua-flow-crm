@@ -1,7 +1,7 @@
 "use client";
 
 import { updateOrderStatusAction } from "@/backend/actions";
-import { Order } from "@/backend/models";
+import type { Order } from "@/types/models";
 import { hasRole, RoleGuard } from "@/components/auth/RoleGuard";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";

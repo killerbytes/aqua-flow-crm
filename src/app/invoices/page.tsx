@@ -1,6 +1,10 @@
 import { requirePagePermission } from "@/backend/auth/context";
-import { Invoice } from "@/backend/models";
-import { InvoiceQueryParams, InvoiceService } from "@/backend/services";
+import type { Invoice } from "@/types/models";
+import {
+  InvoiceService,
+  type InvoiceListPage,
+  type InvoiceQueryParams,
+} from "@/backend/services";
 import PageHeader from "@/components/shared/PageHeader";
 import {
   Card,
@@ -26,7 +30,7 @@ export default async function InvoicesPage({ searchParams }: InvoicePageProps) {
   const sort = params?.sort;
   const order = params?.order;
 
-  let invoices: Paginated<Invoice> = {
+  let invoices: Paginated<Invoice, InvoiceListPage["summary"]> = {
     rows: [],
     pagination: { total: 0, currentPage: 1, totalPages: 1 },
   };
@@ -72,32 +76,32 @@ export default async function InvoicesPage({ searchParams }: InvoicePageProps) {
             <Card>
               <CardHeader>
                 <CardDescription>
-                  {invoices.summary.totalUnpaid?.label}
+                  {invoices.summary?.totalUnpaid?.label}
                 </CardDescription>
                 <CardTitle>
                   {formatCurrency(
-                    Number(invoices.summary.totalUnpaid?.value || 0),
+                    Number(invoices.summary?.totalUnpaid?.value || 0),
                   )}
                 </CardTitle>
               </CardHeader>
             </Card>
-            {invoices.summary.unpaidOrders?.value > 0 && (
+            {(invoices.summary?.unpaidOrders?.value ?? 0) > 0 && (
               <Card>
                 <CardHeader>
                   <CardDescription>
-                    {invoices.summary.unpaidOrders?.label}
+                    {invoices.summary?.unpaidOrders?.label}
                   </CardDescription>
-                  <CardTitle>{invoices.summary.unpaidOrders?.value}</CardTitle>
+                  <CardTitle>{invoices.summary?.unpaidOrders?.value}</CardTitle>
                 </CardHeader>
               </Card>
             )}
-            {invoices.summary.partialOrders?.value > 0 && (
+            {(invoices.summary?.partialOrders?.value ?? 0) > 0 && (
               <Card>
                 <CardHeader>
                   <CardDescription>
-                    {invoices.summary.partialOrders?.label}
+                    {invoices.summary?.partialOrders?.label}
                   </CardDescription>
-                  <CardTitle>{invoices.summary.partialOrders?.value}</CardTitle>
+                  <CardTitle>{invoices.summary?.partialOrders?.value}</CardTitle>
                 </CardHeader>
               </Card>
             )}

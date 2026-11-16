@@ -1,5 +1,6 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
 import {
   createCustomerAction,
   deleteCustomerAction,
@@ -98,12 +99,12 @@ function CustomerFormModalContent({
         reset();
         setCustomerFormModalOpen(false, null);
         router.refresh();
-      } catch (err: any) {
+      } catch (err) {
         toast.add({
           type: "error",
           priority: "high",
           description:
-            err.message ||
+            errorMessage(err) ||
             `Failed to ${isEditing ? "update" : "create"} customer`,
         });
       }
@@ -124,11 +125,11 @@ function CustomerFormModalContent({
       reset();
       setCustomerFormModalOpen(false, null);
       router.replace("/customers");
-    } catch (err: any) {
+    } catch (err) {
       toast.add({
         type: "error",
         priority: "high",
-        description: err.message || `Failed to delete customer`,
+        description: errorMessage(err) || `Failed to delete customer`,
       });
     }
   };

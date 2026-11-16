@@ -1,21 +1,37 @@
 import { OrderStatus, PaymentMethod, PaymentStatus } from "@/lib/definitions";
-import { CreationOptional, DataTypes, Model, NonAttribute } from "sequelize";
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from "sequelize";
 import { sequelize } from "../db/database";
 import { Customer } from "./Customer";
 import { OrderDetail } from "./OrderDetail";
+import type { OrderPayment } from "./OrderPayment";
 import { moneyColumn } from "./moneyColumn";
+import { columns } from "./plain";
 import { User } from "./User";
 
-export class Order extends Model {
-  declare orderId: number;
+export class Order extends Model<
+  InferAttributes<Order>,
+  // Both statuses have defaults, so they are optional on create
+  InferCreationAttributes<Order, { omit: "status" | "paymentStatus" }> & {
+    status?: OrderStatus;
+    paymentStatus?: PaymentStatus;
+  }
+> {
+  declare orderId: CreationOptional<number>;
   declare customerId: number;
-  declare totalAmount: number;
+  declare totalAmount: CreationOptional<number>;
   /** A flat fee on the whole order, already included in totalAmount. */
-  declare surcharge: number;
+  declare surcharge: CreationOptional<number>;
   declare status: OrderStatus;
   declare paymentStatus: PaymentStatus;
-  declare paymentMethod: PaymentMethod;
-  declare paymentNotes: string;
+  declare paymentMethod: PaymentMethod | null;
+  declare paymentNotes: string | null;
 
   declare createdBy: number;
   declare deliveredAt: Date | null;
@@ -30,9 +46,12 @@ export class Order extends Model {
   declare customer?: NonAttribute<Customer>;
   declare user: NonAttribute<User>;
   declare orderDetails: NonAttribute<OrderDetail[]>;
+  declare orderPayments?: NonAttribute<OrderPayment[]>;
+  declare deliveredByUser?: NonAttribute<User>;
+  declare voidedByUser?: NonAttribute<User>;
 }
 Order.init(
-  {
+  columns<Order>({
     orderId: {
       type: DataTypes.INTEGER,
       autoIncrement: true,
@@ -61,6 +80,6 @@ Order.init(
     voidedAt: { type: DataTypes.DATE, allowNull: true, field: "voided_at" },
     voidedBy: { type: DataTypes.INTEGER, allowNull: true, field: "voided_by" },
     voidReason: { type: DataTypes.TEXT, allowNull: true, field: "void_reason" },
-  },
+  }),
   { sequelize, modelName: "Order", tableName: "orders", timestamps: true },
 );

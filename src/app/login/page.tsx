@@ -1,5 +1,6 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -89,8 +90,8 @@ function LoginPageContent() {
 
         router.push(redirectPath);
         router.refresh();
-      } catch (err: any) {
-        setError(err.message || "An unexpected error occurred.");
+      } catch (err) {
+        setError(errorMessage(err) || "An unexpected error occurred.");
       }
     });
   };

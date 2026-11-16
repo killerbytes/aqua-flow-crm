@@ -1,5 +1,5 @@
 "use client";
-import { InvoicePayment } from "@/backend/models";
+import type { InvoicePayment } from "@/types/models";
 import ColumnSort from "@/components/ColumnSort";
 import DataTable from "@/components/DataTable";
 import ColorBadge, { MonoText } from "@/components/presentation";
@@ -31,7 +31,7 @@ export default function PaymentList({
         },
         cell: (info) => <MonoText>{formatDate(info.getValue())}</MonoText>,
       }),
-      columnHelper.accessor((row: any) => row.user?.name ?? "", {
+      columnHelper.accessor((row) => row.user?.name ?? "", {
         id: "userName",
         header: "Logged by",
       }),
@@ -68,7 +68,7 @@ export default function PaymentList({
         header: "Status",
         meta: { align: "right" },
         cell: (info) => {
-          const payment = info.row.original as any;
+          const payment = info.row.original;
           if (payment.reversedAt) {
             return (
               <div className="text-right text-xs">

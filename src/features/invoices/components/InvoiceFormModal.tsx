@@ -1,7 +1,8 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
 import { createInvoiceAction, getOrdersAction } from "@/backend/actions";
-import { Order } from "@/backend/models";
+import type { Order } from "@/types/models";
 import { InvoiceFormData, InvoiceSchema } from "@/backend/schemas/zodSchemas";
 import ColumnSort from "@/components/ColumnSort";
 import DataTable from "@/components/DataTable";
@@ -123,10 +124,10 @@ function InvoiceFormModalContent({ onClose }: InvoiceFormModalProps) {
         });
         onClose();
         router.push(`/invoices/${res?.data?.invoiceId}`);
-      } catch (error: any) {
+      } catch (error) {
         toast.add({
           type: "error",
-          description: error.message || "Failed to create invoice",
+          description: errorMessage(error) || "Failed to create invoice",
         });
       }
     });
@@ -214,7 +215,7 @@ function InvoiceFormModalContent({ onClose }: InvoiceFormModalProps) {
             </span>
           ),
         }),
-      ].filter(Boolean) as any[],
+      ],
     [],
   );
 

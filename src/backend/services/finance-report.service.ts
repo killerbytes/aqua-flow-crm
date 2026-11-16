@@ -610,9 +610,10 @@ export class FinanceReportService {
       }),
     ]);
 
-    const customerName = (record: any) => record?.customer?.name ?? "Unknown customer";
+    const customerName = (record?: { customer?: { name: string } }) =>
+      record?.customer?.name ?? "Unknown customer";
     const rows: VoidRow[] = [
-      ...orders.map((order: any) => ({
+      ...orders.map((order) => ({
         at: order.voidedAt,
         type: VOID_TYPES.ORDER_VOIDED,
         reference: `Order #${order.orderId}`,
@@ -621,7 +622,7 @@ export class FinanceReportService {
         ...by(order.voidedByUser),
         reason: order.voidReason,
       })),
-      ...invoices.map((invoice: any) => ({
+      ...invoices.map((invoice) => ({
         at: invoice.voidedAt,
         type: VOID_TYPES.INVOICE_VOIDED,
         reference: `Invoice #${invoice.invoiceId}`,
@@ -630,7 +631,7 @@ export class FinanceReportService {
         ...by(invoice.voidedByUser),
         reason: invoice.voidReason,
       })),
-      ...orderPayments.map((payment: any) => ({
+      ...orderPayments.map((payment) => ({
         at: payment.reversedAt,
         type: VOID_TYPES.ORDER_PAYMENT_REVERSED,
         reference: `Order #${payment.orderId}`,
@@ -639,7 +640,7 @@ export class FinanceReportService {
         ...by(payment.reversedByUser),
         reason: payment.reversalReason,
       })),
-      ...invoicePayments.map((payment: any) => ({
+      ...invoicePayments.map((payment) => ({
         at: payment.reversedAt,
         type: VOID_TYPES.INVOICE_PAYMENT_REVERSED,
         reference: `Invoice #${payment.invoiceId}`,
@@ -648,7 +649,10 @@ export class FinanceReportService {
         ...by(payment.reversedByUser),
         reason: payment.reversalReason,
       })),
-    ].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+    ]
+      // Each query asks for a date in the range, so none of these is missing one.
+      .filter((row): row is typeof row & { at: Date } => row.at !== null)
+      .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
 
     const byType = Object.values(VOID_TYPES).map((type) => {
       const ofType = rows.filter((row) => row.type === type);

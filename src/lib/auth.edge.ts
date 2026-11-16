@@ -1,4 +1,4 @@
-import { SignJWT, jwtVerify } from "jose";
+import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 
 const DEV_FALLBACK_SECRET = "super_secret_jwt_key";
 
@@ -40,13 +40,43 @@ export const sessionCookieOptions = () => ({
   sameSite: "lax" as const,
 });
 
+/**
+ * What a session token carries. The fields named here are the ones the token
+ * checks read, and decodeToken confirms their types. Everything else is the
+ * rest of the user record, carried along but not verified.
+ */
+export interface TokenClaims {
+  userId?: number;
+  /** Compared with users.token_version to tell whether sessions were revoked. */
+  tokenVersion?: number;
+  /** When the user logged in, in seconds since the epoch. */
+  sessionStart?: number;
+  [claim: string]: unknown;
+}
+
 export interface VerifyResult {
-  user: any;
+  user: TokenClaims;
   newToken?: string;
 }
 
+const isMissingOrNumber = (value: unknown): value is number | undefined =>
+  value === undefined || (typeof value === "number" && Number.isFinite(value));
+
+/** Null for a payload whose checked fields are not the numbers they should be. */
+function toTokenClaims(payload: Record<string, unknown>): TokenClaims | null {
+  const { userId, tokenVersion, sessionStart } = payload;
+  if (
+    !isMissingOrNumber(userId) ||
+    !isMissingOrNumber(tokenVersion) ||
+    !isMissingOrNumber(sessionStart)
+  ) {
+    return null;
+  }
+  return { ...payload, userId, tokenVersion, sessionStart };
+}
+
 export async function signToken(
-  user: any,
+  user: TokenClaims,
   expiresIn: string = JWT_EXPIRES_IN,
 ): Promise<string> {
   const { exp, iat, nbf, jti, passwordHash, password_hash, ...cleanUser } =
@@ -63,26 +93,32 @@ export async function signToken(
 
 export interface DecodedToken {
   /** The token payload without JWT bookkeeping or password fields. */
-  claims: any;
+  claims: TokenClaims;
   /** True when the token has expired but is still inside the refresh window. */
   expired: boolean;
 }
 
+const isExpiryError = (error: unknown) =>
+  typeof error === "object" &&
+  error !== null &&
+  "code" in error &&
+  error.code === "ERR_JWT_EXPIRED";
+
 /**
  * Checks a token signature and its age. Returns null for a token that is
- * forged, expired past the refresh window, or from a session that is too old.
- * It never touches the database, so it is safe on the Edge runtime.
+ * forged, malformed, expired past the refresh window, or from a session that
+ * is too old. It never touches the database, so it is safe on the Edge runtime.
  */
 export async function decodeToken(token: string): Promise<DecodedToken | null> {
-  let payload: any;
+  let payload: JWTPayload;
   let expired = false;
 
   try {
     ({ payload } = await jwtVerify(token, getSecretKey(), {
       clockTolerance: "10s",
     }));
-  } catch (err: any) {
-    if (err?.code !== "ERR_JWT_EXPIRED") return null;
+  } catch (err) {
+    if (!isExpiryError(err)) return null;
     try {
       // Epoch as the current date reads the payload whatever its expiry.
       ({ payload } = await jwtVerify(token, getSecretKey(), {
@@ -98,9 +134,9 @@ export async function decodeToken(token: string): Promise<DecodedToken | null> {
     expired = true;
   }
 
-  const { exp, iat, nbf, jti, passwordHash, password_hash, ...claims } =
-    payload;
-  if (isSessionTooOld(claims)) return null;
+  const { exp, iat, nbf, jti, passwordHash, password_hash, ...rest } = payload;
+  const claims = toTokenClaims(rest);
+  if (!claims || isSessionTooOld(claims)) return null;
   return { claims, expired };
 }
 

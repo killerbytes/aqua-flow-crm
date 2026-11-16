@@ -1,6 +1,6 @@
 import { requirePagePermission } from "@/backend/auth/context";
 import { initDatabase } from "@/backend/db/database";
-import { ProductInventory } from "@/backend/models";
+import type { ProductInventory } from "@/types/models";
 import { EquipmentService, ProductService } from "@/backend/services";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import PageHeader from "@/components/shared/PageHeader";
@@ -21,7 +21,6 @@ import { ProductFormModalButton } from "@/features/products/components/ProductFo
 import { UserRole } from "@/lib/definitions";
 import { parsePageParams } from "@/lib/pagination";
 import { formatCurrency } from "@/lib/utils";
-import { Paginated } from "@/types";
 import {
   CogIcon,
   Edit,
@@ -54,8 +53,8 @@ export default async function ProductsPage({ searchParams }: ProductPageProps) {
 
   const { page, limit } = parsePageParams(params);
 
-  let products: any[] = [];
-  const logsPromise: Promise<Paginated<any>> = EquipmentService.getAll({
+  let products: ProductInventory[] = [];
+  const logsPromise = EquipmentService.getAll({
     limit,
     page,
     query: {

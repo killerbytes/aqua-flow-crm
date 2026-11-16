@@ -1,5 +1,6 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
 import { changePasswordAction } from "@/backend/actions";
 import {
   ChangePasswordData,
@@ -69,11 +70,11 @@ const ChangePasswordModalContent = () => {
         setChangePasswordModalOpen(false, null);
         router.refresh();
       });
-    } catch (err: any) {
+    } catch (err) {
       toast.add({
         type: "error",
         priority: "high",
-        title: err.message || "Failed to change password",
+        title: errorMessage(err) || "Failed to change password",
       });
     }
   };
