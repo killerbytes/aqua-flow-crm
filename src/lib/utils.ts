@@ -1,6 +1,8 @@
 import { env } from "@/backend/db/env";
 import { clsx, type ClassValue } from "clsx";
+import { BUSINESS_TIMEZONE } from "@/lib/business-time";
 import { format, isValid } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
@@ -27,7 +29,8 @@ export function formatDateTime(
   // Safely check for invalid date strings (e.g., "invalid-date")
   if (!isValid(parsedDate)) return "N/A";
 
-  return format(parsedDate, formatStr);
+  // Philippine time, so the server and the browser show the same clock time.
+  return formatInTimeZone(parsedDate, BUSINESS_TIMEZONE, formatStr);
 }
 
 export function formatCurrency(value: number | string | undefined) {
