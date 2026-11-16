@@ -7,6 +7,7 @@ import type {
   VoidRow,
   VoidsReport,
   VoidTypeRow,
+  VoidUserRow,
 } from "@/backend/services/finance-report.service";
 import type { EquipmentService } from "@/backend/services/equipment.service";
 import type {
@@ -15,6 +16,7 @@ import type {
   TemporaryEquipmentRow,
 } from "@/backend/services/report.service";
 import { businessDateKey, BUSINESS_TIMEZONE } from "@/lib/business-time";
+import { USER_ROLE_OPTIONS } from "@/lib/definitions";
 import { toCsv, type CsvValue } from "@/lib/csv";
 import { formatPeso as formatMoney } from "@/lib/money";
 import { formatInTimeZone } from "date-fns-tz";
@@ -264,7 +266,7 @@ export const voidsReport: ReportMeta = {
   slug: "voids",
   title: "Voids & Reversals",
   description:
-    "Voided orders and invoices, and reversed payments, with who did each and why. Dated by when the void or reversal happened.",
+    "Voided orders and invoices, and reversed payments, with who did each and why, and a count for each person. Dated by when the void or reversal happened.",
 };
 
 export const voidsTable: ReportTableDefinition<VoidRow> = {
@@ -294,6 +296,29 @@ export const voidsByTypeTable: ReportTableDefinition<VoidTypeRow> = {
   ],
   emptyMessage: "Nothing was voided or reversed in this range.",
 };
+
+const roleLabel = (role: string | null) =>
+  USER_ROLE_OPTIONS.find((option) => option.value === role)?.label ?? role;
+
+export const voidsByUserTable: ReportTableDefinition<VoidUserRow> = {
+  heading: "By User",
+  columns: [
+    { header: "User", value: (row) => row.by },
+    { header: "Role", value: (row) => roleLabel(row.role) },
+    { header: "Orders Voided", value: (row) => row.ordersVoided, align: "right" },
+    money("Orders Voided Amount", (row) => row.ordersVoidedAmount),
+    { header: "Invoices Voided", value: (row) => row.invoicesVoided, align: "right" },
+    { header: "Payments Reversed", value: (row) => row.paymentsReversed, align: "right" },
+  ],
+  emptyMessage: "Nothing was voided or reversed in this range.",
+};
+
+/** The Voids report's tables, by the `table` param its CSV route takes. */
+export const VOIDS_CSV_TABLES = {
+  list: { table: voidsTable, name: "voids-and-reversals" },
+  users: { table: voidsByUserTable, name: "voids-by-user" },
+} as const;
+export type VoidsCsvTable = keyof typeof VOIDS_CSV_TABLES;
 
 type BalanceRow = Awaited<
   ReturnType<typeof EquipmentService.getBalanceSheetReport>
@@ -410,6 +435,7 @@ export const salesSections = (report: SalesReport): ReportSection[] => [
 
 export const voidsSections = (report: VoidsReport): ReportSection[] => [
   { table: voidsByTypeTable, rows: report.byType, total: report.total },
+  { table: voidsByUserTable, rows: report.byUser, total: report.byUserTotal },
   { table: voidsTable, rows: report.rows },
 ];
 

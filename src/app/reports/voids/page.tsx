@@ -5,6 +5,7 @@ import { FinanceReportService, parseDateRange } from "@/backend/services";
 import DateRangeFilter from "@/features/reports/DateRangeFilter";
 import {
   rangeQuery,
+  VOIDS_CSV_TABLES,
   voidsReport,
   voidsSections,
 } from "@/features/reports/definitions";
@@ -22,13 +23,18 @@ export default async function VoidsReportPage({
 
   const range = parseDateRange(await searchParams);
   const report = await FinanceReportService.getVoidsAndReversals(range);
+  const query = rangeQuery(range);
 
   return (
     <ReportView
       canExport={checkPermission(user.role, "EXPORT_REPORTS")}
       report={voidsReport}
       sections={voidsSections(report)}
-      query={rangeQuery(range)}
+      query={query}
+      downloads={Object.entries(VOIDS_CSV_TABLES).map(([table, { table: def }]) => ({
+        label: `${def.heading} CSV`,
+        href: `/reports/voids/csv?${query}&table=${table}`,
+      }))}
       filters={<DateRangeFilter from={range.from} to={range.to} />}
       summary={`${report.rows.length} ${report.rows.length === 1 ? "void or reversal" : "voids and reversals"}`}
     />

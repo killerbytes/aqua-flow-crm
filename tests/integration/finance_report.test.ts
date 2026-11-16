@@ -285,6 +285,17 @@ describe("Integration - Finance Reports", () => {
         [1, 40],
       ]);
       expect(report.total).toEqual({ type: "Total", count: 4, amount: null });
+
+      const person = {
+        ordersVoided: 1,
+        ordersVoidedAmount: 50,
+        invoicesVoided: 1,
+        paymentsReversed: 2,
+      };
+      expect(report.byUser).toEqual([
+        { by: userName, role: (await User.findByPk(USER_ID))!.role, ...person },
+      ]);
+      expect(report.byUserTotal).toEqual({ by: "Total", role: null, ...person });
     });
   });
 

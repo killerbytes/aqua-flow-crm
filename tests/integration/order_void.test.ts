@@ -85,6 +85,50 @@ describe("Integration - Voiding Orders", () => {
     expect((await OrderService.get(order.orderId))?.voidReason).toBe(REASON);
   });
 
+  describe("limited to pending, unpaid orders (Cashier)", () => {
+    const limitedVoid = (orderId: number) =>
+      OrderService.voidOrder(orderId, { reason: REASON }, USER_ID, {
+        pendingUnpaidOnly: true,
+      });
+
+    it("should void a pending, unpaid order", async () => {
+      const order = await newOrder();
+
+      await limitedVoid(order.orderId);
+
+      const voided = (await OrderService.get(order.orderId)) as any;
+      expect(voided.status).toBe(OrderStatus.CANCELLED);
+      expect(voided.voidReason).toBe(REASON);
+      expect(voided.voidedBy).toBe(USER_ID);
+    });
+
+    it.each([OrderStatus.OUT_FOR_DELIVERY, OrderStatus.DELIVERED])(
+      "should refuse a %s order",
+      async (status) => {
+        const order = await newOrder(status);
+
+        await expect(limitedVoid(order.orderId)).rejects.toThrow(/Only a manager/);
+        expect((await OrderService.get(order.orderId))?.status).toBe(status);
+      },
+    );
+
+    it("should refuse a paid order and leave its payment alone", async () => {
+      const order = await newOrder();
+      await OrderService.makePayment(
+        { paymentMethod: PaymentMethod.CASH },
+        order.orderId,
+        USER_ID,
+      );
+
+      await expect(limitedVoid(order.orderId)).rejects.toThrow(/Only a manager/);
+
+      const kept = (await OrderService.get(order.orderId)) as any;
+      expect(kept.status).toBe(OrderStatus.PENDING);
+      expect(kept.paymentStatus).toBe(PaymentStatus.PAID);
+      expect(kept.orderPayments[0].reversedAt).toBeNull();
+    });
+  });
+
   it("should refuse an order on an invoice, until the invoice is voided", async () => {
     const order = await newOrder(OrderStatus.DELIVERED);
     const invoice = await InvoiceService.create(

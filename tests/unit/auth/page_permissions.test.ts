@@ -115,6 +115,8 @@ describe("Unit - Page Permissions", () => {
     ["VIEW_PRODUCTS", [ADMIN, MANAGER, CASHIER]],
     ["VIEW_INVOICES", [ADMIN, MANAGER, CASHIER]],
     ["VIEW_ORDERS", [ADMIN, MANAGER, CASHIER, DELIVERY]],
+    ["CANCEL_ORDER", [ADMIN, MANAGER]],
+    ["VOID_PENDING_ORDER", [ADMIN, MANAGER, CASHIER]],
     ["VOID_INVOICE", [ADMIN, MANAGER]],
     ["REVERSE_PAYMENT", [ADMIN, MANAGER]],
     ["MANAGE_USERS", [ADMIN]],
@@ -215,17 +217,35 @@ describe("Unit - Action Permissions", () => {
         .spyOn(OrderService, "voidOrder")
         .mockResolvedValue({ orderId: 1, customerId: 1 } as any);
 
-    it.each([ADMIN, MANAGER])("should be allowed for %s", async (role) => {
-      signInAs(role);
+    it.each([ADMIN, MANAGER])(
+      "should be allowed at any stage for %s",
+      async (role) => {
+        signInAs(role);
+        const voidOrder = mockVoid();
+        voidOrder.mockClear();
+
+        const res = await voidOrderAction(1, { reason: "Entered twice" });
+        expect(res.success).toBe(true);
+        expect(voidOrder).toHaveBeenCalledWith(1, { reason: "Entered twice" }, 1, {
+          pendingUnpaidOnly: false,
+        });
+      },
+    );
+
+    it("should be limited to pending, unpaid orders for a Cashier", async () => {
+      signInAs(CASHIER);
       const voidOrder = mockVoid();
+      voidOrder.mockClear();
 
       const res = await voidOrderAction(1, { reason: "Entered twice" });
       expect(res.success).toBe(true);
-      expect(voidOrder).toHaveBeenCalledWith(1, { reason: "Entered twice" }, 1);
+      expect(voidOrder).toHaveBeenCalledWith(1, { reason: "Entered twice" }, 1, {
+        pendingUnpaidOnly: true,
+      });
     });
 
-    it.each([CASHIER, DELIVERY])("should be refused for %s", async (role) => {
-      signInAs(role);
+    it("should be refused for Delivery staff", async () => {
+      signInAs(DELIVERY);
       const voidOrder = mockVoid();
       voidOrder.mockClear();
 

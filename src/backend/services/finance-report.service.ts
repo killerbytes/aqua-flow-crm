@@ -162,6 +162,8 @@ export interface VoidRow {
   customerName: string;
   amount: number;
   by: string;
+  byUserId: number | null;
+  byRole: string | null;
   reason: string | null;
 }
 
@@ -171,11 +173,26 @@ export interface VoidTypeRow {
   amount: number | null;
 }
 
+/** What one person voided and reversed in the range. */
+export interface VoidUserRow {
+  by: string;
+  /** The person's role now; null on the totals row or when nobody is recorded. */
+  role: string | null;
+  ordersVoided: number;
+  ordersVoidedAmount: number;
+  invoicesVoided: number;
+  /** Includes the payment reversed by voiding a paid order. */
+  paymentsReversed: number;
+}
+
 export interface VoidsReport {
   range: DateRange;
   rows: VoidRow[];
   byType: VoidTypeRow[];
   total: VoidTypeRow;
+  /** Most orders voided first. */
+  byUser: VoidUserRow[];
+  byUserTotal: VoidUserRow;
 }
 
 // ---------------------------------------------------------------------------
@@ -545,8 +562,13 @@ export class FinanceReportService {
     const byInclude = (as: string) => ({
       model: User,
       as,
-      attributes: ["name"],
+      attributes: ["userId", "name", "role"],
       paranoid: false,
+    });
+    const by = (user?: { userId: number; name: string; role: string } | null) => ({
+      by: userName(user),
+      byUserId: user?.userId ?? null,
+      byRole: user?.role ?? null,
     });
 
     const [orders, invoices, orderPayments, invoicePayments] = await Promise.all([
@@ -596,7 +618,7 @@ export class FinanceReportService {
         reference: `Order #${order.orderId}`,
         customerName: customerName(order),
         amount: order.totalAmount,
-        by: userName(order.voidedByUser),
+        ...by(order.voidedByUser),
         reason: order.voidReason,
       })),
       ...invoices.map((invoice: any) => ({
@@ -605,7 +627,7 @@ export class FinanceReportService {
         reference: `Invoice #${invoice.invoiceId}`,
         customerName: customerName(invoice),
         amount: invoice.amount,
-        by: userName(invoice.voidedByUser),
+        ...by(invoice.voidedByUser),
         reason: invoice.voidReason,
       })),
       ...orderPayments.map((payment: any) => ({
@@ -614,7 +636,7 @@ export class FinanceReportService {
         reference: `Order #${payment.orderId}`,
         customerName: customerName(payment.order),
         amount: payment.amount,
-        by: userName(payment.reversedByUser),
+        ...by(payment.reversedByUser),
         reason: payment.reversalReason,
       })),
       ...invoicePayments.map((payment: any) => ({
@@ -623,7 +645,7 @@ export class FinanceReportService {
         reference: `Invoice #${payment.invoiceId}`,
         customerName: customerName(payment.invoice),
         amount: payment.paymentAmount,
-        by: userName(payment.reversedByUser),
+        ...by(payment.reversedByUser),
         reason: payment.reversalReason,
       })),
     ].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
@@ -637,6 +659,37 @@ export class FinanceReportService {
       };
     });
 
+    // Per person, with order amounts kept in centavos until the end.
+    const users = new Map<number | null, VoidUserRow & { cents: number }>();
+    for (const row of rows) {
+      let user = users.get(row.byUserId);
+      if (!user) {
+        user = {
+          by: row.by,
+          role: row.byRole,
+          ordersVoided: 0,
+          ordersVoidedAmount: 0,
+          invoicesVoided: 0,
+          paymentsReversed: 0,
+          cents: 0,
+        };
+        users.set(row.byUserId, user);
+      }
+      if (row.type === VOID_TYPES.ORDER_VOIDED) {
+        user.ordersVoided += 1;
+        user.cents += toCents(row.amount);
+      } else if (row.type === VOID_TYPES.INVOICE_VOIDED) {
+        user.invoicesVoided += 1;
+      } else {
+        user.paymentsReversed += 1;
+      }
+    }
+    const byUser: VoidUserRow[] = [...users.values()]
+      .map(({ cents, ...user }) => ({ ...user, ordersVoidedAmount: fromCents(cents) }))
+      .sort((a, b) => b.ordersVoided - a.ordersVoided || a.by.localeCompare(b.by));
+    const count = (pick: (row: VoidUserRow) => number) =>
+      byUser.reduce((sum, row) => sum + pick(row), 0);
+
     return {
       range,
       rows,
@@ -644,6 +697,15 @@ export class FinanceReportService {
       // No grand amount: voiding an order also reverses its payment, so adding
       // the types together would count the same money twice.
       total: { type: "Total", count: rows.length, amount: null },
+      byUser,
+      byUserTotal: {
+        by: "Total",
+        role: null,
+        ordersVoided: count((row) => row.ordersVoided),
+        ordersVoidedAmount: fromCents(count((row) => toCents(row.ordersVoidedAmount))),
+        invoicesVoided: count((row) => row.invoicesVoided),
+        paymentsReversed: count((row) => row.paymentsReversed),
+      },
     };
   }
 }

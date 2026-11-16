@@ -440,11 +440,16 @@ export class OrderService {
    * Voids an order at any stage. It becomes cancelled and keeps the reason, who
    * voided it, and when. A direct payment on it is reversed with the same
    * reason. An order on an invoice is refused, as the invoice holds its total.
+   *
+   * `pendingUnpaidOnly` is for staff without CANCEL_ORDER: they may only void
+   * an order that is still pending and unpaid, so no payment is reversed and
+   * nothing has left the station.
    */
   static async voidOrder(
     id: number | string,
     input: VoidOrderFormData,
     userId: number,
+    options: { pendingUnpaidOnly?: boolean } = {},
   ) {
     const { reason } = VoidOrderSchema.parse(input);
 
@@ -459,6 +464,16 @@ export class OrderService {
       }
       if (order.status === OrderStatus.CANCELLED) {
         throw new Error("This order is already cancelled");
+      }
+      // Checked under the lock, so a payment or status change can't slip in.
+      if (
+        options.pendingUnpaidOnly &&
+        (order.status !== OrderStatus.PENDING ||
+          order.paymentStatus !== PaymentStatus.UNPAID)
+      ) {
+        throw new Error(
+          "Only a manager can void an order that is paid or no longer pending",
+        );
       }
       if (await isInvoiced(order.orderId, t)) {
         throw new Error(
