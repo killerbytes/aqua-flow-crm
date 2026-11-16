@@ -21,6 +21,8 @@ import { cx } from "class-variance-authority";
 import React from "react";
 
 interface DataTableProps<TData> {
+  // Columns of one table hold different value types, and TanStack's ColumnDef
+  // only accepts a mixed list when the value type is left open like this.
   columns: ColumnDef<TData, any>[];
   data: TData[];
   isLoading?: boolean;
@@ -68,7 +70,7 @@ export function DataTable<TData>({
             <TableRow key={headerGroup.id} className="hover:bg-transparent">
               {headerGroup.headers.map((header) => {
                 const align =
-                  (header.column.columnDef.meta as any)?.align || "left";
+                  header.column.columnDef.meta?.align || "left";
 
                 const alignClass =
                   align === "right"

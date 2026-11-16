@@ -3,9 +3,10 @@
 import { ColorBadge } from "@/components/presentation";
 import { PAYMENT_METHOD_BADGE_COLOR } from "@/lib/definitions";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
+import type { OrderPayment } from "@/types/models";
 import { ReversePaymentButton } from "@/features/invoices/components/ReversePaymentButton";
 
-export function OrderPaymentList({ payments }: { payments: any[] }) {
+export function OrderPaymentList({ payments }: { payments: OrderPayment[] }) {
   if (payments.length === 0) {
     return (
       <p className="rounded-lg border border-dashed py-6 text-center text-sm text-muted-foreground">

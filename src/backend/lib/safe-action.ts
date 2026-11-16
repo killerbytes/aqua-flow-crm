@@ -1,3 +1,4 @@
+import { errorMessage } from "@/lib/errors";
 import { z } from "zod";
 import { getAuthContext, requireAuth, UserSession } from "../auth/context";
 import { initDatabase } from "../db/database";
@@ -15,15 +16,15 @@ export type ActionContext = {
   user: UserSession;
 };
 
-export interface CreateActionOptions<TArgs extends any[], TOutput> {
+export interface CreateActionOptions<TArgs extends unknown[], TOutput> {
   permission?: PermissionAction;
-  schema?: z.ZodSchema<any>;
+  schema?: z.ZodType;
   /** Which argument the schema validates. Use 1 for (id, input) actions. */
   inputIndex?: number;
   handler: (ctx: ActionContext, ...args: TArgs) => Promise<TOutput> | TOutput;
 }
 
-export function createProtectedAction<TArgs extends any[], TOutput>(
+export function createProtectedAction<TArgs extends unknown[], TOutput>(
   opts: CreateActionOptions<TArgs, TOutput>,
 ) {
   return async (...args: TArgs): Promise<ActionResponse<TOutput>> => {
@@ -41,10 +42,11 @@ export function createProtectedAction<TArgs extends any[], TOutput>(
       let user: UserSession;
       try {
         user = requireAuth(context);
-      } catch (authErr: any) {
+      } catch (authErr) {
         return {
           success: false,
-          error: authErr.message || "Unauthorized: authentication required",
+          error:
+            errorMessage(authErr) || "Unauthorized: authentication required",
         };
       }
 
@@ -69,10 +71,10 @@ export function createProtectedAction<TArgs extends any[], TOutput>(
 
       const data = await opts.handler({ user }, ...args);
       return { success: true, data };
-    } catch (error: any) {
+    } catch (error) {
       return {
         success: false,
-        error: error?.message || "An unexpected error occurred",
+        error: errorMessage(error) || "An unexpected error occurred",
       };
     }
   };

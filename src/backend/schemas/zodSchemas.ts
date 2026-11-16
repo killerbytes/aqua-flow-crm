@@ -189,6 +189,7 @@ export type ProductFormData = z.infer<typeof ProductInventorySchema>;
 export type CustomerFormData = z.infer<typeof CustomerSchema>;
 export type LoginFormData = z.infer<typeof LoginSchema>;
 export type UserFormData = z.infer<typeof UserFormSchema>;
+export type UserUpdateFormData = z.infer<typeof UserFormUpdateSchema>;
 export type ChangePasswordData = z.infer<typeof ChangePasswordSchema>;
 export type EquipmentLogFormData = z.infer<typeof EquipmentLogSchema>;
 export type SpecialPricingFormData = z.infer<typeof SpecialPricingSchema>;

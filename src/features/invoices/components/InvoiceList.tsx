@@ -1,5 +1,5 @@
 "use client";
-import { Invoice } from "@/backend/models";
+import type { Invoice } from "@/types/models";
 import ColumnSort from "@/components/ColumnSort";
 import DataTable from "@/components/DataTable";
 import Pager from "@/components/Pager";

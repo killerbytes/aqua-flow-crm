@@ -1,5 +1,5 @@
 "use client";
-import { Customer } from "@/backend/models";
+import type { Customer } from "@/types/models";
 import ColumnSort from "@/components/ColumnSort";
 import DataTable from "@/components/DataTable";
 import Pager from "@/components/Pager";

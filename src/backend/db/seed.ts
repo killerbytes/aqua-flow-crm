@@ -246,6 +246,7 @@ export async function seedDatabase(options?: {
   await User.findOrCreate({
     where: { username: "admin" },
     defaults: {
+      username: "admin",
       name: "Admin",
       passwordHash: adminPasswordHash,
       role: UserRole.ADMIN,
@@ -255,6 +256,7 @@ export async function seedDatabase(options?: {
   await User.findOrCreate({
     where: { username: "cashier" },
     defaults: {
+      username: "cashier",
       name: "Cashier",
       passwordHash: adminPasswordHash,
       role: UserRole.CASHIER,
@@ -264,6 +266,7 @@ export async function seedDatabase(options?: {
   await User.findOrCreate({
     where: { username: "manager" },
     defaults: {
+      username: "manager",
       name: "Manager",
       passwordHash: adminPasswordHash,
       role: UserRole.MANAGER,
@@ -280,7 +283,7 @@ export async function seedDatabase(options?: {
   markDbInitialized();
 }
 
-async function seedForTest(options: any) {
+async function seedForTest(options?: { refDate?: Date }) {
   const seedData = generateSeedData(options?.refDate);
 
   // Seed Products

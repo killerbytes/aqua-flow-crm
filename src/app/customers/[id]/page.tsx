@@ -21,10 +21,6 @@ import Link from "next/link";
 
 import { initDatabase } from "@/backend/db/database";
 import {
-  CustomerEquipmentBalance,
-  CustomerSpecialPricing,
-} from "@/backend/models";
-import {
   CustomerService,
   EquipmentService,
   InvoiceService,
@@ -60,6 +56,7 @@ import { OrderFormModalButton } from "@/features/orders/components/OrderFormModa
 import OrderList from "@/features/orders/components/OrderList";
 import EquipmentLogs from "@/features/products/components/EquipmentLogs";
 import { CUSTOMER_STATUS_BADGE_COLOR, UserRole } from "@/lib/definitions";
+import { parsePageParams } from "@/lib/pagination";
 import { formatCurrency } from "@/lib/utils";
 import { redirect } from "next/navigation";
 
@@ -80,8 +77,8 @@ export default async function CustomerPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{
     tab?: string;
-    limit?: number;
-    page?: number;
+    limit?: string;
+    page?: string;
     sort?: string;
     order?: "ASC" | "DESC";
   }>;
@@ -89,7 +86,10 @@ export default async function CustomerPage({
   await initDatabase();
   await requirePagePermission("VIEW_CUSTOMERS");
   const { id } = await params;
-  const { limit, page, sort, order } = await searchParams;
+  const search = await searchParams;
+  const { sort, order } = search;
+  // URL values arrive as text.
+  const { limit, page } = parsePageParams(search);
   let customer;
 
   try {
@@ -130,18 +130,15 @@ export default async function CustomerPage({
   });
   const barangays = CommonService.getBarangays();
 
-  const activeRegularBalances: CustomerEquipmentBalance[] =
+  const activeRegularBalances =
+    customer.equipmentBalances?.filter((b) => (b.quantityOwed ?? 0) > 0) || [];
+
+  const activeTemporaryBalances =
     customer.equipmentBalances?.filter(
-      (b: CustomerEquipmentBalance) => (b.quantityOwed ?? 0) > 0,
+      (b) => (b.quantityTemporaryOwed ?? 0) > 0,
     ) || [];
 
-  const activeTemporaryBalances: CustomerEquipmentBalance[] =
-    customer.equipmentBalances?.filter(
-      (b: CustomerEquipmentBalance) => (b.quantityTemporaryOwed ?? 0) > 0,
-    ) || [];
-
-  const specialPricings: CustomerSpecialPricing[] =
-    customer.specialPricings || [];
+  const specialPricings = customer.specialPricings || [];
   const unitsOut = activeRegularBalances.reduce(
     (sum, b) => sum + (b.quantityOwed ?? 0),
     0,
@@ -151,7 +148,7 @@ export default async function CustomerPage({
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
-    .map((word: string) => word[0]?.toUpperCase())
+    .map((word) => word[0]?.toUpperCase())
     .join("");
   const customerSince = new Date(customer.createdAt).toLocaleDateString(
     "en-PH",

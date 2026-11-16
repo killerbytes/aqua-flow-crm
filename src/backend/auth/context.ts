@@ -1,4 +1,4 @@
-import { verifyOrRefreshToken } from "@/lib/auth";
+import { verifyOrRefreshToken, type TokenClaims } from "@/lib/auth";
 import { sessionCookieOptions } from "@/lib/auth.edge";
 import { UserRole } from "@/lib/definitions";
 import { cookies, headers } from "next/headers";
@@ -14,6 +14,24 @@ export interface UserSession {
 
 export interface AuthContext {
   user?: UserSession;
+}
+
+const USER_ROLES: readonly unknown[] = Object.values(UserRole);
+
+/**
+ * Whether a verified token's user has everything a session needs. A token can
+ * be signed correctly and still lack these, so its contents are checked before
+ * anything relies on them.
+ */
+function isUserSession(user: TokenClaims): user is TokenClaims & UserSession {
+  return (
+    typeof user.userId === "number" &&
+    Number.isInteger(user.userId) &&
+    user.userId > 0 &&
+    typeof user.name === "string" &&
+    typeof user.username === "string" &&
+    USER_ROLES.includes(user.role)
+  );
 }
 
 export function requireAuth(ctx: AuthContext): UserSession {
@@ -57,7 +75,7 @@ export async function requirePagePermission(
 export async function getAuthContext(): Promise<AuthContext> {
   try {
     let token: string | undefined;
-    let cookieStore: any;
+    let cookieStore: Awaited<ReturnType<typeof cookies>> | undefined;
 
     try {
       cookieStore = await cookies();
@@ -80,7 +98,8 @@ export async function getAuthContext(): Promise<AuthContext> {
 
     if (token) {
       const result = await verifyOrRefreshToken(token);
-      if (result) {
+      // A token whose user is incomplete is treated as no session at all.
+      if (result && isUserSession(result.user)) {
         if (result.newToken && cookieStore) {
           try {
             cookieStore.set("token", result.newToken, sessionCookieOptions());

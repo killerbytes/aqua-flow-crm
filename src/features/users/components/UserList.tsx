@@ -1,5 +1,5 @@
 "use client";
-import { User } from "@/backend/models";
+import type { User } from "@/types/models";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import DataTable from "@/components/DataTable";
 import { ColorBadge } from "@/components/presentation";

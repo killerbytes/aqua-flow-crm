@@ -32,7 +32,7 @@ export default function ColumnSort<T>({
     });
     router.push(`?${params.toString()}`);
   };
-  const { align = "left" } = (column.columnDef.meta as any) || {};
+  const align = column.columnDef.meta?.align ?? "left";
   const alignClass =
     align === "right"
       ? "justify-end"

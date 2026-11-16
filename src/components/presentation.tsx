@@ -1,4 +1,4 @@
-import { Customer } from "@/backend/models";
+import type { Customer } from "@/types/models";
 import { CustomerStatus } from "@/lib/definitions";
 import { cx } from "class-variance-authority";
 import { Tag } from "lucide-react";
@@ -17,11 +17,10 @@ export function MonoText({ children, className }: MonoTextProps) {
   return <span className={cx("text-xs font-mono", className)}>{children}</span>;
 }
 
-interface ColorBadgeProps {
-  className?: string;
-  children: string | undefined;
+interface ColorBadgeProps
+  extends Omit<React.ComponentProps<typeof Badge>, "children"> {
+  children: string | null | undefined;
   colorMap?: Record<string, string>;
-  [key: string]: any;
 }
 
 /**

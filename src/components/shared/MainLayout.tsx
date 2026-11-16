@@ -1,5 +1,6 @@
 "use client";
 
+import type { UserSession } from "@/backend/auth/context";
 import { useAuthStore } from "@/lib/store";
 import React from "react";
 
@@ -8,7 +9,7 @@ export default function MainLayout({
   serverUser,
 }: {
   children: React.ReactNode;
-  serverUser: any;
+  serverUser: UserSession | undefined;
 }) {
   const { setUser } = useAuthStore();
   const storeUser = useAuthStore((state) => state.user);

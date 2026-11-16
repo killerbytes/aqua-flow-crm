@@ -1,6 +1,6 @@
 "use client";
 
-import { Invoice, InvoicePayment } from "@/backend/models";
+import type { Invoice, InvoicePayment } from "@/types/models";
 import { ColorBadge } from "@/components/presentation";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";

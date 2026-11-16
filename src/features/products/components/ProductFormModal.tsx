@@ -1,5 +1,6 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
 import {
   createProductAction,
   deleteProductAction,
@@ -100,11 +101,11 @@ export const ProductFormModalContent = ({}) => {
       reset();
       setProductFormModalOpen(false, null);
       router.refresh();
-    } catch (err: any) {
+    } catch (err) {
       toast.add({
         type: "error",
         priority: "high",
-        title: `Failed to save product: ${err.message}`,
+        title: `Failed to save product: ${errorMessage(err)}`,
       });
     }
   };
@@ -125,11 +126,11 @@ export const ProductFormModalContent = ({}) => {
         setProductFormModalOpen(false, null);
         router.refresh();
       }
-    } catch (err: any) {
+    } catch (err) {
       toast.add({
         type: "error",
         priority: "high",
-        title: `Failed to delete product: ${err.message}`,
+        title: `Failed to delete product: ${errorMessage(err)}`,
       });
     }
   };

@@ -1,3 +1,4 @@
+import { toPlain } from "../models/plain";
 import { comparePassword, hashPassword, signToken } from "@/lib/auth";
 import { User } from "../models";
 import {
@@ -10,7 +11,7 @@ import {
 export class AuthenticationError extends Error {}
 
 const toSafeUser = (user: User) => {
-  const { passwordHash, ...safeUser } = user.get({ plain: true });
+  const { passwordHash, ...safeUser } = toPlain(user);
   return safeUser;
 };
 
@@ -29,8 +30,7 @@ export class AuthService {
       throw new AuthenticationError("Invalid email or password");
     }
 
-    const hash = (user as any).passwordHash ?? (user as any).password_hash;
-    const isValid = await comparePassword(password, hash);
+    const isValid = await comparePassword(password, user.passwordHash);
     if (!isValid) {
       throw new AuthenticationError("Invalid email or password");
     }
@@ -43,10 +43,10 @@ export class AuthService {
     const plainUser = toSafeUser(user);
     const userDTO = {
       ...plainUser,
-      email: plainUser.email || username,
+      email: username,
     };
 
-    const token = await signToken(userDTO as any);
+    const token = await signToken(userDTO);
     return { token, user: userDTO };
   }
 
@@ -54,7 +54,7 @@ export class AuthService {
     const user = await User.findByPk(userId, {
       attributes: { exclude: ["passwordHash"] },
     });
-    return user?.get({ plain: true });
+    return user ? toPlain(user) : undefined;
   }
 
   static async getUsers() {
@@ -62,14 +62,14 @@ export class AuthService {
       attributes: { exclude: ["passwordHash"] },
       order: [["userId", "ASC"]],
     });
-    return users.map((user) => user.get({ plain: true }));
+    return users.map((user) => toPlain(user));
   }
 
   static async getUserById(id: number | string) {
     const user = await User.findByPk(Number(id), {
       attributes: { exclude: ["passwordHash"] },
     });
-    return user?.get({ plain: true });
+    return user ? toPlain(user) : undefined;
   }
 
   static async createUser(input: {
@@ -78,15 +78,15 @@ export class AuthService {
     password?: string;
     role: string;
   }) {
-    const validatedData = UserSchema.parse(input);
+    const { password, ...fields } = UserSchema.parse(input);
     const user = await User.create({
-      ...validatedData,
-      passwordHash: await hashPassword(validatedData.password),
-    } as any);
+      ...fields,
+      passwordHash: await hashPassword(password),
+    });
     return toSafeUser(user);
   }
 
-  static async updateUser(id: number | string, input: any) {
+  static async updateUser(id: number | string, input: unknown) {
     const validatedData = UserFormUpdateSchema.parse(input);
 
     const user = await User.findByPk(Number(id));
@@ -102,7 +102,7 @@ export class AuthService {
       await AuthService.revokeSessions(user.userId);
       await user.reload();
     }
-    return user.get({ plain: true });
+    return toPlain(user);
   }
 
   /** Cancels every session the user has, on every device. */

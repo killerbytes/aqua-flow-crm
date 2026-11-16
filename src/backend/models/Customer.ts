@@ -3,34 +3,43 @@ import { CustomerStatus } from "@/lib/definitions";
 import {
   CreationOptional,
   DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
   Model,
   NonAttribute,
-  Order,
 } from "sequelize";
 import { sequelize } from "../db/database";
 import { CustomerEquipmentBalance } from "./CustomerEquipmentBalance";
 import { CustomerSpecialPricing } from "./CustomerSpecialPricing";
+import type { Order } from "./Order";
+import { columns } from "./plain";
 
-export class Customer extends Model {
-  declare customerId: number;
+export class Customer extends Model<
+  InferAttributes<Customer>,
+  // status has a default, so it is optional on create
+  InferCreationAttributes<Customer, { omit: "status" }> & {
+    status?: CustomerStatus;
+  }
+> {
+  declare customerId: CreationOptional<number>;
   declare name: string;
   declare address: string;
-  declare phone?: string;
+  declare phone?: string | null;
   declare status: CustomerStatus;
-  declare notes: string;
-  declare barangayId: string;
+  declare notes: CreationOptional<string>;
+  declare barangayId: CreationOptional<string>;
   declare barangay?: string;
   declare searchText?: string;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
   declare deletedAt?: CreationOptional<Date> | null;
 
-  declare equipmentBalances?: NonAttribute<CustomerEquipmentBalance>[];
-  declare specialPricings?: NonAttribute<CustomerSpecialPricing>[];
-  declare orders?: NonAttribute<Order>[];
+  declare equipmentBalances?: NonAttribute<CustomerEquipmentBalance[]>;
+  declare specialPricings?: NonAttribute<CustomerSpecialPricing[]>;
+  declare orders?: NonAttribute<Order[]>;
 }
 
-export function generateCustomerSearchText(customer: any): string {
+export function generateCustomerSearchText(customer: Customer): string {
   const barangayId =
     customer.barangayId || customer.getDataValue?.("barangayId");
   const barangayName = barangayId
@@ -46,7 +55,7 @@ export function generateCustomerSearchText(customer: any): string {
 }
 
 Customer.init(
-  {
+  columns<Customer>({
     customerId: {
       type: DataTypes.INTEGER,
       autoIncrement: true,
@@ -75,7 +84,7 @@ Customer.init(
     searchText: {
       type: DataTypes.TEXT,
     },
-  },
+  }),
   {
     sequelize,
     modelName: "Customer",

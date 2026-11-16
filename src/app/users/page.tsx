@@ -14,7 +14,7 @@ export default async function UsersPage() {
   await initDatabase();
   await requirePagePermission("VIEW_USERS");
 
-  let users: any[] = [];
+  let users: Awaited<ReturnType<typeof AuthService.getUsers>> = [];
   try {
     users = await AuthService.getUsers();
   } catch (err) {

@@ -9,20 +9,20 @@ import {
   LEDGER_ACCOUNT_LABELS,
 } from "@/lib/definitions";
 import { formatDateTime } from "@/lib/utils";
-import { Paginated } from "@/types";
+import type { EquipmentLogPage } from "@/backend/services/equipment.service";
 import { createColumnHelper } from "@tanstack/react-table";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { use } from "react";
 
 interface EquipmentLogsProps {
-  logsPromise: Promise<Paginated<any>>;
+  logsPromise: Promise<EquipmentLogPage>;
 }
 
 export default function EquipmentLogs({ logsPromise }: EquipmentLogsProps) {
   const data = use(logsPromise);
 
-  const columnHelper = createColumnHelper<any>();
+  const columnHelper = createColumnHelper<EquipmentLogPage["rows"][number]>();
   const columns = [
     columnHelper.accessor("logId", {
       header: "Log ID",

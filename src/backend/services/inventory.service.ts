@@ -1,3 +1,4 @@
+import { toPlain } from "../models/plain";
 import {
   InventoryAdjustmentType,
   LedgerAccountType,
@@ -27,16 +28,13 @@ export class InventoryService {
       query = {},
     } = params;
 
-    const where: any = {};
-    if (query.productId) where.productId = query.productId;
-
     const offset = (page - 1) * limit;
 
     const { rows, count } = await EquipmentLedgerEntry.findAndCountAll({
       offset,
       limit,
       where: {
-        ...where,
+        ...(query.productId ? { productId: query.productId } : {}),
         referenceType: [
           LedgerReferenceType.INVENTORY_ADJUSTMENT,
           LedgerReferenceType.RESTOCK,
@@ -48,7 +46,7 @@ export class InventoryService {
 
     return {
       rows: rows.map((r) => {
-        const plain = r.get({ plain: true });
+        const plain = toPlain(r);
         let mappedType: InventoryAdjustmentType = InventoryAdjustmentType.STOCK_IN;
         if (plain.toAccountType === LedgerAccountType.SCRAP_DAMAGED) {
           mappedType = InventoryAdjustmentType.DECLARED_DAMAGED;
@@ -120,7 +118,7 @@ export class InventoryService {
           { transaction: t },
         );
 
-        return entry.get({ plain: true });
+        return toPlain(entry);
       });
     } catch (error) {
       handleServiceError(error);

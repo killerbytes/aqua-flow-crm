@@ -1,10 +1,10 @@
-import {
+import type {
   Customer,
   Invoice,
   Order,
   ProductInventory,
   User,
-} from "@/backend/models";
+} from "@/types/models";
 import { create } from "zustand";
 
 interface UIState {

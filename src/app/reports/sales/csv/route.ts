@@ -28,16 +28,23 @@ export async function GET(request: NextRequest) {
     name && name in SALES_CSV_TABLES ? (name as SalesCsvTable) : "period";
 
   const report = await FinanceReportService.getSales(range, group);
-  const data = {
-    period: [report.periods, report.periodTotal],
-    products: [report.products, report.productTotal],
-    collections: [report.collections, report.collectionTotal],
-  } as const;
-  const [rows, total] = data[key];
-  const { table, name: file } = SALES_CSV_TABLES[key];
+  // Each table is paired with its own rows here, so the two can't be mixed up.
+  const tables = SALES_CSV_TABLES;
+  const csv: Record<SalesCsvTable, () => string> = {
+    period: () =>
+      reportCsv(tables.period.table, report.periods, report.periodTotal),
+    products: () =>
+      reportCsv(tables.products.table, report.products, report.productTotal),
+    collections: () =>
+      reportCsv(
+        tables.collections.table,
+        report.collections,
+        report.collectionTotal,
+      ),
+  };
 
   return csvResponse(
-    `${file}-${range.from}-to-${range.to}.csv`,
-    reportCsv(table as any, rows as any[], total),
+    `${tables[key].name}-${range.from}-to-${range.to}.csv`,
+    csv[key](),
   );
 }

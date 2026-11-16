@@ -1,14 +1,26 @@
 import { PaymentMethod } from "@/lib/definitions";
-import { CreationOptional, DataTypes, Model, NonAttribute } from "sequelize";
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from "sequelize";
 import { sequelize } from "../db/database";
 import { moneyColumn } from "./moneyColumn";
+import type { Order } from "./Order";
+import { columns } from "./plain";
 import { User } from "./User";
 
 /**
  * A payment taken directly on an order, outside any invoice. Payments made
  * through an invoice are InvoicePayment rows instead.
  */
-export class OrderPayment extends Model {
+export class OrderPayment extends Model<
+  InferAttributes<OrderPayment>,
+  InferCreationAttributes<OrderPayment>
+> {
   declare id: CreationOptional<number>;
   declare orderId: number;
   declare amount: number;
@@ -22,12 +34,13 @@ export class OrderPayment extends Model {
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
 
+  declare order?: NonAttribute<Order>;
   declare user?: NonAttribute<User>;
   declare reversedByUser?: NonAttribute<User>;
 }
 
 OrderPayment.init(
-  {
+  columns<OrderPayment>({
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     orderId: { type: DataTypes.INTEGER, allowNull: false, field: "order_id" },
     amount: moneyColumn("amount", { allowNull: false }),
@@ -47,7 +60,7 @@ OrderPayment.init(
       allowNull: true,
       field: "reversal_reason",
     },
-  },
+  }),
   {
     sequelize,
     modelName: "OrderPayment",

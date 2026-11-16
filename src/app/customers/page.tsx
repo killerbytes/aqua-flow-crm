@@ -1,5 +1,5 @@
 import { requirePagePermission } from "@/backend/auth/context";
-import { Customer } from "@/backend/models";
+import type { Customer } from "@/types/models";
 import { CommonService } from "@/backend/services/commonService";
 import {
   CustomerQueryParams,

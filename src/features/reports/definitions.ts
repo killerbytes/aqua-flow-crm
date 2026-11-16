@@ -55,6 +55,8 @@ export interface ReportDefinition<Row>
     ReportTableDefinition<Row> {}
 
 /** A table with its rows and an optional totals row, ready to show. */
+// A report lists sections with different row types side by side. Each one's
+// table and rows still match, which is what the default leaves unchecked.
 export interface ReportSection<Row = any> {
   table: ReportTableDefinition<Row>;
   rows: Row[];

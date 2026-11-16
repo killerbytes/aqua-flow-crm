@@ -1,3 +1,4 @@
+import { toPlain } from "../models/plain";
 import {
   InvoiceStatus,
   OrderStatus,
@@ -6,7 +7,13 @@ import {
 } from "@/lib/definitions";
 import { toPagination } from "@/lib/pagination";
 import { fromCents, toCents } from "@/lib/money";
-import { Op, OrderItem } from "sequelize";
+import {
+  Attributes,
+  Includeable,
+  Op,
+  OrderItem,
+  WhereAttributeHash,
+} from "sequelize";
 import {
   Customer,
   Invoice,
@@ -25,6 +32,8 @@ import {
   VoidInvoiceFormData,
   VoidInvoiceSchema,
 } from "../schemas/zodSchemas";
+
+type InvoiceWhere = WhereAttributeHash<Attributes<Invoice>>;
 
 export interface InvoiceQueryParams {
   limit?: number;
@@ -48,7 +57,7 @@ export class InvoiceService {
     } = params;
     const { status, customerId } = query || {};
 
-    const where: any = {};
+    const where: InvoiceWhere = {};
     if (status) {
       where.status = status;
     }
@@ -56,7 +65,7 @@ export class InvoiceService {
       where.customerId = customerId;
     }
 
-    const include: any[] = [
+    const include: Includeable[] = [
       {
         model: InvoiceDetail,
         as: "invoiceDetails",
@@ -91,7 +100,7 @@ export class InvoiceService {
     });
 
     return {
-      rows: rows.map((r) => r.get({ plain: true })),
+      rows: rows.map((r) => toPlain(r)),
       pagination: toPagination(count, limit, page),
       summary: await getSummary(where),
     };
@@ -128,7 +137,7 @@ export class InvoiceService {
       ],
     });
 
-    return invoice?.get({ plain: true });
+    return invoice ? toPlain(invoice) : undefined;
   }
   static async create(data: InvoiceFormData, userId: number) {
     return await sequelize.transaction(async (t) => {
@@ -186,9 +195,10 @@ export class InvoiceService {
       const invoice = await Invoice.create(
         {
           customerId: data.customerId,
-          dateIssued: data.dateIssued || new Date(),
-          dueDate:
-            data.dueDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          dateIssued: data.dateIssued ? new Date(data.dateIssued) : new Date(),
+          dueDate: data.dueDate
+            ? new Date(data.dueDate)
+            : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
           amount: fromCents(totalCents),
           discount: 0,
           status: InvoiceStatus.UNPAID,
@@ -280,7 +290,9 @@ export class InvoiceService {
         {
           invoiceId: validatedData.invoiceId,
           paymentAmount: fromCents(paymentCents),
-          paymentDate: validatedData.paymentDate || new Date(),
+          paymentDate: validatedData.paymentDate
+            ? new Date(validatedData.paymentDate)
+            : new Date(),
           paymentMethod: validatedData.paymentMethod,
           paymentNotes: validatedData.paymentNotes,
           loggedBy,
@@ -288,7 +300,7 @@ export class InvoiceService {
         { transaction: t },
       );
 
-      return invoice.get({ plain: true });
+      return toPlain(invoice);
     });
   }
   /**
@@ -339,7 +351,7 @@ export class InvoiceService {
         { where: { invoiceId: invoice.invoiceId }, transaction: t },
       );
 
-      return invoice.get({ plain: true });
+      return toPlain(invoice);
     });
   }
 
@@ -395,7 +407,7 @@ export class InvoiceService {
       } else {
         invoice.status =
           paidCents > 0 ? InvoiceStatus.PARTIAL : InvoiceStatus.UNPAID;
-        invoice.paymentDate = null as any;
+        invoice.paymentDate = null;
       }
       await invoice.save({ transaction: t });
 
@@ -415,7 +427,7 @@ export class InvoiceService {
         }
       }
 
-      return payment!.get({ plain: true });
+      return toPlain(payment!);
     });
   }
 
@@ -428,11 +440,11 @@ export class InvoiceService {
       ],
       order: [["paymentDate", "ASC"]],
     });
-    return payments.map((p) => p.get({ plain: true }));
+    return payments.map((p) => toPlain(p));
   }
 }
 
-const getSummary = async (where: any) => {
+const getSummary = async (where: InvoiceWhere) => {
   const openInvoices = await Invoice.findAll({
     attributes: ["invoiceId", "amount"],
     where: {
@@ -491,3 +503,6 @@ const getSummary = async (where: any) => {
     },
   };
 };
+
+/** A page of the invoice list, with its summary tiles. */
+export type InvoiceListPage = Awaited<ReturnType<typeof InvoiceService.getAll>>;

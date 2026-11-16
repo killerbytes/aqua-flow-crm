@@ -1,3 +1,4 @@
+import { toPlain } from "../models/plain";
 import {
   CustomerStatus,
   EquipmentActionType,
@@ -139,14 +140,17 @@ export class EquipmentService {
       query = {},
     } = params;
 
-    const where: any = {};
-    if (query.customerId) {
-      where[Op.or] = [
-        { fromAccountId: query.customerId },
-        { toAccountId: query.customerId },
-      ];
-    }
-    if (query.productId) where.productId = query.productId;
+    const where = {
+      ...(query.customerId
+        ? {
+            [Op.or]: [
+              { fromAccountId: query.customerId },
+              { toAccountId: query.customerId },
+            ],
+          }
+        : {}),
+      ...(query.productId ? { productId: query.productId } : {}),
+    };
 
     const offset = (page - 1) * limit;
 
@@ -164,7 +168,7 @@ export class EquipmentService {
 
     return {
       rows: rows.map((r) => {
-        const plain = r.get({ plain: true });
+        const plain = toPlain(r);
         return {
           ...plain,
           logId: plain.entryId,
@@ -176,7 +180,7 @@ export class EquipmentService {
     };
   }
 
-  static async logEquipment(input: any, loggedByUserId: number) {
+  static async logEquipment(input: unknown, loggedByUserId: number) {
     const validatedData = EquipmentLogSchema.parse(input);
     return await sequelize.transaction((t) =>
       EquipmentService.recordEquipmentAction(validatedData, loggedByUserId, t),
@@ -300,7 +304,7 @@ export class EquipmentService {
       { transaction: t },
     );
 
-    const plain = entry.get({ plain: true });
+    const plain = toPlain(entry);
     return {
       ...plain,
       logId: entry.entryId,
@@ -386,7 +390,7 @@ export class EquipmentService {
 
     const report = [];
     for (const b of balances) {
-      const plain = b.get({ plain: true });
+      const plain = toPlain(b);
       const lastEntry = await EquipmentLedgerEntry.findOne({
         where: {
           productId: b.productId,
@@ -479,3 +483,8 @@ export class EquipmentService {
     });
   }
 }
+
+/** A page of the equipment log. */
+export type EquipmentLogPage = Awaited<
+  ReturnType<typeof EquipmentService.getAll>
+>;

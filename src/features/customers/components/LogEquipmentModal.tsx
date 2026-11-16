@@ -1,7 +1,8 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
 import { logEquipmentAction } from "@/backend/actions";
-import { ProductInventory } from "@/backend/models";
+import type { ProductInventory } from "@/types/models";
 import {
   EquipmentLogFormData,
   EquipmentLogSchema,
@@ -79,11 +80,11 @@ function LogEquipmentModalContent({
         });
         onClose();
         router.refresh();
-      } catch (error: any) {
+      } catch (error) {
         toast.add({
           type: "error",
           priority: "high",
-          description: error.message || "Failed to log equipment",
+          description: errorMessage(error) || "Failed to log equipment",
         });
       }
     });
@@ -100,7 +101,8 @@ function LogEquipmentModalContent({
             value={isTemp ? ["temp"] : ["fixed"]}
             onValueChange={(value) => {
               setIsTemp(value.length > 0 && value[0] === "temp");
-              form.setValue("actionType", "" as any);
+              // The actions differ between the two, so the choice starts over.
+              form.resetField("actionType");
             }}
           >
             <ToggleGroupItem

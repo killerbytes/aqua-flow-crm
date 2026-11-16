@@ -1,6 +1,6 @@
 import { requirePagePermission } from "@/backend/auth/context";
 import { initDatabase } from "@/backend/db/database";
-import { Invoice } from "@/backend/models";
+import type { Invoice } from "@/types/models";
 import { InvoiceService } from "@/backend/services";
 import { ColorBadge } from "@/components/presentation";
 import PageHeader from "@/components/shared/PageHeader";
@@ -31,7 +31,7 @@ export default async function InvoiceDetailPage({
   let invoice: Invoice | null = null;
 
   try {
-    invoice = await InvoiceService.get(id);
+    invoice = (await InvoiceService.get(id)) ?? null;
   } catch (err) {
     invoice = null;
   }

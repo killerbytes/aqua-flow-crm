@@ -1,14 +1,25 @@
-import { CreationOptional, DataTypes, Model, NonAttribute } from "sequelize";
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from "sequelize";
 import { sequelize } from "../db/database";
 import { Customer } from "./Customer";
+import { columns } from "./plain";
 import { ProductInventory } from "./ProductInventory";
 
-export class CustomerEquipmentBalance extends Model {
-  declare balanceId: number;
+export class CustomerEquipmentBalance extends Model<
+  InferAttributes<CustomerEquipmentBalance>,
+  InferCreationAttributes<CustomerEquipmentBalance>
+> {
+  declare balanceId: CreationOptional<number>;
   declare customerId: number;
   declare productId: number;
-  declare quantityOwed: number;
-  declare quantityTemporaryOwed: number;
+  declare quantityOwed: CreationOptional<number>;
+  declare quantityTemporaryOwed: CreationOptional<number>;
 
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
@@ -17,7 +28,7 @@ export class CustomerEquipmentBalance extends Model {
   declare customer: NonAttribute<Customer>;
 }
 CustomerEquipmentBalance.init(
-  {
+  columns<CustomerEquipmentBalance>({
     balanceId: {
       type: DataTypes.INTEGER,
       autoIncrement: true,
@@ -27,7 +38,7 @@ CustomerEquipmentBalance.init(
     productId: { type: DataTypes.INTEGER, allowNull: false },
     quantityOwed: { type: DataTypes.INTEGER, defaultValue: 0 },
     quantityTemporaryOwed: { type: DataTypes.INTEGER, defaultValue: 0 },
-  },
+  }),
   {
     sequelize,
     modelName: "CustomerEquipmentBalance",

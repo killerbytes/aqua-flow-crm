@@ -1,7 +1,8 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
 import { setSpecialPricingAction } from "@/backend/actions";
-import { ProductInventory } from "@/backend/models";
+import type { ProductInventory } from "@/types/models";
 import {
   SpecialPricingFormData,
   SpecialPricingSchema,
@@ -72,11 +73,11 @@ function SpecialPricingModalContent({
         });
         onClose();
         router.refresh();
-      } catch (error: any) {
+      } catch (error) {
         toast.add({
           type: "error",
           priority: "high",
-          description: error.message || "Failed to set special pricing",
+          description: errorMessage(error) || "Failed to set special pricing",
         });
       }
     });

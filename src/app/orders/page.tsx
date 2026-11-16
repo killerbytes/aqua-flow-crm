@@ -1,7 +1,7 @@
 import { requirePagePermission } from "@/backend/auth/context";
 import { initDatabase } from "@/backend/db/database";
 import { checkPermission } from "@/backend/rbac/permissions";
-import { OrderService } from "@/backend/services";
+import { OrderService, type OrderListPage } from "@/backend/services";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import PageHeader from "@/components/shared/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,7 +18,6 @@ import {
 } from "@/lib/definitions";
 import { parsePageParams } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
-import { Paginated } from "@/types";
 import {
   Ban,
   Clock,
@@ -72,14 +71,18 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const endDate = params?.endDate || "";
   const sort = params?.sort || "createdAt";
   const order = params?.order || "DESC";
-  let orders: Paginated<any>;
+  let orders: OrderListPage;
+  // The status comes from the URL, so it may be anything.
+  const status = Object.values(OrderStatus).find(
+    (value) => value === params?.status,
+  );
 
   try {
     orders = await OrderService.getAll({
       limit,
       page,
       query: {
-        status: params?.status,
+        status,
         customerId: params?.customerId,
         startDate,
         endDate,
@@ -95,7 +98,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     };
   }
 
-  const summary = orders.summary ?? {};
+  const summary = orders.summary;
 
   /**
    * The current URL with one filter toggled: picking the active tile again
@@ -124,8 +127,8 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     ...(canSeeSales
       ? [
           {
-            label: summary.totalAmount?.label ?? "Delivered Sales",
-            value: peso(Number(summary.totalAmount?.value || 0)),
+            label: summary?.totalAmount.label ?? "Delivered Sales",
+            value: peso(Number(summary?.totalAmount.value || 0)),
             icon: <TrendingUp className="size-4" />,
             tone: "default" as Tone,
             filter: { key: "status" as const, value: OrderStatus.DELIVERED },
@@ -140,28 +143,28 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
       : []),
     {
       label: "Pending",
-      value: summary.pendingOrders?.value ?? 0,
+      value: summary?.pendingOrders.value ?? 0,
       icon: <Clock className="size-4" />,
       tone: "amber",
       filter: { key: "status", value: OrderStatus.PENDING },
     },
     {
       label: "Out for Delivery",
-      value: summary.deliveryOrders?.value ?? 0,
+      value: summary?.deliveryOrders.value ?? 0,
       icon: <Truck className="size-4" />,
       tone: "violet",
       filter: { key: "status", value: OrderStatus.OUT_FOR_DELIVERY },
     },
     {
       label: "Unpaid",
-      value: summary.unpaidOrders?.value ?? 0,
+      value: summary?.unpaidOrders.value ?? 0,
       icon: <Receipt className="size-4" />,
       tone: "rose",
       filter: { key: "paymentStatus", value: PaymentStatus.UNPAID },
     },
     {
       label: "Cancelled",
-      value: summary.cancelledOrders?.value ?? 0,
+      value: summary?.cancelledOrders.value ?? 0,
       icon: <Ban className="size-4" />,
       tone: "muted",
       filter: { key: "status", value: OrderStatus.CANCELLED },

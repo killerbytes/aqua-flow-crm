@@ -1,7 +1,7 @@
 "use client";
 
 import { getProductsAction } from "@/backend/actions";
-import type { ProductInventory } from "@/backend/models";
+import type { ProductInventory } from "@/types/models";
 import type { OrderSchema } from "@/backend/schemas/zodSchemas";
 import { Button } from "@/components/ui/button";
 import {
@@ -123,7 +123,7 @@ export function OrderItemsField({
   } = form;
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
   const items: OrderItem[] = useWatch({ control, name: "items" }) || [];
-  const itemErrors = errors.items as any;
+  const itemErrors = errors.items;
 
   const sellable = products.filter((product) => !product.isLendOnly);
 

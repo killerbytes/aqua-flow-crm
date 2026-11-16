@@ -1,24 +1,34 @@
-import { CreationOptional, DataTypes, Model } from "sequelize";
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+} from "sequelize";
 import { sequelize } from "../db/database";
 import { moneyColumn } from "./moneyColumn";
+import { columns } from "./plain";
 
-export class ProductInventory extends Model {
-  declare productId: number;
+export class ProductInventory extends Model<
+  InferAttributes<ProductInventory>,
+  InferCreationAttributes<ProductInventory>
+> {
+  declare productId: CreationOptional<number>;
   declare name: string;
-  declare stockInStation: number;
-  declare stockWithCustomers: number;
-  declare stockDamaged: number;
-  declare stockLost: number;
-  declare unitPrice: number;
-  declare isLendOnly: boolean;
-  declare isDefault: boolean;
+  declare stockInStation: CreationOptional<number>;
+  declare stockWithCustomers: CreationOptional<number>;
+  declare stockDamaged: CreationOptional<number>;
+  declare stockLost: CreationOptional<number>;
+  declare unitPrice: CreationOptional<number>;
+  declare isLendOnly: CreationOptional<boolean>;
+  declare isDefault: CreationOptional<boolean>;
   declare lowStockThreshold: number | null;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
   declare deletedAt?: CreationOptional<Date> | null;
 }
 ProductInventory.init(
-  {
+  columns<ProductInventory>({
     productId: {
       type: DataTypes.INTEGER,
       autoIncrement: true,
@@ -38,7 +48,7 @@ ProductInventory.init(
       field: "low_stock_threshold",
     },
     deletedAt: DataTypes.DATE,
-  },
+  }),
   {
     sequelize,
     modelName: "ProductInventory",

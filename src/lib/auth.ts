@@ -1,10 +1,16 @@
 // Loads .env files in standalone scripts before any token is signed.
 import "@/backend/db/env";
 import bcrypt from "bcryptjs";
-import { decodeToken, signToken, type VerifyResult } from "./auth.edge";
+import { toPlain } from "@/backend/models/plain";
+import {
+  decodeToken,
+  signToken,
+  type TokenClaims,
+  type VerifyResult,
+} from "./auth.edge";
 
 export { signToken };
-export type { VerifyResult };
+export type { TokenClaims, VerifyResult };
 
 export async function hashPassword(password: string): Promise<string> {
   const salt = await bcrypt.genSalt(10);
@@ -29,7 +35,7 @@ async function checkUserActiveInDb(userId: number) {
     if (dbUser) {
       return {
         isActive: dbUser.isActive !== false,
-        dbUser: dbUser.get({ plain: true }),
+        dbUser: toPlain(dbUser),
       };
     }
     const count = await User.count().catch(() => 0);
@@ -46,8 +52,15 @@ async function checkUserActiveInDb(userId: number) {
 }
 
 /** A token issued before versions existed counts as version 0. */
-const isRevoked = (claims: { tokenVersion?: number }, dbUser: any) =>
-  !!dbUser && (dbUser.tokenVersion ?? 0) !== (claims.tokenVersion ?? 0);
+const isRevoked = (
+  claims: { tokenVersion?: number },
+  dbUser: { tokenVersion?: number } | null,
+) => !!dbUser && (dbUser.tokenVersion ?? 0) !== (claims.tokenVersion ?? 0);
+
+/** Tokens from before the claim was renamed carry the id as user_id. */
+const userIdOf = (claims: TokenClaims) =>
+  claims.userId ||
+  (typeof claims.user_id === "number" ? claims.user_id : undefined);
 
 /**
  * The Edge token check plus what only the database knows: whether the user is
@@ -61,8 +74,8 @@ export async function verifyOrRefreshToken(
   if (!decoded) return null;
   const { claims, expired } = decoded;
 
-  let user = claims;
-  const userId = claims.userId || claims.user_id;
+  let user: TokenClaims = claims;
+  const userId = userIdOf(claims);
   if (userId) {
     const { isActive, dbUser } = await checkUserActiveInDb(userId);
     if (!isActive || isRevoked(claims, dbUser)) return null;
@@ -76,7 +89,7 @@ export async function verifyOrRefreshToken(
   };
 }
 
-export async function verifyToken(token: string): Promise<any | null> {
+export async function verifyToken(token: string): Promise<TokenClaims | null> {
   const result = await verifyOrRefreshToken(token);
   return result?.user || null;
 }

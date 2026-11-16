@@ -1,6 +1,6 @@
 import { requirePagePermission } from "@/backend/auth/context";
 import { initDatabase } from "@/backend/db/database";
-import { Invoice } from "@/backend/models";
+import type { Invoice } from "@/types/models";
 import { InvoiceService } from "@/backend/services";
 import PrintableStatement from "@/features/invoices/components/PrintableStatement";
 import { redirect } from "next/navigation";
@@ -18,7 +18,7 @@ export default async function InvoicePrintPage({
   let invoice: Invoice | null = null;
 
   try {
-    invoice = await InvoiceService.get(id);
+    invoice = (await InvoiceService.get(id)) ?? null;
   } catch (err) {
     invoice = null;
   }

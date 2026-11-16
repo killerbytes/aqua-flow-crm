@@ -1,5 +1,5 @@
 "use client";
-import { Order } from "@/backend/models";
+import type { Order } from "@/types/models";
 import ColumnSort from "@/components/ColumnSort";
 import DataTable from "@/components/DataTable";
 import Pager from "@/components/Pager";
@@ -146,7 +146,7 @@ export default function OrderList({ orders }: OrderListProps) {
             </div>
           ),
         }),
-      ].filter(Boolean) as any[],
+      ].filter((column) => column !== false),
     [pathname],
   );
 

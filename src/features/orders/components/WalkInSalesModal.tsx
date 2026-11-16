@@ -1,5 +1,6 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
 import { createOrderAction, getWalkInCustomerAction } from "@/backend/actions";
 import { OrderFormData, OrderSchema } from "@/backend/schemas/zodSchemas";
 import Modal from "@/components/Modal";
@@ -89,11 +90,11 @@ const WalkInSalesModalContent = () => {
 
         setWalkInModalOpen(false);
         router.refresh();
-      } catch (err: any) {
+      } catch (err) {
         toast.add({
           type: "error",
           priority: "high",
-          title: err.message || "Failed to record walk-in sales",
+          title: errorMessage(err) || "Failed to record walk-in sales",
         });
       }
     });

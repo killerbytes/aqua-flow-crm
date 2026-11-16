@@ -1,5 +1,6 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
 import { makeInvoicePaymentAction } from "@/backend/actions/invoice.actions";
 import {
   InvoicePaymentFormData,
@@ -71,11 +72,11 @@ function PaymentFormModalContent({ onClose }: PaymentFormModalProps) {
         });
         onClose();
         router.refresh();
-      } catch (error: any) {
+      } catch (error) {
         toast.add({
           type: "error",
           priority: "high",
-          description: error.message || "Failed to log payment",
+          description: errorMessage(error) || "Failed to log payment",
         });
       }
     });
