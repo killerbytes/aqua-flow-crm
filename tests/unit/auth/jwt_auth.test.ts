@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { checkPermission } from "../../../src/backend/rbac/permissions";
 import {
   comparePassword,
   hashPassword,
@@ -7,82 +6,61 @@ import {
   verifyToken,
 } from "../../../src/lib/auth";
 import { UserRole } from "../../../src/lib/definitions";
+import { readClaims } from "../../helpers/session";
 
 describe("Unit - JWT & Password Auth Utilities", () => {
   it("should hash and verify passwords correctly", async () => {
     const rawPassword = "securePassword123";
     const hashed = await hashPassword(rawPassword);
 
-    expect(hashed).toBeDefined();
     expect(hashed).not.toBe(rawPassword);
-
-    const isMatch = await comparePassword(rawPassword, hashed);
-    expect(isMatch).toBe(true);
-
-    const isWrongMatch = await comparePassword("wrongPassword", hashed);
-    expect(isWrongMatch).toBe(false);
+    expect(await comparePassword(rawPassword, hashed)).toBe(true);
+    expect(await comparePassword("wrongPassword", hashed)).toBe(false);
   });
 
-  it("should sign and verify JWT access tokens", async () => {
-    const payload = {
-      user_id: 1,
+  it("should salt hashes, so the same password never hashes the same twice", async () => {
+    expect(await hashPassword("samePassword")).not.toBe(
+      await hashPassword("samePassword"),
+    );
+  });
+
+  it("should sign a session user and read it back", async () => {
+    const user = {
+      userId: 1,
       name: "Admin User",
-      email: "admin@aquaflow.com",
+      username: "admin",
       role: UserRole.ADMIN,
+      tokenVersion: 0,
     };
 
-    const token = await signToken(payload);
-    expect(token).toBeDefined();
-    expect(typeof token).toBe("string");
+    const decoded = await verifyToken(await signToken(user));
 
-    const decoded = await verifyToken(token);
-    expect(decoded).toBeDefined();
-    expect(decoded?.user_id).toBe(1);
-    expect(decoded?.email).toBe("admin@aquaflow.com");
-    expect(decoded?.role).toBe(UserRole.ADMIN);
-  });
-});
-
-describe("Unit - RBAC Permissions & Roles Engine", () => {
-  it("should allow ADMIN full access across all operations", () => {
-    expect(checkPermission(UserRole.ADMIN, "CREATE_USER")).toBe(true);
-    expect(checkPermission(UserRole.ADMIN, "MANAGE_USERS")).toBe(true);
-    expect(checkPermission(UserRole.ADMIN, "CREATE_CUSTOMER")).toBe(true);
-    expect(checkPermission(UserRole.ADMIN, "MANAGE_CUSTOMERS")).toBe(true);
-    expect(checkPermission(UserRole.ADMIN, "CREATE_PRODUCT")).toBe(true);
-    expect(checkPermission(UserRole.ADMIN, "MANAGE_PRODUCTS")).toBe(true);
-    expect(checkPermission(UserRole.ADMIN, "ADJUST_INVENTORY")).toBe(true);
-    expect(checkPermission(UserRole.ADMIN, "CREATE_ORDER")).toBe(true);
-    expect(checkPermission(UserRole.ADMIN, "UPDATE_ORDER")).toBe(true);
-    expect(checkPermission(UserRole.ADMIN, "LOG_EQUIPMENT")).toBe(true);
-    expect(checkPermission(UserRole.ADMIN, "UPDATE_DELIVERY_STATUS")).toBe(
-      true,
-    );
-    expect(checkPermission(UserRole.ADMIN, "VIEW_REPORTS")).toBe(true);
+    expect(decoded).toMatchObject(user);
   });
 
-  it("should allow MANAGER to adjust inventory and create orders", () => {
-    expect(checkPermission(UserRole.MANAGER, "CREATE_CUSTOMER")).toBe(true);
-    expect(checkPermission(UserRole.MANAGER, "MANAGE_CUSTOMERS")).toBe(true);
-    expect(checkPermission(UserRole.MANAGER, "CREATE_PRODUCT")).toBe(true);
-    expect(checkPermission(UserRole.MANAGER, "MANAGE_PRODUCTS")).toBe(true);
-    expect(checkPermission(UserRole.MANAGER, "ADJUST_INVENTORY")).toBe(true);
-    expect(checkPermission(UserRole.MANAGER, "CREATE_ORDER")).toBe(true);
-    expect(checkPermission(UserRole.MANAGER, "UPDATE_ORDER")).toBe(true);
-    expect(checkPermission(UserRole.MANAGER, "LOG_EQUIPMENT")).toBe(true);
-    expect(checkPermission(UserRole.MANAGER, "UPDATE_DELIVERY_STATUS")).toBe(
-      true,
-    );
+  it("should stamp a new token with when the session started", async () => {
+    const before = Math.floor(Date.now() / 1000);
+    const claims = readClaims(await signToken({ userId: 1 }));
+
+    expect(claims.sessionStart).toBeGreaterThanOrEqual(before);
+    expect(claims.exp).toBe((claims.iat as number) + 15 * 60);
   });
 
-  it("should allow CASHIER to create orders, but NOT adjust inventory", () => {
-    expect(checkPermission(UserRole.CASHIER, "CREATE_CUSTOMER")).toBe(true);
-    expect(checkPermission(UserRole.CASHIER, "MANAGE_CUSTOMERS")).toBe(true);
-    expect(checkPermission(UserRole.CASHIER, "CREATE_ORDER")).toBe(true);
-    expect(checkPermission(UserRole.CASHIER, "UPDATE_ORDER")).toBe(true);
-    expect(checkPermission(UserRole.CASHIER, "LOG_EQUIPMENT")).toBe(true);
-    expect(checkPermission(UserRole.CASHIER, "UPDATE_DELIVERY_STATUS")).toBe(
-      true,
+  it("should keep an existing session start when re-signing", async () => {
+    const claims = readClaims(await signToken({ userId: 1, sessionStart: 1234 }));
+    expect(claims.sessionStart).toBe(1234);
+  });
+
+  it("should never put a password hash in a token", async () => {
+    const claims = readClaims(
+      await signToken({ userId: 1, passwordHash: "a", password_hash: "b" }),
     );
+    expect(claims).not.toHaveProperty("passwordHash");
+    expect(claims).not.toHaveProperty("password_hash");
+  });
+
+  it("should refuse a token that isn't one", async () => {
+    expect(await verifyToken("not-a-real-token")).toBeNull();
+    expect(await verifyToken("")).toBeNull();
   });
 });

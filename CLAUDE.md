@@ -91,8 +91,9 @@ Sessions are revoked with `AuthService.revokeSessions`, which increments `users.
 ### Test layout
 
 - `tests/integration`: services against seeded SQLite, using `setupTestDatabase()` from `tests/helpers/db.setup.ts`.
-- `tests/unit/actions`: Server Actions, with `next/cache`, `initDatabase`, and the auth context mocked.
-- `tests/ui`: runs in the `node` environment and jsdom is not installed, so these tests check source files and exports rather than rendered DOM. Adding DOM tests means adding a DOM environment first.
+- `tests/unit/actions`: Server Actions, with `next/cache`, `initDatabase`, the auth context, and the services mocked. `action_permissions.test.ts` lists every action with the roles allowed to run it, and fails when a new action is missing from the list.
+- `tests/helpers/session.ts`: `signInAs(role)` for action tests, and `forgeClaims` for signing tokens `signToken` won't produce (expired, wrong secret, malformed claims).
+- There are no component tests: Vitest runs in the `node` environment and jsdom is not installed. Adding DOM tests means adding a DOM environment first. Don't add tests that only check a source file contains a string.
 
 ## Next.js rules
 

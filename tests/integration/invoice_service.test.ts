@@ -6,204 +6,142 @@ import {
   PaymentMethod,
   PaymentStatus,
 } from "../../src/lib/definitions";
+import { toCents } from "../../src/lib/money";
 import { setupTestDatabase } from "../helpers/db.setup";
 
+const WEEK = 7 * 24 * 60 * 60 * 1000;
+
+/** A delivered, unpaid order for `quantity` of product 1, and its invoice. */
+const invoiceFor = async (customerId: number, quantity: number) => {
+  const order = await OrderService.create(
+    {
+      customerId,
+      status: OrderStatus.DELIVERED,
+      paymentStatus: PaymentStatus.UNPAID,
+      items: [{ productId: 1, quantity, discount: 0 }],
+    },
+    1,
+  );
+  const invoice = await InvoiceService.create(
+    {
+      customerId,
+      dateIssued: new Date(),
+      dueDate: new Date(Date.now() + WEEK),
+      status: InvoiceStatus.UNPAID,
+      items: [order.orderId],
+    },
+    1,
+  );
+  return { order, invoice };
+};
+
+const pay = (invoiceId: number, paymentAmount: number, loggedBy = 1) =>
+  InvoiceService.payInvoice(
+    { invoiceId, paymentAmount, paymentMethod: PaymentMethod.CASH },
+    loggedBy,
+  );
+
+// What an invoice refuses (overpayment, paying twice, cancelled or paid orders)
+// is in billing_integrity.test.ts.
 describe("Integration - Invoice Service & Workflows", () => {
   beforeAll(async () => {
     await setupTestDatabase();
   });
 
-  describe("Invoice Creation", () => {
-    it("should create an invoice from unpaid orders and calculate total amount", async () => {
-      // 1. Create a test order
-      const order = await OrderService.create(
-        {
-          customerId: 1,
-          status: OrderStatus.DELIVERED,
-          paymentStatus: PaymentStatus.UNPAID,
-          items: [{ productId: 1, quantity: 2, unitPrice: 50.0 }],
-        },
-        1,
-      );
+  it("should total the orders it bills", async () => {
+    const { order, invoice } = await invoiceFor(1, 2);
 
-      // 2. Create invoice linking the order
-      const invoice = await InvoiceService.create(
-        {
-          customerId: 1,
-          dateIssued: new Date(),
-          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          status: InvoiceStatus.UNPAID,
-          items: [order.orderId],
-        },
-        1,
-      );
-
-      expect(invoice).toBeDefined();
-      expect(invoice.invoiceId).toBeDefined();
-      expect(Number(invoice.amount)).toBe(Number(order.totalAmount));
-      expect(invoice.customerId).toBe(1);
-    });
+    expect(invoice.customerId).toBe(1);
+    expect(invoice.status).toBe(InvoiceStatus.UNPAID);
+    expect(invoice.amount).toBe(order.totalAmount);
+    expect(invoice.amount).toBeGreaterThan(0);
   });
 
-  describe("Invoice Payment (payInvoice)", () => {
-    it("should update invoice status to PAID, set paymentDate, and update linked orders to PAID", async () => {
-      const order = await OrderService.create(
-        {
-          customerId: 1,
-          status: OrderStatus.DELIVERED,
-          paymentStatus: PaymentStatus.UNPAID,
-          items: [{ productId: 1, quantity: 1, unitPrice: 100.0 }],
-        },
-        1,
-      );
+  it("should list the invoice's orders and customer when read back", async () => {
+    const { order, invoice } = await invoiceFor(1, 1);
 
-      const invoice = await InvoiceService.create(
-        {
-          customerId: 1,
-          dateIssued: new Date(),
-          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          status: InvoiceStatus.UNPAID,
-          items: [order.orderId],
-        },
-        1,
-      );
+    const found = await InvoiceService.get(invoice.invoiceId);
 
-      const updatedInvoice = await InvoiceService.payInvoice({
-        invoiceId: invoice.invoiceId,
-        paymentAmount: Number(invoice.amount),
-        paymentMethod: PaymentMethod.CASH,
-      });
-
-      expect(updatedInvoice.status).toBe(InvoiceStatus.PAID);
-      expect(updatedInvoice.paymentDate).toBeDefined();
-
-      const updatedOrder = await OrderService.get(order.orderId);
-      expect(updatedOrder?.paymentStatus).toBe(PaymentStatus.PAID);
-    });
-
-    it("should throw an error if attempting to pay an already paid invoice", async () => {
-      const order = await OrderService.create(
-        {
-          customerId: 1,
-          status: OrderStatus.DELIVERED,
-          paymentStatus: PaymentStatus.UNPAID,
-          items: [{ productId: 1, quantity: 1, unitPrice: 50.0 }],
-        },
-        1,
-      );
-
-      const invoice = await InvoiceService.create(
-        {
-          customerId: 1,
-          dateIssued: new Date(),
-          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          status: InvoiceStatus.UNPAID,
-          items: [order.orderId],
-        },
-        1,
-      );
-
-      const payData = {
-        invoiceId: invoice.invoiceId,
-        paymentAmount: Number(invoice.amount),
-        paymentMethod: PaymentMethod.CASH,
-      };
-
-      await InvoiceService.payInvoice(payData);
-      await expect(InvoiceService.payInvoice(payData)).rejects.toThrow();
-    });
-
-    it("should handle partial payments correctly and update status to PARTIAL then PAID", async () => {
-      const order = await OrderService.create(
-        {
-          customerId: 1,
-          status: OrderStatus.DELIVERED,
-          paymentStatus: PaymentStatus.UNPAID,
-          items: [{ productId: 1, quantity: 2, unitPrice: 50.0 }],
-        },
-        1,
-      );
-
-      const invoice = await InvoiceService.create(
-        {
-          customerId: 1,
-          dateIssued: new Date(),
-          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          status: InvoiceStatus.UNPAID,
-          items: [order.orderId],
-        },
-        1,
-      );
-
-      const invoiceAmount = Number(invoice.amount);
-      const partialPayment = Math.floor(invoiceAmount / 2);
-      const remainingPayment = invoiceAmount - partialPayment;
-
-      // 1. Partial payment of half invoice amount
-      const partialInvoice = await InvoiceService.payInvoice({
-        invoiceId: invoice.invoiceId,
-        paymentAmount: partialPayment,
-        paymentMethod: PaymentMethod.CASH,
-      });
-
-      expect(partialInvoice.status).toBe(InvoiceStatus.PARTIAL);
-
-      // 2. Overpaying should throw an error
-      await expect(
-        InvoiceService.payInvoice({
-          invoiceId: invoice.invoiceId,
-          paymentAmount: remainingPayment + 10,
-          paymentMethod: PaymentMethod.CASH,
-        }),
-      ).rejects.toThrow();
-
-      // 3. Final payment of remaining balance settles invoice
-      const finalInvoice = await InvoiceService.payInvoice({
-        invoiceId: invoice.invoiceId,
-        paymentAmount: remainingPayment,
-        paymentMethod: PaymentMethod.CASH,
-      });
-
-      expect(finalInvoice.status).toBe(InvoiceStatus.PAID);
-    });
+    expect(found?.customer?.customerId).toBe(1);
+    expect(found?.invoiceDetails?.map((d) => d.orderId)).toEqual([
+      order.orderId,
+    ]);
   });
 
-  describe("Invoice Summary", () => {
-    it("should calculate summary metrics including net unpaid balance for UNPAID and PARTIAL invoices", async () => {
-      const order = await OrderService.create(
-        {
-          customerId: 1,
-          status: OrderStatus.DELIVERED,
-          paymentStatus: PaymentStatus.UNPAID,
-          items: [{ productId: 1, quantity: 2, unitPrice: 50.0 }],
-        },
-        1,
-      );
+  it("should mark the invoice and its orders paid when paid in full", async () => {
+    const { order, invoice } = await invoiceFor(1, 1);
 
-      const invoice = await InvoiceService.create(
-        {
-          customerId: 1,
-          dateIssued: new Date(),
-          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          status: InvoiceStatus.UNPAID,
-          items: [order.orderId],
-        },
-        1,
-      );
+    const paid = await pay(invoice.invoiceId, invoice.amount);
 
-      const invoiceAmount = Number(invoice.amount);
-      const partialPayment = Math.floor(invoiceAmount / 2);
+    expect(paid.status).toBe(InvoiceStatus.PAID);
+    expect(paid.paymentDate).toBeInstanceOf(Date);
+    expect((await OrderService.get(order.orderId))?.paymentStatus).toBe(
+      PaymentStatus.PAID,
+    );
+  });
 
-      await InvoiceService.payInvoice({
-        invoiceId: invoice.invoiceId,
-        paymentAmount: partialPayment,
-        paymentMethod: PaymentMethod.CASH,
-      });
+  it("should stay partly paid, with its orders unpaid, until the balance is cleared", async () => {
+    const { order, invoice } = await invoiceFor(1, 2);
+    const half = invoice.amount / 2;
 
-      const res = await InvoiceService.getAll({});
-      expect(res.summary).toBeDefined();
-      expect(res.summary.totalUnpaid).toBeDefined();
-      expect(res.summary.partialOrders.value).toBeGreaterThanOrEqual(1);
+    const partial = await pay(invoice.invoiceId, half);
+    expect(partial.status).toBe(InvoiceStatus.PARTIAL);
+    expect((await OrderService.get(order.orderId))?.paymentStatus).toBe(
+      PaymentStatus.UNPAID,
+    );
+
+    const settled = await pay(invoice.invoiceId, invoice.amount - half);
+    expect(settled.status).toBe(InvoiceStatus.PAID);
+    expect((await OrderService.get(order.orderId))?.paymentStatus).toBe(
+      PaymentStatus.PAID,
+    );
+  });
+
+  it("should keep each payment with its amount, method, and who took it", async () => {
+    const { invoice } = await invoiceFor(1, 2);
+    const half = invoice.amount / 2;
+    await pay(invoice.invoiceId, half, 1);
+    await pay(invoice.invoiceId, invoice.amount - half, 2);
+
+    const payments = await InvoiceService.getPayments(invoice.invoiceId);
+
+    expect(payments.map((p) => p.paymentAmount)).toEqual(
+      expect.arrayContaining([half, invoice.amount - half]),
+    );
+    expect(payments).toHaveLength(2);
+    expect(payments.map((p) => p.loggedBy).sort()).toEqual([1, 2]);
+    expect(payments.every((p) => p.paymentMethod === PaymentMethod.CASH)).toBe(
+      true,
+    );
+  });
+
+  it("should raise the unpaid total by exactly what is still owed", async () => {
+    const before = (await InvoiceService.getAll({})).summary;
+
+    const { invoice } = await invoiceFor(2, 2);
+    const half = invoice.amount / 2;
+    await pay(invoice.invoiceId, half);
+
+    const after = (await InvoiceService.getAll({})).summary;
+
+    expect(
+      toCents(after.totalUnpaid.value) - toCents(before.totalUnpaid.value),
+    ).toBe(toCents(invoice.amount - half));
+    expect(after.partialOrders.value).toBe(before.partialOrders.value + 1);
+  });
+
+  it("should filter the list by customer and by status", async () => {
+    const { invoice } = await invoiceFor(3, 1);
+    await pay(invoice.invoiceId, invoice.amount);
+    await invoiceFor(3, 1);
+
+    const all = await InvoiceService.getAll({ query: { customerId: 3 } });
+    const paid = await InvoiceService.getAll({
+      query: { customerId: 3, status: InvoiceStatus.PAID },
     });
+
+    expect(all.rows.map((r) => r.customerId)).toEqual([3, 3]);
+    expect(all.pagination.total).toBe(2);
+    expect(paid.rows.map((r) => r.invoiceId)).toEqual([invoice.invoiceId]);
   });
 });

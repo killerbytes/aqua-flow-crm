@@ -25,7 +25,10 @@ export async function GET(request: NextRequest) {
   const group = parseSalesGroup(search.get("group"));
   const name = search.get("table");
   const key: SalesCsvTable =
-    name && name in SALES_CSV_TABLES ? (name as SalesCsvTable) : "period";
+    // hasOwn, not `in`, which is also true for names like "constructor".
+    name && Object.hasOwn(SALES_CSV_TABLES, name)
+      ? (name as SalesCsvTable)
+      : "period";
 
   const report = await FinanceReportService.getSales(range, group);
   // Each table is paired with its own rows here, so the two can't be mixed up.

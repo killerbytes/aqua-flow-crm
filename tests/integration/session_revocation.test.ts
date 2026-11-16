@@ -1,4 +1,3 @@
-import { SignJWT } from "jose";
 import { NextRequest } from "next/server";
 import { beforeAll, describe, expect, it } from "vitest";
 import { POST as logout } from "../../src/app/api/auth/logout/route";
@@ -8,11 +7,9 @@ import * as edge from "../../src/lib/auth.edge";
 import { signToken, verifyOrRefreshToken } from "../../src/lib/auth";
 import { UserRole } from "../../src/lib/definitions";
 import { setupTestDatabase } from "../helpers/db.setup";
+import { forgeClaims } from "../helpers/session";
 
 const DAY = 60 * 60 * 24;
-const secret = new TextEncoder().encode(
-  process.env.JWT_SECRET || "super_secret_jwt_key",
-);
 
 const newUser = async (username: string) => {
   const user = await AuthService.createUser({
@@ -29,16 +26,6 @@ const login = async (username: string) =>
 
 const sessionIsValid = async (token: string) =>
   (await verifyOrRefreshToken(token)) !== null;
-
-const forgeClaims = (
-  claims: Record<string, unknown>,
-  expiresAt: number = Math.floor(Date.now() / 1000) + 900,
-) =>
-  new SignJWT(claims)
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt(Math.floor(Date.now() / 1000) - 60)
-    .setExpirationTime(expiresAt)
-    .sign(secret);
 
 describe("Integration - Session Revocation", () => {
   beforeAll(async () => {
@@ -252,6 +239,26 @@ describe("Integration - Session Revocation", () => {
 
       expect(await sessionIsValid(legacy)).toBe(false);
     });
+
+    it("should check the user behind the old user_id claim too", async () => {
+      const { userId, username } = await newUser("legacyclaim");
+      const legacy = await forgeClaims({ user_id: userId, username });
+
+      const result = await verifyOrRefreshToken(legacy);
+      expect(result?.user.userId).toBe(userId);
+
+      await AuthService.revokeSessions(userId);
+      expect(await sessionIsValid(legacy)).toBe(false);
+    });
+  });
+
+  it("should refuse a token for a user who no longer exists", async () => {
+    const { userId, username } = await newUser("removed");
+    const token = await login(username);
+
+    await User.destroy({ where: { userId } });
+
+    expect(await sessionIsValid(token)).toBe(false);
   });
 
   it("should keep the password hash out of the session user", async () => {

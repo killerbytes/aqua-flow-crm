@@ -20,7 +20,8 @@ export async function GET(request: NextRequest) {
 
   const name = request.nextUrl.searchParams.get("table");
   const key: EquipmentLedgerCsvTable =
-    name && name in EQUIPMENT_LEDGER_CSV_TABLES
+    // hasOwn, not `in`, which is also true for names like "constructor".
+    name && Object.hasOwn(EQUIPMENT_LEDGER_CSV_TABLES, name)
       ? (name as EquipmentLedgerCsvTable)
       : "balance";
 
