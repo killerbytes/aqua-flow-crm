@@ -22,13 +22,11 @@ import {
   SquareActivity,
 } from "lucide-react";
 import Link from "next/link";
+import { formatPeso } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
-const peso = (amount: number) =>
-  new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(
-    amount,
-  );
+const peso = formatPeso;
 
 const plural = (count: number, word: string) =>
   `${count} ${word}${count === 1 ? "" : "s"}`;
@@ -381,7 +379,7 @@ export default async function DashboardPage() {
             tone={customers.noRecentOrder > 0 ? "warning" : "default"}
             href={
               canViewReports
-                ? `/reports/customers?days=${customers.churnDays}`
+                ? `/reports/inactive-customers?days=${customers.churnDays}`
                 : undefined
             }
           />

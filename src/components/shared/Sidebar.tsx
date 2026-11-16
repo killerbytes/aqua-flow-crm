@@ -4,6 +4,7 @@ import { checkPermission, PermissionAction } from "@/backend/rbac/permissions";
 import { useAuthStore } from "@/lib/store";
 import { cx } from "class-variance-authority";
 import {
+  FileChartColumn,
   LayoutDashboard,
   Receipt,
   Search,
@@ -33,6 +34,7 @@ import {
   useSidebar,
 } from "../ui/sidebar";
 import { NavUser } from "./NavUser";
+
 interface NavItem {
   name: string;
   href: string;
@@ -65,6 +67,15 @@ export default function Sidebar() {
       : []),
     ...(can("VIEW_INVOICES")
       ? [{ name: "Invoices", href: "/invoices", icon: Receipt }]
+      : []),
+    ...(can("VIEW_REPORTS")
+      ? [
+          {
+            name: "Reports",
+            href: "/reports",
+            icon: FileChartColumn,
+          },
+        ]
       : []),
     ...(can("VIEW_USERS")
       ? [{ name: "Users", href: "/users", icon: UserCog }]
@@ -120,10 +131,7 @@ export default function Sidebar() {
                       <SidebarMenuSub>
                         {item.subMenu.map((subItem) => {
                           const SubIcon = subItem.icon;
-                          const isSubActive =
-                            pathname.startsWith(item.href) && pathname !== "/"
-                              ? true
-                              : false;
+                          const isSubActive = pathname.startsWith(subItem.href);
                           return (
                             <SidebarMenuItem key={subItem.name}>
                               <SidebarMenuButton
@@ -135,7 +143,12 @@ export default function Sidebar() {
                                       isSubActive,
                                   },
                                 )}
-                                render={<Link href={subItem.href} />}
+                                render={
+                                  <Link
+                                    href={subItem.href}
+                                    onClick={() => setOpenMobile(false)}
+                                  />
+                                }
                               >
                                 <SubIcon />
                                 {subItem.name}

@@ -1,11 +1,14 @@
 import {
+  CustomerStatus,
   EquipmentActionType,
   LedgerAccountType,
   LedgerReferenceType,
+  OrderStatus,
   PAGINATION,
 } from "@/lib/definitions";
+import { businessDaysBetween } from "@/lib/business-time";
 import { toPagination } from "@/lib/pagination";
-import { Op, Transaction } from "sequelize";
+import { col, fn, Op, Transaction } from "sequelize";
 import {
   Customer,
   CustomerEquipmentBalance,
@@ -70,6 +73,40 @@ const ACTION_ACCOUNTS: Record<EquipmentActionType, AccountPair> = {
 const isCustomerAccount = (type: LedgerAccountType) =>
   type === LedgerAccountType.CUSTOMER ||
   type === LedgerAccountType.CUSTOMER_TEMP;
+
+/**
+ * Total units moved per product between each pair of account types, summed in
+ * the database rather than by loading every ledger entry.
+ */
+const ledgerFlows = async () => {
+  const fields = EquipmentLedgerEntry.getAttributes();
+  const rows = (await EquipmentLedgerEntry.findAll({
+    attributes: [
+      "productId",
+      "fromAccountType",
+      "toAccountType",
+      [fn("SUM", col(fields.quantity.field!)), "quantity"],
+    ],
+    group: [
+      col(fields.productId.field!),
+      col(fields.fromAccountType.field!),
+      col(fields.toAccountType.field!),
+    ],
+    raw: true,
+  })) as unknown as {
+    productId: number;
+    fromAccountType: LedgerAccountType;
+    toAccountType: LedgerAccountType;
+    quantity: number | string;
+  }[];
+
+  // PostgreSQL returns SUM of an integer column as a string.
+  return rows.map((row) => ({
+    ...row,
+    productId: Number(row.productId),
+    quantity: Number(row.quantity),
+  }));
+};
 
 /**
  * The action a ledger entry shows as. Stock written off straight from the
@@ -163,10 +200,30 @@ export class EquipmentService {
       throw new Error("Product not found");
     }
 
-    if (
+    // Locked so the customer can't be deleted while this is being recorded,
+    // and so setting them inactive waits for this to finish.
+    const customer = await Customer.findByPk(customerId, {
+      transaction: t,
+      lock: t.LOCK.UPDATE,
+    });
+    if (!customer) {
+      throw new Error("Customer not found");
+    }
+
+    const isGiving =
       actionType === EquipmentActionType.ISSUE ||
-      actionType === EquipmentActionType.TEMPORARY
-    ) {
+      actionType === EquipmentActionType.TEMPORARY;
+
+    // Inactive customers drop out of the reports that chase equipment, so
+    // nothing new goes out to them. Returns, losses, and damage stay allowed
+    // so anything already out can still be closed.
+    if (isGiving && customer.status === CustomerStatus.INACTIVE) {
+      throw new Error(
+        "Can't give equipment to an inactive customer. Set them active first.",
+      );
+    }
+
+    if (isGiving) {
       if (quantity > product.stockInStation) {
         if (actionType === EquipmentActionType.ISSUE) {
           throw new Error(
@@ -178,15 +235,6 @@ export class EquipmentService {
           );
         }
       }
-    }
-
-    // Locked so the customer can't be deleted while this is being recorded.
-    const customer = await Customer.findByPk(customerId, {
-      transaction: t,
-      lock: t.LOCK.UPDATE,
-    });
-    if (!customer) {
-      throw new Error("Customer not found");
     }
 
     const isTemporaryAction =
@@ -259,60 +307,38 @@ export class EquipmentService {
     };
   }
 
-  // --- Pattern 1 Reports & Audits ---
+  // --- Ledger reports ---
 
   /**
-   * 1. System Inventory Balance Sheet Report
-   * Aggregates current total equipment inventory across all account nodes.
+   * Each product's stored stock totals beside what its ledger adds up to. The
+   * stored totals are what the app shows; the ledger records every movement,
+   * so any difference means the totals have drifted.
    */
   static async getBalanceSheetReport() {
-    const products = await ProductInventory.findAll();
-    const report = [];
+    const [products, flows] = await Promise.all([
+      ProductInventory.findAll({ order: [["productId", "ASC"]] }),
+      ledgerFlows(),
+    ]);
 
-    for (const prod of products) {
-      const entries = await EquipmentLedgerEntry.findAll({
-        where: { productId: prod.productId },
-      });
+    return products.map((prod) => {
+      const net = (account: LedgerAccountType) =>
+        flows
+          .filter((f) => f.productId === prod.productId)
+          .reduce(
+            (sum, f) =>
+              sum +
+              (f.toAccountType === account ? f.quantity : 0) -
+              (f.fromAccountType === account ? f.quantity : 0),
+            0,
+          );
 
-      let stationStock = 0;
-      let customerOwed = 0;
-      let customerTemp = 0;
-      let scrapDamaged = 0;
-      let scrapLost = 0;
-      let totalProcured = 0;
-
-      for (const e of entries) {
-        if (e.toAccountType === LedgerAccountType.STATION)
-          stationStock += e.quantity;
-        if (e.fromAccountType === LedgerAccountType.STATION)
-          stationStock -= e.quantity;
-
-        if (e.toAccountType === LedgerAccountType.CUSTOMER)
-          customerOwed += e.quantity;
-        if (e.fromAccountType === LedgerAccountType.CUSTOMER)
-          customerOwed -= e.quantity;
-
-        if (e.toAccountType === LedgerAccountType.CUSTOMER_TEMP)
-          customerTemp += e.quantity;
-        if (e.fromAccountType === LedgerAccountType.CUSTOMER_TEMP)
-          customerTemp -= e.quantity;
-
-        if (e.toAccountType === LedgerAccountType.SCRAP_DAMAGED)
-          scrapDamaged += e.quantity;
-        if (e.toAccountType === LedgerAccountType.SCRAP_LOST)
-          scrapLost += e.quantity;
-
-        if (e.fromAccountType === LedgerAccountType.SUPPLIER)
-          totalProcured += e.quantity;
-      }
-
-      // The stored totals are what the app shows. The ledger is the record of
-      // every movement, so any difference means the totals have drifted.
       const ledger = {
-        stationStock,
-        customerOwed: customerOwed + customerTemp,
-        scrapDamaged,
-        scrapLost,
+        stationStock: net(LedgerAccountType.STATION),
+        customerOwed:
+          net(LedgerAccountType.CUSTOMER) +
+          net(LedgerAccountType.CUSTOMER_TEMP),
+        scrapDamaged: net(LedgerAccountType.SCRAP_DAMAGED),
+        scrapLost: net(LedgerAccountType.SCRAP_LOST),
       };
       const matchesLedger =
         ledger.stationStock === prod.stockInStation &&
@@ -320,7 +346,7 @@ export class EquipmentService {
         ledger.scrapDamaged === prod.stockDamaged &&
         ledger.scrapLost === prod.stockLost;
 
-      report.push({
+      return {
         productId: prod.productId,
         productName: prod.name,
         stationStock: prod.stockInStation,
@@ -334,17 +360,17 @@ export class EquipmentService {
           prod.stockLost,
         ledger,
         matchesLedger,
-      });
-    }
-
-    return report;
+      };
+    });
   }
 
   /**
-   * 2. Customer Container Liability Aging Report
-   * Lists customers holding container debt and calculates aging days since last movement.
+   * Every customer holding containers, per product, with days since their last
+   * activity: their latest non-cancelled order of anything, or that product's
+   * latest movement to or from them. A cancelled order isn't activity. Used by
+   * the dashboard's "held longest" panel. Days are Philippine calendar days.
    */
-  static async getCustomerLiabilityAgingReport() {
+  static async getCustomerLiabilityAgingReport(now: Date = new Date()) {
     const balances = await CustomerEquipmentBalance.findAll({
       where: {
         [Op.or]: [
@@ -373,7 +399,10 @@ export class EquipmentService {
       });
 
       const lastOrder = await Order.findOne({
-        where: { customerId: b.customerId },
+        where: {
+          customerId: b.customerId,
+          status: { [Op.ne]: OrderStatus.CANCELLED },
+        },
         order: [["createdAt", "DESC"]],
       });
 
@@ -383,14 +412,12 @@ export class EquipmentService {
       const orderTime = lastOrder?.createdAt
         ? new Date(lastOrder.createdAt).getTime()
         : 0;
-      const balanceTime = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
-
-      const maxTime = Math.max(ledgerTime, orderTime, balanceTime);
+      // The balance row only changes when a movement is recorded, so its
+      // timestamp is just a fallback for holdings with no ledger history.
+      const maxTime = Math.max(ledgerTime, orderTime);
       const lastDate = maxTime > 0 ? new Date(maxTime) : b.updatedAt;
 
-      const daysIdle = Math.floor(
-        (Date.now() - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24),
-      );
+      const daysIdle = businessDaysBetween(new Date(lastDate), now);
 
       report.push({
         customerId: b.customerId,
@@ -410,57 +437,45 @@ export class EquipmentService {
   }
 
   /**
-   * 3. Container Loss & Shrinkage Rate Report
-   * Calculates total lost/damaged containers and shrinkage percentage over total movements.
+   * Units lost and damaged per product, from the ledger. Losses with customers
+   * (regular or temporary) are kept apart from write-offs at the station, which
+   * come from inventory adjustments. Nothing comes back out of scrap, so these
+   * are plain totals. There's no rate: containers are exchanged on every order,
+   * so no count of movements makes a fair base for one.
    */
-  static async getShrinkageRateReport() {
-    const products = await ProductInventory.findAll();
-    const report = [];
+  static async getLossesReport() {
+    const [products, flows] = await Promise.all([
+      ProductInventory.findAll({ order: [["productId", "ASC"]] }),
+      ledgerFlows(),
+    ]);
 
-    for (const prod of products) {
-      const lostEntries = await EquipmentLedgerEntry.sum("quantity", {
-        where: {
-          productId: prod.productId,
-          toAccountType: LedgerAccountType.SCRAP_LOST,
-        },
-      });
+    return products.map((product) => {
+      const into = (scrap: LedgerAccountType, fromCustomers: boolean) =>
+        flows
+          .filter(
+            (f) =>
+              f.productId === product.productId &&
+              f.toAccountType === scrap &&
+              isCustomerAccount(f.fromAccountType) === fromCustomers,
+          )
+          .reduce((sum, f) => sum + f.quantity, 0);
 
-      const damagedEntries = await EquipmentLedgerEntry.sum("quantity", {
-        where: {
-          productId: prod.productId,
-          toAccountType: LedgerAccountType.SCRAP_DAMAGED,
-        },
-      });
-
-      const totalIssued = await EquipmentLedgerEntry.sum("quantity", {
-        where: {
-          productId: prod.productId,
-          toAccountType: {
-            [Op.in]: [
-              LedgerAccountType.CUSTOMER,
-              LedgerAccountType.CUSTOMER_TEMP,
-            ],
-          },
-        },
-      });
-
-      const totalScrap = (lostEntries || 0) + (damagedEntries || 0);
-      const totalMovements = (totalIssued || 0) + totalScrap;
-      const shrinkageRate =
-        totalMovements > 0
-          ? Number(((totalScrap / totalMovements) * 100).toFixed(2))
-          : 0;
-
-      report.push({
-        productId: prod.productId,
-        productName: prod.name,
-        unitsLost: prod.stockLost || lostEntries || 0,
-        unitsDamaged: prod.stockDamaged || damagedEntries || 0,
-        totalScrap: prod.stockLost + prod.stockDamaged,
-        shrinkagePercentage: shrinkageRate,
-      });
-    }
-
-    return report;
+      const row = {
+        productId: product.productId,
+        productName: product.name,
+        lostWithCustomers: into(LedgerAccountType.SCRAP_LOST, true),
+        lostAtStation: into(LedgerAccountType.SCRAP_LOST, false),
+        damagedWithCustomers: into(LedgerAccountType.SCRAP_DAMAGED, true),
+        damagedAtStation: into(LedgerAccountType.SCRAP_DAMAGED, false),
+      };
+      return {
+        ...row,
+        total:
+          row.lostWithCustomers +
+          row.lostAtStation +
+          row.damagedWithCustomers +
+          row.damagedAtStation,
+      };
+    });
   }
 }

@@ -19,16 +19,27 @@ export default function ConfirmDialog({
   title,
   description,
   actionButtonText = "Continue",
+  open: controlledOpen,
+  onOpenChange,
 }: {
-  children: React.ReactElement;
+  /** The element that opens the dialog. Leave out when passing `open`. */
+  children?: React.ReactElement;
   /** May return a promise; the dialog closes once it settles. */
   onConfirm: () => void | Promise<unknown>;
   isLoading: boolean;
   title: string;
   description: string;
   actionButtonText?: string;
+  /** For opening the dialog from elsewhere, such as a menu item. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [innerOpen, setInnerOpen] = useState(false);
+  const open = controlledOpen ?? innerOpen;
+  const setOpen = (next: boolean) => {
+    setInnerOpen(next);
+    onOpenChange?.(next);
+  };
 
   const handleConfirm = async () => {
     try {
@@ -40,7 +51,7 @@ export default function ConfirmDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger render={children} />
+      {children && <AlertDialogTrigger render={children} />}
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>

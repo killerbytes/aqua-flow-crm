@@ -10,7 +10,6 @@ import {
   businessDateKey,
   startOfBusinessDay,
 } from "@/lib/business-time";
-import { subDays } from "date-fns";
 import { Op } from "sequelize";
 import {
   Customer,
@@ -71,7 +70,7 @@ export class DashboardService {
           startOfToday,
           startOfTomorrow,
         ),
-        DashboardService.getContainersHeldLongest(),
+        DashboardService.getContainersHeldLongest(now),
       ]);
 
     return {
@@ -203,8 +202,8 @@ export class DashboardService {
   }
 
   /** Customers who have held containers longest without any activity. */
-  static async getContainersHeldLongest() {
-    const report = await EquipmentService.getCustomerLiabilityAgingReport();
+  static async getContainersHeldLongest(now: Date = new Date()) {
+    const report = await EquipmentService.getCustomerLiabilityAgingReport(now);
     return report
       .filter((row) => row.totalHoldings > 0)
       .sort((a, b) => b.daysIdle - a.daysIdle)
@@ -309,7 +308,9 @@ export class DashboardService {
       activeCustomers.map((customer) => customer.customerId),
     );
 
-    const cutoff = subDays(now, CHURN_DAYS);
+    // Philippine calendar days, as the inactive customers report counts them,
+    // so the number here matches the report this card opens.
+    const cutoff = startOfBusinessDay(now, -(CHURN_DAYS - 1));
     const orders = await Order.findAll({
       attributes: ["customerId", "createdAt"],
       where: { status: { [Op.ne]: OrderStatus.CANCELLED } },

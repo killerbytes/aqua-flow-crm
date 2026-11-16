@@ -2,17 +2,33 @@
 
 import { updateOrderStatusAction } from "@/backend/actions";
 import { Order } from "@/backend/models";
-import { RoleGuard } from "@/components/auth/RoleGuard";
+import { hasRole, RoleGuard } from "@/components/auth/RoleGuard";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "@/components/ui/toast";
 import { OrderStatus, PaymentStatus, UserRole } from "@/lib/definitions";
+import { useAuthStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/store/uiStore";
-import { Banknote, Check, Pencil, RotateCcw, Truck } from "lucide-react";
+import {
+  Ban,
+  Banknote,
+  Check,
+  MoreHorizontal,
+  Pencil,
+  RotateCcw,
+  Truck,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
-import { VoidOrderButton } from "./VoidOrderButton";
+import { useState, useTransition } from "react";
+import { VoidOrderDialog } from "./VoidOrderDialog";
 
 interface OrderActionsProps {
   order: Order;
@@ -26,7 +42,8 @@ interface OrderActionsProps {
   isInvoiced?: boolean;
   /**
    * "list" shows only the delivery steps (Out For Delivery, Mark as
-   * Delivered). Void, Back to Pending, and Payment stay on the details page.
+   * Delivered). Payment, Edit, and the More menu (Back to Pending, Void Order)
+   * stay on the details page.
    */
   variant?: "list" | "detail";
 }
@@ -45,6 +62,27 @@ export default function OrderActions({
   const isDetail = variant === "detail";
   // Void, Payment, and Edit: details page only, and never for an invoiced order.
   const canChangeOrder = isDetail && !isInvoiced;
+
+  // The More menu holds the rare actions. It is hidden when it would be empty,
+  // so who sees each item is worked out here; the server checks again.
+  const role = useAuthStore((state) => state.user?.role);
+  const [isVoidOpen, setVoidOpen] = useState(false);
+  const [isReturnOpen, setReturnOpen] = useState(false);
+  const isPendingUnpaid =
+    order.status === OrderStatus.PENDING &&
+    order.paymentStatus === PaymentStatus.UNPAID;
+  // A Cashier may only void an order that is still pending and unpaid.
+  const canVoid =
+    canChangeOrder &&
+    order.status !== OrderStatus.CANCELLED &&
+    hasRole(role, [
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      ...(isPendingUnpaid ? [UserRole.CASHIER] : []),
+    ]);
+  const canReturnToPending =
+    isDetail && order.status === OrderStatus.OUT_FOR_DELIVERY;
+
   // Resolves once the update and refresh are done, so ConfirmDialog can close.
   const handleClick = (status: OrderStatus) =>
     new Promise<void>((resolve) =>
@@ -81,14 +119,6 @@ export default function OrderActions({
       className={cn("flex items-center gap-2", className)}
       onClick={(e) => e.stopPropagation()}
     >
-      {canChangeOrder && order.status !== OrderStatus.CANCELLED && (
-        <VoidOrderButton
-          orderId={order.orderId}
-          isPaid={order.paymentStatus === PaymentStatus.PAID}
-          size={size}
-        />
-      )}
-
       <RoleGuard
         allowedRoles={[
           UserRole.ADMIN,
@@ -139,37 +169,67 @@ export default function OrderActions({
             </ConfirmDialog>
           )}
           {order.status === OrderStatus.OUT_FOR_DELIVERY && (
-            <>
-              {isDetail && (
-                <ConfirmDialog
-                  isLoading={isPending}
-                  onConfirm={() => handleClick(OrderStatus.PENDING)}
-                  title="Return order to pending?"
-                  description=""
-                  actionButtonText="Back to Pending"
-                >
-                  <Button size={size} variant="outline">
-                    <RotateCcw className="w-4 h-4" /> Back to Pending
+            <ConfirmDialog
+              isLoading={isPending}
+              onConfirm={() => handleClick(OrderStatus.DELIVERED)}
+              title="Mark order as delivered?"
+              description=""
+              actionButtonText="Mark as Delivered"
+            >
+              <Button size={size} className="bg-green-500 hover:bg-green-600">
+                <Check className="w-4 h-4" /> Mark as Delivered
+              </Button>
+            </ConfirmDialog>
+          )}
+          {(canReturnToPending || canVoid) && (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    size={size === "sm" ? "icon-sm" : "icon"}
+                    variant="outline"
+                    aria-label="More actions"
+                  >
+                    <MoreHorizontal className="w-4 h-4" />
                   </Button>
-                </ConfirmDialog>
-              )}
-              <ConfirmDialog
-                isLoading={isPending}
-                onConfirm={() => handleClick(OrderStatus.DELIVERED)}
-                title="Mark order as delivered?"
-                description=""
-                actionButtonText="Mark as Delivered"
-              >
-                <Button
-                  size={size}
-                  className="bg-green-500 hover:bg-green-600"
-                >
-                  <Check className="w-4 h-4" /> Mark as Delivered
-                </Button>
-              </ConfirmDialog>
-            </>
+                }
+              />
+              <DropdownMenuContent align="end" className="w-auto min-w-44">
+                {canReturnToPending && (
+                  <DropdownMenuItem onClick={() => setReturnOpen(true)}>
+                    <RotateCcw /> Back to Pending
+                  </DropdownMenuItem>
+                )}
+                {canReturnToPending && canVoid && <DropdownMenuSeparator />}
+                {canVoid && (
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onClick={() => setVoidOpen(true)}
+                  >
+                    <Ban /> Void Order
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
+
+        {/* Outside the menu, so they stay open after it closes. */}
+        <ConfirmDialog
+          open={isReturnOpen}
+          onOpenChange={setReturnOpen}
+          isLoading={isPending}
+          onConfirm={() => handleClick(OrderStatus.PENDING)}
+          title="Return order to pending?"
+          description=""
+          actionButtonText="Back to Pending"
+        />
+        <VoidOrderDialog
+          orderId={order.orderId}
+          isPaid={order.paymentStatus === PaymentStatus.PAID}
+          isOpen={isVoidOpen}
+          onClose={() => setVoidOpen(false)}
+        />
       </RoleGuard>
     </div>
   );

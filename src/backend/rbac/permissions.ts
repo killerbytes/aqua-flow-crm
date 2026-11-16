@@ -16,7 +16,10 @@ export type PermissionAction =
   | "VIEW_ORDERS"
   | "CREATE_ORDER"
   | "UPDATE_ORDER"
+  /** Void an order at any stage, reversing its payment if it has one. */
   | "CANCEL_ORDER"
+  /** Void an order that is still pending and unpaid. */
+  | "VOID_PENDING_ORDER"
   | "CREATE_INVOICE"
   | "PAY_INVOICE"
   | "VOID_INVOICE"
@@ -24,7 +27,8 @@ export type PermissionAction =
   | "VIEW_INVOICES"
   | "LOG_EQUIPMENT"
   | "UPDATE_DELIVERY_STATUS"
-  | "VIEW_REPORTS";
+  | "VIEW_REPORTS"
+  | "EXPORT_REPORTS";
 
 const ROLE_PERMISSIONS: Record<UserRole, PermissionAction[]> = {
   [UserRole.ADMIN]: [
@@ -44,6 +48,7 @@ const ROLE_PERMISSIONS: Record<UserRole, PermissionAction[]> = {
     "CREATE_ORDER",
     "UPDATE_ORDER",
     "CANCEL_ORDER",
+    "VOID_PENDING_ORDER",
     "CREATE_INVOICE",
     "PAY_INVOICE",
     "VOID_INVOICE",
@@ -52,6 +57,7 @@ const ROLE_PERMISSIONS: Record<UserRole, PermissionAction[]> = {
     "LOG_EQUIPMENT",
     "UPDATE_DELIVERY_STATUS",
     "VIEW_REPORTS",
+    "EXPORT_REPORTS",
   ],
   [UserRole.MANAGER]: [
     "VIEW_DASHBOARD",
@@ -68,6 +74,7 @@ const ROLE_PERMISSIONS: Record<UserRole, PermissionAction[]> = {
     "CREATE_ORDER",
     "UPDATE_ORDER",
     "CANCEL_ORDER",
+    "VOID_PENDING_ORDER",
     "CREATE_INVOICE",
     "PAY_INVOICE",
     "VOID_INVOICE",
@@ -86,11 +93,13 @@ const ROLE_PERMISSIONS: Record<UserRole, PermissionAction[]> = {
     "MANAGE_CUSTOMERS",
     "CREATE_ORDER",
     "UPDATE_ORDER",
+    "VOID_PENDING_ORDER",
     "CREATE_INVOICE",
     "PAY_INVOICE",
     "VIEW_INVOICES",
     "LOG_EQUIPMENT",
     "UPDATE_DELIVERY_STATUS",
+    "VIEW_REPORTS",
   ],
   [UserRole.DELIVERY]: ["VIEW_ORDERS", "UPDATE_DELIVERY_STATUS"],
 };

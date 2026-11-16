@@ -30,6 +30,7 @@ import {
   Truck,
 } from "lucide-react";
 import Link from "next/link";
+import { formatPeso } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
@@ -57,11 +58,8 @@ const TONES: Record<Tone, string> = {
   muted: "bg-muted text-muted-foreground",
 };
 
-// formatCurrency shows "N/A" for zero; a sales total of zero should read ₱0.00.
-const peso = (amount: number) =>
-  new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(
-    amount,
-  );
+// formatCurrency shows "N/A" for zero; a sales total of zero should read P0.00.
+const peso = formatPeso;
 
 export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   await initDatabase();

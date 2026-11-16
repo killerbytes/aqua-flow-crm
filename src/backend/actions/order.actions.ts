@@ -3,6 +3,7 @@
 import { OrderStatus } from "@/lib/definitions";
 import { revalidatePath } from "next/cache";
 import { createProtectedAction } from "../lib/safe-action";
+import { checkPermission } from "../rbac/permissions";
 import {
   OrderFormData,
   OrderSchema,
@@ -75,11 +76,14 @@ export const updateOrderStatusAction =createProtectedAction({
 });
 
 export const voidOrderAction = createProtectedAction({
-  permission: "CANCEL_ORDER",
+  permission: "VOID_PENDING_ORDER",
   schema: VoidOrderSchema,
   inputIndex: 1,
   handler: async (ctx, id: number | string, input: VoidOrderFormData) => {
-    const result = await OrderService.voidOrder(id, input, ctx.user.userId);
+    // Without CANCEL_ORDER, only a pending, unpaid order can be voided.
+    const result = await OrderService.voidOrder(id, input, ctx.user.userId, {
+      pendingUnpaidOnly: !checkPermission(ctx.user.role, "CANCEL_ORDER"),
+    });
     revalidatePath("/orders");
     revalidatePath(`/orders/${result.orderId}`);
     revalidatePath(`/customers/${result.customerId}`);
