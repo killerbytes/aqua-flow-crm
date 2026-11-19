@@ -1,8 +1,19 @@
 import { toPlain } from "../models/plain";
-import { OrderStatus, PAGINATION, PaymentStatus } from "@/lib/definitions";
+import {
+  MAX_ORDER_BACKDATE_DAYS,
+  OrderStatus,
+  PAGINATION,
+  PaymentStatus,
+} from "@/lib/definitions";
 import { toPagination } from "@/lib/pagination";
 import { fromCents, toCents } from "@/lib/money";
-import { endOfBusinessDay, startOfBusinessDay } from "@/lib/business-time";
+import {
+  businessDateAtTimeOf,
+  businessDateKey,
+  businessDaysBetween,
+  endOfBusinessDay,
+  startOfBusinessDay,
+} from "@/lib/business-time";
 import {
   Attributes,
   Op,
@@ -225,16 +236,20 @@ export class OrderService {
    * as a new unpaid order, whatever the request says.
    */
   static async createForStaff(input: OrderFormData, createdByUserId: number) {
+    const createdAt = staffOrderDate(input.createdAt, new Date());
     const customer = await CustomerService.get(input.customerId);
     if (customer?.name === WALK_IN_CUSTOMER_NAME) {
-      return await OrderService.create(input, createdByUserId);
+      return await OrderService.create(
+        { ...input, createdAt },
+        createdByUserId,
+      );
     }
     return await OrderService.create(
       {
         ...input,
         status: OrderStatus.PENDING,
         paymentStatus: PaymentStatus.UNPAID,
-        createdAt: undefined,
+        createdAt,
       },
       createdByUserId,
     );
@@ -322,6 +337,7 @@ export class OrderService {
 
     // The customer of an order never changes, so pricing can run before the lock.
     const priced = await priceItems(existing.customerId, input.items);
+    const createdAt = editedOrderDate(input.createdAt, existing.createdAt);
 
     await sequelize.transaction(async (t) => {
       const order = await Order.findByPk(orderId, {
@@ -364,6 +380,14 @@ export class OrderService {
         },
         { transaction: t },
       );
+      if (createdAt) {
+        // Saving an instance never writes createdAt, so the date goes through
+        // a plain UPDATE.
+        await Order.update(
+          { createdAt },
+          { where: { orderId: order.orderId }, transaction: t },
+        );
+      }
     });
 
     return await this.get(orderId);
@@ -626,6 +650,54 @@ export class OrderService {
     });
   }
 }
+
+/**
+ * The order date staff entered, as an instant. A calendar date (YYYY-MM-DD)
+ * means that Philippine day at the current time of day, so today's date is
+ * simply now. No date means now. Dates after today, or more than
+ * MAX_ORDER_BACKDATE_DAYS Philippine days back, are refused.
+ */
+const staffOrderDate = (
+  value: OrderFormData["createdAt"],
+  now: Date,
+): Date | undefined => {
+  if (value === undefined || value === null || value === "") return undefined;
+  const date =
+    businessDateAtTimeOf(value, now) ??
+    (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)
+      ? null
+      : new Date(value));
+  if (!date || isNaN(date.getTime())) {
+    throw new Error("Order date is not a valid date");
+  }
+  if (businessDateKey(date) > businessDateKey(now)) {
+    throw new Error("Order date can't be in the future");
+  }
+  if (businessDaysBetween(date, now) > MAX_ORDER_BACKDATE_DAYS) {
+    throw new Error(
+      `Order date can't be more than ${MAX_ORDER_BACKDATE_DAYS} days ago`,
+    );
+  }
+  return date;
+};
+
+/**
+ * The new date of an order being edited, or undefined to leave it as it is.
+ * Sending the order's own day back changes nothing, so its time of day stays
+ * and an order already older than the backdating limit can still be edited.
+ * A different day follows the same rules as a new order's date.
+ */
+const editedOrderDate = (
+  value: OrderFormData["createdAt"],
+  current: Date,
+): Date | undefined => {
+  if (value === undefined || value === null || value === "") return undefined;
+  const sameDay =
+    typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)
+      ? value === businessDateKey(current)
+      : new Date(value).getTime() === current.getTime();
+  return sameDay ? undefined : staffOrderDate(value, new Date());
+};
 
 /**
  * Prices order lines for a customer. Prices and discounts always come from the

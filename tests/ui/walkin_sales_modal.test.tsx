@@ -15,6 +15,9 @@ describe("UI - WalkInSalesModal Component & Header Button", () => {
     expect(content).toContain("PaymentStatus.PAID");
     expect(content).toContain("getWalkInCustomerAction");
     expect(content).toContain("createOrderAction");
+    // Today in Manila, not the UTC date, which is still yesterday before 8 AM.
+    expect(content).toContain("createdAt: todayOrderDate()");
+    expect(content).not.toContain("toISOString()");
   });
 
   it("should render Record Walk-In Sales button in orders page header", () => {

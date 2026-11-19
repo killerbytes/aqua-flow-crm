@@ -4,6 +4,10 @@ import { InvoiceService, ProductService } from "../../src/backend/services";
 import { OrderService } from "../../src/backend/services/order.service";
 import { OrderStatus } from "../../src/lib/definitions";
 import { setupTestDatabase } from "../helpers/db.setup";
+import {
+  businessDateKey,
+  startOfBusinessDay,
+} from "../../src/lib/business-time";
 
 describe("Integration - Order Service & Workflows", () => {
   beforeAll(async () => {
@@ -138,6 +142,69 @@ describe("Integration - Order Service & Workflows", () => {
 
       expect(updated.surcharge).toBe(7.5);
       expect(updated.totalAmount).toBeCloseTo((order.totalAmount - 7.5) * 2 + 7.5, 2);
+    });
+
+    const daysAgo = (days: number) =>
+      businessDateKey(startOfBusinessDay(new Date(), -days));
+    const sameItems = [{ productId: 1, quantity: 1, discount: 0 }];
+
+    it("should move a pending order to another date within the last 30 days", async () => {
+      const order = await newOrder();
+
+      const updated = (await OrderService.update(order.orderId, {
+        items: sameItems,
+        createdAt: daysAgo(3),
+      }))!;
+
+      expect(businessDateKey(new Date(updated.createdAt))).toBe(daysAgo(3));
+    });
+
+    it("should leave the date alone when it's left out or unchanged", async () => {
+      const order = await newOrder();
+      const original = new Date(order.createdAt).getTime();
+
+      await OrderService.update(order.orderId, { items: sameItems });
+      await OrderService.update(order.orderId, {
+        items: sameItems,
+        createdAt: businessDateKey(new Date(order.createdAt)),
+      });
+
+      const after = (await OrderService.get(order.orderId))!;
+      expect(new Date(after.createdAt).getTime()).toBe(original);
+    });
+
+    it("should refuse moving an order to a future date or more than 30 days back", async () => {
+      const order = await newOrder();
+      const tomorrow = businessDateKey(new Date(Date.now() + 86400000));
+
+      await expect(
+        OrderService.update(order.orderId, { items: sameItems, createdAt: tomorrow }),
+      ).rejects.toThrow("Order date can't be in the future");
+      await expect(
+        OrderService.update(order.orderId, { items: sameItems, createdAt: daysAgo(31) }),
+      ).rejects.toThrow("Order date can't be more than 30 days ago");
+
+      const after = (await OrderService.get(order.orderId))!;
+      expect(new Date(after.createdAt).getTime()).toBe(
+        new Date(order.createdAt).getTime(),
+      );
+    });
+
+    it("should still edit an order older than 30 days that keeps its date", async () => {
+      const order = await newOrder();
+      const old = new Date(Date.now() - 40 * 86400000);
+      await Order.update(
+        { createdAt: old },
+        { where: { orderId: order.orderId }, silent: true },
+      );
+
+      const updated = (await OrderService.update(order.orderId, {
+        items: [{ productId: 1, quantity: 2, discount: 0 }],
+        createdAt: businessDateKey(old),
+      }))!;
+
+      expect(updated.orderDetails[0].quantity).toBe(2);
+      expect(new Date(updated.createdAt).getTime()).toBe(old.getTime());
     });
 
     it("should refuse orders that are no longer pending", async () => {

@@ -35,4 +35,26 @@ describe("UI - OrderFormModal Component Structure & Action Binding", () => {
   it("should display equipment balances when customer is selected", () => {
     expect(content).toContain("equipmentBalances");
   });
+
+  it("should let an order's date be entered, starting at today in Manila", () => {
+    const dateContent = fs.readFileSync(
+      path.resolve(
+        process.cwd(),
+        "src/features/orders/components/OrderDateField.tsx",
+      ),
+      "utf-8",
+    );
+    expect(content).toContain("<OrderDateField");
+    // Editing starts at the order's own date and sends it with the update.
+    expect(content).toContain(
+      "createdAt: businessDateKey(new Date(editingOrder.createdAt))",
+    );
+    expect(content).toContain("createdAt: data.createdAt");
+    expect(content).toContain("createdAt: todayOrderDate()");
+    expect(dateContent).toContain('type="date"');
+    expect(dateContent).toContain("max={todayOrderDate()}");
+    expect(dateContent).toContain("min={earliestOrderDate(current)}");
+    expect(dateContent).toContain("MAX_ORDER_BACKDATE_DAYS");
+    expect(dateContent).toContain("businessDateKey(new Date())");
+  });
 });

@@ -5,17 +5,16 @@ import { createOrderAction, getWalkInCustomerAction } from "@/backend/actions";
 import { OrderFormData, OrderSchema } from "@/backend/schemas/zodSchemas";
 import Modal from "@/components/Modal";
 import { Button } from "@/components/ui/button";
-import { Field, FieldError, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
 import { OrderStatus, PaymentStatus } from "@/lib/definitions";
 import { formatCurrency } from "@/lib/utils";
 import { useUIStore } from "@/store/uiStore";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Calendar, Store } from "lucide-react";
+import { Store } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
+import { OrderDateField, todayOrderDate } from "./OrderDateField";
 import {
   OrderItemsField,
   orderTotal,
@@ -35,16 +34,11 @@ const WalkInSalesModalContent = () => {
       customerId: 0,
       status: OrderStatus.DELIVERED,
       paymentStatus: PaymentStatus.PAID,
-      createdAt: new Date().toISOString().split("T")[0],
+      createdAt: todayOrderDate(),
       items: [UNSET_ORDER_ITEM],
     },
   });
-  const {
-    handleSubmit,
-    control,
-    setValue,
-    formState: { errors },
-  } = form;
+  const { handleSubmit, control, setValue } = form;
   const products = useOrderProducts(form);
   const items = useWatch({ control, name: "items" });
 
@@ -102,27 +96,7 @@ const WalkInSalesModalContent = () => {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-2">
-      <Controller
-        name="createdAt"
-        control={control}
-        render={({ field }) => (
-          <Field>
-            <FieldLabel className="flex items-center gap-1">
-              <Calendar size={14} /> Sale Date
-            </FieldLabel>
-            <Input
-              type="date"
-              value={
-                field.value
-                  ? new Date(field.value).toISOString().split("T")[0]
-                  : ""
-              }
-              onChange={(e) => field.onChange(e.target.value)}
-            />
-            <FieldError>{errors.createdAt?.message}</FieldError>
-          </Field>
-        )}
-      />
+      <OrderDateField form={form} label="Sale Date" />
 
       <OrderItemsField form={form} products={products} />
 

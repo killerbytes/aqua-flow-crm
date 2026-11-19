@@ -1,3 +1,6 @@
+/** How many Philippine days back staff can date an order. Later dates are refused. */
+export const MAX_ORDER_BACKDATE_DAYS = 30;
+
 export const PAGINATION = {
   PAGE: 1,
   PAGE_SIZE: 25,

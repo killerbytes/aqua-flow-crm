@@ -90,10 +90,11 @@ export const OrderSchema = z.object({
     .optional(),
 });
 
-/** What staff can change on a pending order: its items and its surcharge. */
+/** What staff can change on a pending order: its items, surcharge, and date. */
 export const OrderUpdateSchema = OrderSchema.pick({
   items: true,
   surcharge: true,
+  createdAt: true,
 });
 
 export const PaymentSchema = OrderSchema.omit({
