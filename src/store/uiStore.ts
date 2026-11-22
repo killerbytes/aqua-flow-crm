@@ -3,6 +3,7 @@ import type {
   Invoice,
   Order,
   ProductInventory,
+  RetailProduct,
   User,
 } from "@/types/models";
 import { create } from "zustand";
@@ -33,6 +34,13 @@ interface UIState {
   editingInvoice?: Invoice | null;
 
   isWalkInModalOpen: boolean;
+  isRetailSaleModalOpen: boolean;
+  isRetailProductModalOpen: boolean;
+  /** The retail product being edited, or null to add one. */
+  editingRetailProduct?: RetailProduct | null;
+  isRetailStockModalOpen: boolean;
+  /** The retail product being restocked or written off. */
+  stockRetailProduct?: RetailProduct | null;
   setLookupCustomers: (lookupCustomers: Customer[]) => void;
   setCustomerFormModalOpen: (open: boolean, customer?: Customer | null) => void;
   setEquipmentLogModalOpen: (
@@ -69,6 +77,15 @@ interface UIState {
   setPaymentModalOpen: (open: boolean, order: Order | null) => void;
   setInvoiceFormModalOpen: (open: boolean, customer?: Customer | null) => void;
   setPaymentFormModalOpen: (open: boolean, invoice?: Invoice | null) => void;
+  setRetailSaleModalOpen: (open: boolean) => void;
+  setRetailProductModalOpen: (
+    open: boolean,
+    product?: RetailProduct | null,
+  ) => void;
+  setRetailStockModalOpen: (
+    open: boolean,
+    product?: RetailProduct | null,
+  ) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -92,6 +109,11 @@ export const useUIStore = create<UIState>((set) => ({
   isInvoiceFormModalOpen: false,
   isPaymentFormModalOpen: false,
   isWalkInModalOpen: false,
+  isRetailSaleModalOpen: false,
+  isRetailProductModalOpen: false,
+  editingRetailProduct: null,
+  isRetailStockModalOpen: false,
+  stockRetailProduct: null,
 
   setLookupCustomers: (lookupCustomers) => set({ lookupCustomers }),
   setCustomerFormModalOpen: (open, customer = null) =>
@@ -130,4 +152,9 @@ export const useUIStore = create<UIState>((set) => ({
     set({ isInvoiceFormModalOpen: open, editingCustomer: customer }),
   setPaymentFormModalOpen: (open, invoice = null) =>
     set({ isPaymentFormModalOpen: open, editingInvoice: invoice }),
+  setRetailSaleModalOpen: (open) => set({ isRetailSaleModalOpen: open }),
+  setRetailProductModalOpen: (open, product = null) =>
+    set({ isRetailProductModalOpen: open, editingRetailProduct: product }),
+  setRetailStockModalOpen: (open, product = null) =>
+    set({ isRetailStockModalOpen: open, stockRetailProduct: product }),
 }));

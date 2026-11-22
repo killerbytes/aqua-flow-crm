@@ -70,7 +70,12 @@ describe("Integration - Dashboard Additions", () => {
       expect(day("2026-09-20").sales).toBeCloseTo(early.totalAmount, 2);
       expect(day("2026-09-19").orderCount).toBe(0);
       expect(day("2026-09-15").orderCount).toBe(1);
-      expect(day("2026-09-10")).toEqual({ date: "2026-09-10", sales: 0, orderCount: 0 });
+      expect(day("2026-09-10")).toEqual({
+        date: "2026-09-10",
+        sales: 0,
+        orderCount: 0,
+        retailCount: 0,
+      });
     });
   });
 

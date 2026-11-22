@@ -11,12 +11,17 @@ import { Order } from "./Order";
 import { OrderDetail } from "./OrderDetail";
 import { OrderPayment } from "./OrderPayment";
 import { ProductInventory } from "./ProductInventory";
+import { RetailProduct } from "./RetailProduct";
+import { RetailSale } from "./RetailSale";
+import { RetailSaleItem } from "./RetailSaleItem";
+import { RetailStockEntry } from "./RetailStockEntry";
 import { User } from "./User";
 
 // In dev, hot reload can re-run this file while some model modules stay cached
 // with the associations and hooks from the previous run. Start from a clean
 // slate so re-running is safe; on a first load this is a no-op.
 const LEDGER_HOOK_NAME = "equipmentLedgerTotals";
+const RETAIL_STOCK_HOOK_NAME = "retailStockOnHand";
 for (const model of [
   Customer,
   CustomerEquipmentBalance,
@@ -29,11 +34,16 @@ for (const model of [
   OrderDetail,
   OrderPayment,
   ProductInventory,
+  RetailProduct,
+  RetailSale,
+  RetailSaleItem,
+  RetailStockEntry,
   User,
 ]) {
   (model as unknown as { associations: object }).associations = {};
 }
 EquipmentLedgerEntry.removeHook("afterCreate", LEDGER_HOOK_NAME);
+RetailStockEntry.removeHook("afterCreate", RETAIL_STOCK_HOOK_NAME);
 
 Customer.hasMany(CustomerEquipmentBalance, {
   foreignKey: "customerId",
@@ -276,6 +286,43 @@ EquipmentLedgerEntry.afterCreate(LEDGER_HOOK_NAME, async (entry, options) => {
   }
 });
 
+// Retail: brand-new items sold over the counter, apart from refill orders.
+Customer.hasMany(RetailSale, { foreignKey: "customerId", as: "retailSales" });
+RetailSale.belongsTo(Customer, { foreignKey: "customerId", as: "customer" });
+RetailSale.belongsTo(User, { foreignKey: "soldBy", as: "soldByUser" });
+RetailSale.belongsTo(User, { foreignKey: "voidedBy", as: "voidedByUser" });
+
+RetailSale.hasMany(RetailSaleItem, { foreignKey: "saleId", as: "items" });
+RetailSaleItem.belongsTo(RetailSale, { foreignKey: "saleId", as: "sale" });
+RetailSaleItem.belongsTo(RetailProduct, {
+  foreignKey: "productId",
+  as: "product",
+});
+
+RetailProduct.hasMany(RetailStockEntry, {
+  foreignKey: "productId",
+  as: "stockEntries",
+});
+RetailStockEntry.belongsTo(RetailProduct, {
+  foreignKey: "productId",
+  as: "product",
+});
+RetailStockEntry.belongsTo(User, { foreignKey: "loggedBy", as: "user" });
+RetailStockEntry.belongsTo(RetailSale, { foreignKey: "saleId", as: "sale" });
+
+// A retail product's stock changes only through its entries, so the stored
+// count always adds up to them.
+RetailStockEntry.afterCreate(
+  RETAIL_STOCK_HOOK_NAME,
+  async (entry, options) => {
+    await RetailProduct.increment("stockOnHand", {
+      by: entry.quantityChange,
+      where: { productId: entry.productId },
+      transaction: options.transaction,
+    });
+  },
+);
+
 export {
   Customer,
   CustomerEquipmentBalance,
@@ -288,6 +335,10 @@ export {
   OrderDetail,
   OrderPayment,
   ProductInventory,
+  RetailProduct,
+  RetailSale,
+  RetailSaleItem,
+  RetailStockEntry,
   sequelize,
   User,
 };

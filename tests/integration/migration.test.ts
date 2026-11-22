@@ -56,6 +56,11 @@ describe("Integration - Migration Files Integrity & Execution", () => {
     expect(tables).toContain("invoices");
     expect(tables).toContain("invoice_details");
     expect(tables).toContain("invoice_payments");
+    expect(tables).toContain("order_payments");
+    expect(tables).toContain("retail_products");
+    expect(tables).toContain("retail_sales");
+    expect(tables).toContain("retail_sale_items");
+    expect(tables).toContain("retail_stock_entries");
 
     // Execute DOWN migrations in reverse order (Rollback)
     for (const file of [...files].reverse()) {
@@ -70,6 +75,8 @@ describe("Integration - Migration Files Integrity & Execution", () => {
     expect(tablesAfterRollback).not.toContain("users");
     expect(tablesAfterRollback).not.toContain("customers");
     expect(tablesAfterRollback).not.toContain("orders");
+    expect(tablesAfterRollback).not.toContain("retail_sales");
+    expect(tablesAfterRollback).not.toContain("retail_products");
 
     await testDb.close();
   });

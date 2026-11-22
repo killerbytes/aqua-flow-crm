@@ -20,6 +20,8 @@ import {
   Order,
   OrderPayment,
   ProductInventory,
+  RetailProduct,
+  RetailSale,
   User,
 } from "../models";
 import { WALK_IN_CUSTOMER_NAME } from "./customer.service";
@@ -86,28 +88,39 @@ export class DashboardService {
     };
   }
 
-  /** Orders delivered today, whenever they were placed. */
+  /**
+   * Orders delivered today, whenever they were placed, plus retail sales made
+   * today that haven't been voided.
+   */
   static async getTodaysSales(start: Date, end: Date) {
-    const orders = await Order.findAll({
-      attributes: ["totalAmount"],
-      where: {
-        status: OrderStatus.DELIVERED,
-        deliveredAt: { [Op.gte]: start, [Op.lt]: end },
-      },
-    });
+    const [orders, retailSales] = await Promise.all([
+      Order.findAll({
+        attributes: ["totalAmount"],
+        where: {
+          status: OrderStatus.DELIVERED,
+          deliveredAt: { [Op.gte]: start, [Op.lt]: end },
+        },
+      }),
+      standingRetailSales(start, end, ["totalAmount"]),
+    ]);
 
     return {
-      sales: sumCents(orders.map((order) => order.totalAmount)),
+      sales: sumCents([
+        ...orders.map((order) => order.totalAmount),
+        ...retailSales.map((sale) => sale.totalAmount),
+      ]),
       orderCount: orders.length,
+      retailCount: retailSales.length,
     };
   }
 
   /**
-   * Money actually taken in today: direct order payments plus invoice payments,
-   * leaving out anything reversed. This is what the till should hold.
+   * Money actually taken in today: direct order payments, invoice payments, and
+   * retail sales, which are paid when made, leaving out anything reversed or
+   * voided. This is what the till should hold.
    */
   static async getCashCollected(start: Date, end: Date) {
-    const [orderPayments, invoicePayments] = await Promise.all([
+    const [orderPayments, invoicePayments, retailSales] = await Promise.all([
       OrderPayment.findAll({
         attributes: ["amount", "paymentMethod"],
         where: { paidAt: { [Op.gte]: start, [Op.lt]: end }, reversedAt: null },
@@ -119,6 +132,7 @@ export class DashboardService {
           reversedAt: null,
         },
       }),
+      standingRetailSales(start, end, ["totalAmount", "paymentMethod"]),
     ]);
 
     const byMethod = new Map<string, number>();
@@ -128,48 +142,64 @@ export class DashboardService {
     };
     orderPayments.forEach((p) => add(p.paymentMethod, p.amount));
     invoicePayments.forEach((p) => add(p.paymentMethod, p.paymentAmount));
+    retailSales.forEach((sale) => add(sale.paymentMethod, sale.totalAmount));
 
     return {
       total: fromCents([...byMethod.values()].reduce((a, b) => a + b, 0)),
-      paymentCount: orderPayments.length + invoicePayments.length,
+      paymentCount:
+        orderPayments.length + invoicePayments.length + retailSales.length,
       byMethod: Object.fromEntries(
         [...byMethod].map(([method, cents]) => [method, fromCents(cents)]),
       ),
     };
   }
 
-  /** Delivered sales for each of the last TREND_DAYS Philippine days, ending today. */
+  /**
+   * Sales for each of the last TREND_DAYS Philippine days, ending today:
+   * delivered orders by delivery day, and standing retail sales by sale day.
+   */
   static async getSalesTrend(now: Date) {
     const first = startOfBusinessDay(now, -(TREND_DAYS - 1));
     const end = startOfBusinessDay(now, 1);
 
-    const orders = await Order.findAll({
-      attributes: ["totalAmount", "deliveredAt"],
-      where: {
-        status: OrderStatus.DELIVERED,
-        deliveredAt: { [Op.gte]: first, [Op.lt]: end },
-      },
-    });
+    const [orders, retailSales] = await Promise.all([
+      Order.findAll({
+        attributes: ["totalAmount", "deliveredAt"],
+        where: {
+          status: OrderStatus.DELIVERED,
+          deliveredAt: { [Op.gte]: first, [Op.lt]: end },
+        },
+      }),
+      standingRetailSales(first, end, ["totalAmount", "soldAt"]),
+    ]);
 
     const days = Array.from({ length: TREND_DAYS }, (_, i) => ({
       date: businessDateKey(startOfBusinessDay(now, i - (TREND_DAYS - 1))),
       cents: 0,
       orderCount: 0,
+      retailCount: 0,
     }));
     const byDate = new Map(days.map((day) => [day.date, day]));
     for (const order of orders) {
-      const date = businessDateKey(order.deliveredAt!);
-      const day = byDate.get(date);
+      const day = byDate.get(businessDateKey(order.deliveredAt!));
       if (day) {
         day.cents += toCents(order.totalAmount);
         day.orderCount++;
       }
     }
+    for (const sale of retailSales) {
+      const day = byDate.get(businessDateKey(sale.soldAt));
+      if (day) {
+        day.cents += toCents(sale.totalAmount);
+        day.retailCount++;
+      }
+    }
 
-    return days.map(({ date, cents, orderCount }) => ({
+    return days.map(({ date, cents, orderCount, retailCount }) => ({
       date,
       sales: fromCents(cents),
       orderCount,
+      retailCount,
     }));
   }
 
@@ -336,13 +366,18 @@ export class DashboardService {
     };
   }
 
-  /** Per product, because containers and dispensers can't be added together. */
+  /**
+   * Per product, because containers and dispensers can't be added together.
+   * Retail products, which are sold rather than lent, are listed apart.
+   */
   static async getStock() {
-    const [products, balanceSheet, temporary] = await Promise.all([
-      ProductInventory.findAll({ order: [["productId", "ASC"]] }),
-      EquipmentService.getBalanceSheetReport(),
-      CustomerEquipmentBalance.sum("quantityTemporaryOwed"),
-    ]);
+    const [products, balanceSheet, temporary, retailProducts] =
+      await Promise.all([
+        ProductInventory.findAll({ order: [["productId", "ASC"]] }),
+        EquipmentService.getBalanceSheetReport(),
+        CustomerEquipmentBalance.sum("quantityTemporaryOwed"),
+        RetailProduct.findAll({ order: [["productId", "ASC"]] }),
+      ]);
     const drifted = new Set(
       balanceSheet
         .filter((row) => !row.matchesLedger)
@@ -362,6 +397,26 @@ export class DashboardService {
         matchesLedger: !drifted.has(product.productId),
       })),
       temporaryLoans: temporary || 0,
+      retail: retailProducts.map((product) => ({
+        productId: product.productId,
+        name: product.name,
+        onHand: product.stockOnHand,
+        lowStockThreshold: product.lowStockThreshold,
+        isLow:
+          product.lowStockThreshold !== null &&
+          product.stockOnHand <= product.lowStockThreshold,
+      })),
     };
   }
 }
+
+/** Retail sales made in a range that haven't been voided. */
+const standingRetailSales = (
+  start: Date,
+  end: Date,
+  attributes: ("totalAmount" | "paymentMethod" | "soldAt")[],
+) =>
+  RetailSale.findAll({
+    attributes,
+    where: { soldAt: { [Op.gte]: start, [Op.lt]: end }, voidedAt: null },
+  });

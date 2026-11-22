@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Receipt,
   Search,
+  ShoppingBag,
   ShoppingCart,
   Tag,
   UserCog,
@@ -65,6 +66,9 @@ export default function Sidebar() {
       : []),
     ...(can("VIEW_PRODUCTS")
       ? [{ name: "Products", href: "/products", icon: Tag }]
+      : []),
+    ...(can("VIEW_RETAIL")
+      ? [{ name: "Retail", href: "/retail", icon: ShoppingBag }]
       : []),
     ...(can("VIEW_INVOICES")
       ? [{ name: "Invoices", href: "/invoices", icon: Receipt }]

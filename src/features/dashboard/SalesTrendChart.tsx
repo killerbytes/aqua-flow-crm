@@ -6,8 +6,10 @@ import { formatPeso } from "@/lib/money";
 export interface SalesDay {
   /** YYYY-MM-DD in Philippine time */
   date: string;
+  /** Delivered orders and retail sales together. */
   sales: number;
   orderCount: number;
+  retailCount: number;
 }
 
 const WIDTH = 560;
@@ -19,6 +21,15 @@ const MAX_BAR_W = 24;
 const RADIUS = 4;
 
 const peso = formatPeso;
+
+const plural = (count: number, word: string) =>
+  `${count} ${word}${count === 1 ? "" : "s"}`;
+
+/** "3 orders, 1 retail sale", leaving out retail when there was none. */
+const countsLabel = (day: SalesDay) =>
+  day.retailCount > 0
+    ? `${plural(day.orderCount, "order")}, ${plural(day.retailCount, "retail sale")}`
+    : plural(day.orderCount, "order");
 
 const dayLabel = (date: string) =>
   new Date(`${date}T00:00:00Z`).toLocaleDateString("en-PH", {
@@ -74,7 +85,7 @@ export function SalesTrendChart({ days }: { days: SalesDay[] }) {
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
           className="w-full h-auto"
           role="img"
-          aria-label={`Delivered sales for the last ${days.length} days, ${peso(total)} in total`}
+          aria-label={`Sales for the last ${days.length} days, ${peso(total)} in total`}
         >
           {ticks.map((tick) => (
             <g key={tick}>
@@ -107,7 +118,7 @@ export function SalesTrendChart({ days }: { days: SalesDay[] }) {
                 key={day.date}
                 tabIndex={0}
                 role="button"
-                aria-label={`${dayLabel(day.date)}: ${peso(day.sales)} from ${day.orderCount} orders`}
+                aria-label={`${dayLabel(day.date)}: ${peso(day.sales)} from ${countsLabel(day)}`}
                 onPointerEnter={() => setActive(i)}
                 onPointerLeave={() => setActive(null)}
                 onFocus={() => setActive(i)}
@@ -178,9 +189,13 @@ export function SalesTrendChart({ days }: { days: SalesDay[] }) {
             <div className="font-medium">{dayLabel(activeDay.date)}</div>
             <div>{peso(activeDay.sales)}</div>
             <div className="text-muted-foreground">
-              {activeDay.orderCount} delivered order
-              {activeDay.orderCount === 1 ? "" : "s"}
+              {plural(activeDay.orderCount, "delivered order")}
             </div>
+            {activeDay.retailCount > 0 && (
+              <div className="text-muted-foreground">
+                {plural(activeDay.retailCount, "retail sale")}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -192,6 +207,7 @@ export function SalesTrendChart({ days }: { days: SalesDay[] }) {
             <tr className="text-left">
               <th className="py-1 font-medium">Day</th>
               <th className="py-1 font-medium text-right">Orders</th>
+              <th className="py-1 font-medium text-right">Retail Sales</th>
               <th className="py-1 font-medium text-right">Sales</th>
             </tr>
           </thead>
@@ -200,6 +216,7 @@ export function SalesTrendChart({ days }: { days: SalesDay[] }) {
               <tr key={day.date}>
                 <td className="py-0.5">{dayLabel(day.date)}</td>
                 <td className="py-0.5 text-right">{day.orderCount}</td>
+                <td className="py-0.5 text-right">{day.retailCount}</td>
                 <td className="py-0.5 text-right">{peso(day.sales)}</td>
               </tr>
             ))}

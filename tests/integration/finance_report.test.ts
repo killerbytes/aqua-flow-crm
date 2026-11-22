@@ -171,6 +171,7 @@ describe("Integration - Finance Reports", () => {
       expect(report.periods[0]).toEqual({
         label: "Mon, Mar 1, 2027",
         orders: 2,
+        retailSales: 0,
         units: 4,
         sales: 105,
       });
@@ -179,6 +180,7 @@ describe("Integration - Finance Reports", () => {
       expect(report.periodTotal).toEqual({
         label: "Total",
         orders: 3,
+        retailSales: 0,
         units: 7,
         sales: 180,
       });
@@ -200,7 +202,7 @@ describe("Integration - Finance Reports", () => {
     it("should group by month", async () => {
       const report = await FinanceReportService.getSales(MARCH, "month");
       expect(report.periods).toEqual([
-        { label: "March 2027", orders: 3, units: 7, sales: 180 },
+        { label: "March 2027", orders: 3, retailSales: 0, units: 7, sales: 180 },
       ]);
     });
 
@@ -221,15 +223,16 @@ describe("Integration - Finance Reports", () => {
       const report = await FinanceReportService.getSales(MARCH);
 
       expect(report.collections).toEqual([
-        { method: "Cash", payments: 1, fromOrders: 80, fromInvoices: 0, total: 80 },
-        { method: "GCash", payments: 1, fromOrders: 0, fromInvoices: 100, total: 100 },
-        { method: "Not recorded", payments: 1, fromOrders: 5, fromInvoices: 0, total: 5 },
+        { method: "Cash", payments: 1, fromOrders: 80, fromInvoices: 0, fromRetail: 0, total: 80 },
+        { method: "GCash", payments: 1, fromOrders: 0, fromInvoices: 100, fromRetail: 0, total: 100 },
+        { method: "Not recorded", payments: 1, fromOrders: 5, fromInvoices: 0, fromRetail: 0, total: 5 },
       ]);
       expect(report.collectionTotal).toEqual({
         method: "Total",
         payments: 3,
         fromOrders: 85,
         fromInvoices: 100,
+        fromRetail: 0,
         total: 185,
       });
     });
@@ -283,6 +286,7 @@ describe("Integration - Finance Reports", () => {
         [1, 200],
         [1, 75],
         [1, 40],
+        [0, 0],
       ]);
       expect(report.total).toEqual({ type: "Total", count: 4, amount: null });
 
@@ -291,6 +295,7 @@ describe("Integration - Finance Reports", () => {
         ordersVoidedAmount: 50,
         invoicesVoided: 1,
         paymentsReversed: 2,
+        retailSalesVoided: 0,
       };
       expect(report.byUser).toEqual([
         { by: userName, role: (await User.findByPk(USER_ID))!.role, ...person },

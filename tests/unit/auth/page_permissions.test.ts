@@ -55,6 +55,9 @@ const PAGES: Record<string, PermissionAction> = {
   "reports/voids/print/page.tsx": "VIEW_REPORTS",
   "reports/equipment-ledger/page.tsx": "VIEW_REPORTS",
   "reports/equipment-ledger/print/page.tsx": "VIEW_REPORTS",
+  "reports/retail-stock/page.tsx": "VIEW_REPORTS",
+  "reports/retail-stock/print/page.tsx": "VIEW_REPORTS",
+  "retail/page.tsx": "VIEW_RETAIL",
   "users/page.tsx": "VIEW_USERS",
 };
 
@@ -69,6 +72,7 @@ const ROUTES: Record<string, PermissionAction> = {
   "reports/receivables/csv/route.ts": "EXPORT_REPORTS",
   "reports/voids/csv/route.ts": "EXPORT_REPORTS",
   "reports/equipment-ledger/csv/route.ts": "EXPORT_REPORTS",
+  "reports/retail-stock/csv/route.ts": "EXPORT_REPORTS",
 };
 
 const findFiles = (dir: string, name: string): string[] =>
@@ -121,6 +125,11 @@ describe("Unit - Page Permissions", () => {
     ["REVERSE_PAYMENT", [ADMIN, MANAGER]],
     ["MANAGE_USERS", [ADMIN]],
     ["CREATE_USER", [ADMIN]],
+    ["VIEW_RETAIL", [ADMIN, MANAGER, CASHIER]],
+    ["SELL_RETAIL", [ADMIN, MANAGER, CASHIER]],
+    ["VOID_RETAIL_SALE", [ADMIN, MANAGER]],
+    ["MANAGE_PRODUCTS", [ADMIN, MANAGER]],
+    ["ADJUST_INVENTORY", [ADMIN, MANAGER]],
   ] as [PermissionAction, UserRole[]][])(
     "should give %s to exactly %j",
     (permission, roles) => {
