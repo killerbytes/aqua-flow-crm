@@ -23,7 +23,10 @@ export async function GET(request: NextRequest) {
   const range = parseDateRange({ from: search.get("from"), to: search.get("to") });
   const name = search.get("table");
   const key: VoidsCsvTable =
-    name && name in VOIDS_CSV_TABLES ? (name as VoidsCsvTable) : "list";
+    // hasOwn, not `in`, which is also true for names like "constructor".
+    name && Object.hasOwn(VOIDS_CSV_TABLES, name)
+      ? (name as VoidsCsvTable)
+      : "list";
 
   const report = await FinanceReportService.getVoidsAndReversals(range);
   // Each table is paired with its own rows here, so the two can't be mixed up.

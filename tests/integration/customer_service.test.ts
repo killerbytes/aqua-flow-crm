@@ -1,7 +1,10 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { CustomerSpecialPricing } from "../../src/backend/models";
 import { Customer } from "../../src/backend/models/Customer";
-import { CustomerService } from "../../src/backend/services/customer.service";
+import {
+  CustomerService,
+  WALK_IN_CUSTOMER_NAME,
+} from "../../src/backend/services/customer.service";
 import { EquipmentService } from "../../src/backend/services/equipment.service";
 import { CustomerStatus, EquipmentActionType } from "../../src/lib/definitions";
 import { setupTestDatabase } from "../helpers/db.setup";
@@ -229,6 +232,48 @@ describe("Integration - Customer Service & Queries", () => {
       );
 
       expect(foundA).toBeDefined();
+    });
+  });
+
+  describe("Walk-in account", () => {
+    it("should create the walk-in account once and reuse it after that", async () => {
+      const first = await CustomerService.getOrCreateWalkIn();
+      const second = await CustomerService.getOrCreateWalkIn();
+
+      expect(first.name).toBe(WALK_IN_CUSTOMER_NAME);
+      expect(second.customerId).toBe(first.customerId);
+      expect(
+        await Customer.count({ where: { name: WALK_IN_CUSTOMER_NAME } }),
+      ).toBe(1);
+    });
+  });
+
+  describe("Lookup", () => {
+    it("should leave inactive customers out only when asked to", async () => {
+      await Customer.create({
+        name: "Dormant Lookup Customer",
+        address: "9 Sleepy Hollow",
+        status: CustomerStatus.INACTIVE,
+      });
+
+      const everyone = await CustomerService.lookup("Dormant Lookup");
+      const activeOnly = await CustomerService.lookup("Dormant Lookup", true);
+
+      expect(everyone.map((c) => c.name)).toEqual(["Dormant Lookup Customer"]);
+      expect(activeOnly).toEqual([]);
+    });
+
+    it("should return at most ten matches", async () => {
+      await Customer.bulkCreate(
+        Array.from({ length: 12 }, (_, i) => ({
+          name: `Crowded Lookup ${i}`,
+          address: "1 Busy Street",
+          status: CustomerStatus.ACTIVE,
+        })),
+        { individualHooks: true },
+      );
+
+      expect(await CustomerService.lookup("Crowded Lookup")).toHaveLength(10);
     });
   });
 });

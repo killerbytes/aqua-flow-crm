@@ -2,25 +2,17 @@ import fs from "fs";
 import path from "path";
 import { describe, expect, it, vi } from "vitest";
 import {
-  deleteCustomerAction,
-  updateCustomerAction,
-} from "../../../src/backend/actions/customer.actions";
-import {
-  createOrderAction,
-  getOrdersAction,
-  makePaymentAction,
   updateOrderStatusAction,
   voidOrderAction,
 } from "../../../src/backend/actions/order.actions";
-import * as authContext from "../../../src/backend/auth/context";
 import {
   checkPermission,
   getPageRedirect,
   PermissionAction,
 } from "../../../src/backend/rbac/permissions";
-import { CustomerService } from "../../../src/backend/services/customer.service";
 import { OrderService } from "../../../src/backend/services/order.service";
 import { OrderStatus, UserRole } from "../../../src/lib/definitions";
+import { signInAs } from "../../helpers/session";
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("../../../src/backend/db/database", async (importOriginal) => ({
@@ -168,12 +160,8 @@ describe("Unit - Page Permissions", () => {
   });
 });
 
-describe("Unit - Action Permissions", () => {
-  const signInAs = (role: UserRole) =>
-    vi.spyOn(authContext, "getAuthContext").mockResolvedValue({
-      user: { userId: 1, name: "Test", username: "test", role },
-    });
-
+// Which roles may run each action at all is in action_permissions.test.ts.
+describe("Unit - Order Status and Voiding Rules", () => {
   const mockStatusUpdate = () =>
     vi
       .spyOn(OrderService, "updateStatus")
@@ -191,32 +179,17 @@ describe("Unit - Action Permissions", () => {
       expect((await updateOrderStatusAction(1, status)).success).toBe(true);
     });
 
-    it("should be able to list orders", async () => {
-      signInAs(DELIVERY);
-      vi.spyOn(OrderService, "getAll").mockResolvedValue({ rows: [] } as any);
-
-      expect((await getOrdersAction({})).success).toBe(true);
-    });
-
-    it("should not be able to cancel, create, or take payment", async () => {
+    it("should not be able to cancel by setting the status", async () => {
       signInAs(DELIVERY);
       const update = mockStatusUpdate();
       update.mockClear();
 
       const cancel = await updateOrderStatusAction(1, OrderStatus.CANCELLED);
-      expect(cancel).toMatchObject({ success: false });
-      expect(update).not.toHaveBeenCalled();
-
-      const create = await createOrderAction({
-        customerId: 1,
-        status: OrderStatus.PENDING,
-        paymentStatus: "UNPAID",
-        items: [{ productId: 1, quantity: 1, discount: 0 }],
+      expect(cancel).toEqual({
+        success: false,
+        error: "Orders are cancelled by voiding them",
       });
-      expect(create).toMatchObject({ error: expect.stringMatching(/Forbidden/) });
-
-      const pay = await makePaymentAction({ paymentMethod: "CASH" }, 1);
-      expect(pay).toMatchObject({ error: expect.stringMatching(/Forbidden/) });
+      expect(update).not.toHaveBeenCalled();
     });
   });
 
@@ -281,34 +254,6 @@ describe("Unit - Action Permissions", () => {
       const res = await updateOrderStatusAction(1, OrderStatus.CANCELLED);
       expect(res.success).toBe(false);
       expect(update).not.toHaveBeenCalled();
-    });
-  });
-
-  describe("Customers", () => {
-    it.each([ADMIN, MANAGER])("should let %s delete", async (role) => {
-      signInAs(role);
-      vi.spyOn(CustomerService, "delete").mockResolvedValue(true);
-
-      expect((await deleteCustomerAction(1)).success).toBe(true);
-    });
-
-    it.each([CASHIER, DELIVERY])("should refuse deletion for %s", async (role) => {
-      signInAs(role);
-      const res = await deleteCustomerAction(1);
-      expect(res).toMatchObject({ error: expect.stringMatching(/Forbidden/) });
-    });
-
-    it("should let cashiers edit but not delivery staff", async () => {
-      const input = { name: "Name", address: "Address 123", phone: "" };
-      vi.spyOn(CustomerService, "update").mockResolvedValue({} as any);
-
-      signInAs(CASHIER);
-      expect((await updateCustomerAction(1, input)).success).toBe(true);
-
-      signInAs(DELIVERY);
-      expect(await updateCustomerAction(1, input)).toMatchObject({
-        error: expect.stringMatching(/Forbidden/),
-      });
     });
   });
 });
