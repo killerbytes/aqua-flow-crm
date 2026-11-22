@@ -8,6 +8,7 @@ import {
 import {
   InvoiceStatus,
   OrderStatus,
+  PAYMENT_METHOD_LABELS,
   PaymentMethod,
   PaymentStatus,
 } from "@/lib/definitions";
@@ -36,6 +37,9 @@ import {
   OrderDetail,
   OrderPayment,
   ProductInventory,
+  RetailProduct,
+  RetailSale,
+  RetailSaleItem,
   User,
 } from "../models";
 
@@ -93,15 +97,24 @@ export const parseSalesGroup = (value: unknown): SalesGroup => {
 
 export interface SalesPeriodRow {
   label: string;
+  /** Delivered orders. */
   orders: number;
+  /** Retail sales that stand. */
+  retailSales: number;
   units: number;
   sales: number;
 }
 
+export const SALES_SOURCES = { ORDERS: "Orders", RETAIL: "Retail" } as const;
+export type SalesSource = (typeof SALES_SOURCES)[keyof typeof SALES_SOURCES];
+
 export interface SalesProductRow {
+  /** Null on the totals row. */
+  source: SalesSource | null;
   productName: string;
-  /** Null for the surcharges line, which has no units. */
+  /** Null for the surcharges and discounts lines, which have no units. */
   units: number | null;
+  /** Negative on the retail discounts line. */
   sales: number;
 }
 
@@ -110,6 +123,7 @@ export interface CollectionRow {
   payments: number;
   fromOrders: number;
   fromInvoices: number;
+  fromRetail: number;
   total: number;
 }
 
@@ -152,6 +166,7 @@ export const VOID_TYPES = {
   INVOICE_VOIDED: "Invoice voided",
   ORDER_PAYMENT_REVERSED: "Order payment reversed",
   INVOICE_PAYMENT_REVERSED: "Invoice payment reversed",
+  RETAIL_SALE_VOIDED: "Retail sale voided",
 } as const;
 export type VoidType = (typeof VOID_TYPES)[keyof typeof VOID_TYPES];
 
@@ -183,6 +198,7 @@ export interface VoidUserRow {
   invoicesVoided: number;
   /** Includes the payment reversed by voiding a paid order. */
   paymentsReversed: number;
+  retailSalesVoided: number;
 }
 
 export interface VoidsReport {
@@ -199,11 +215,6 @@ export interface VoidsReport {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
-  [PaymentMethod.CASH]: "Cash",
-  [PaymentMethod.GCASH]: "GCash",
-  [PaymentMethod.ONLINE]: "Online",
-};
 const NOT_RECORDED = "Not recorded";
 
 /** The order's net line price, in centavos. Discounts are per unit. */
@@ -272,14 +283,16 @@ const userName = (user?: { name?: string } | null) => user?.name ?? "Not recorde
 
 export class FinanceReportService {
   /**
-   * Delivered sales in the range, by period and by product, and the money
-   * actually received in it. Sales are dated by delivery, as on the dashboard;
-   * collections by payment date, leaving out anything reversed.
+   * Sales in the range, by period and by product, and the money actually
+   * received in it. Delivered orders are dated by delivery and retail sales by
+   * when they were made, as on the dashboard; voided retail sales don't count.
+   * Collections go by payment date, leaving out anything reversed. A retail
+   * sale is paid when made, so it is a collection on the same day.
    */
   static async getSales(range: DateRange, group: SalesGroup = "day"): Promise<SalesReport> {
     const inRange = { [Op.gte]: range.start, [Op.lt]: range.end };
 
-    const [orders, orderPayments, invoicePayments] = await Promise.all([
+    const [orders, orderPayments, invoicePayments, retailSales] = await Promise.all([
       Order.findAll({
         attributes: ["orderId", "totalAmount", "surcharge", "deliveredAt"],
         where: { status: OrderStatus.DELIVERED, deliveredAt: inRange },
@@ -307,20 +320,37 @@ export class FinanceReportService {
         attributes: ["paymentAmount", "paymentMethod"],
         where: { paymentDate: inRange, reversedAt: null },
       }),
+      RetailSale.findAll({
+        attributes: ["saleId", "totalAmount", "discount", "paymentMethod", "soldAt"],
+        where: { soldAt: inRange, voidedAt: null },
+        include: [
+          {
+            model: RetailSaleItem,
+            as: "items",
+            attributes: ["itemId", "productId", "quantity", "unitPrice"],
+            include: [{ model: RetailProduct, as: "product", attributes: ["name"] }],
+          },
+        ],
+      }),
     ]);
 
     // By period
     const periods = periodsOf(range, group).map((p) => ({
       ...p,
       orders: 0,
+      retailSales: 0,
       units: 0,
       cents: 0,
     }));
     const byKey = new Map(periods.map((p) => [p.key, p]));
 
-    // By product
-    const products = new Map<number, { productName: string; units: number; cents: number }>();
+    // By product. Refill and retail products are numbered apart, so their ids
+    // overlap and each kind has its own tally.
+    type ProductTally = { productName: string; units: number; cents: number };
+    const products = new Map<number, ProductTally>();
+    const retailProducts = new Map<number, ProductTally>();
     let surchargeCents = 0;
+    let retailDiscountCents = 0;
 
     for (const order of orders) {
       const period = byKey.get(periodKey(order.deliveredAt!, group));
@@ -344,31 +374,78 @@ export class FinanceReportService {
       surchargeCents += toCents(order.surcharge);
     }
 
-    const periodRows = periods.map(({ label, orders, units, cents }) => ({
+    for (const sale of retailSales) {
+      const items = sale.items ?? [];
+      const period = byKey.get(periodKey(sale.soldAt, group));
+      if (period) {
+        period.retailSales++;
+        period.units += items.reduce((sum, line) => sum + line.quantity, 0);
+        period.cents += toCents(sale.totalAmount);
+      }
+
+      // Lines at their full price; the discounts, taken off whole bills, get
+      // their own line so the products still add up to the sales.
+      for (const line of items) {
+        const product = retailProducts.get(line.productId) ?? {
+          productName: line.product?.name ?? "Unknown product",
+          units: 0,
+          cents: 0,
+        };
+        product.units += line.quantity;
+        product.cents += toCents(line.unitPrice) * line.quantity;
+        retailProducts.set(line.productId, product);
+      }
+      retailDiscountCents += toCents(sale.discount);
+    }
+
+    const periodRows = periods.map(({ label, orders, retailSales, units, cents }) => ({
       label,
       orders,
+      retailSales,
       units,
       sales: fromCents(cents),
     }));
-    const productRows: SalesProductRow[] = [...products.values()]
-      .sort((a, b) => b.cents - a.cents || a.productName.localeCompare(b.productName))
-      .map(({ productName, units, cents }) => ({ productName, units, sales: fromCents(cents) }));
+    const productLines = (tallies: Map<number, ProductTally>, source: SalesSource) =>
+      [...tallies.values()]
+        .sort((a, b) => b.cents - a.cents || a.productName.localeCompare(b.productName))
+        .map(({ productName, units, cents }) => ({
+          source,
+          productName,
+          units,
+          sales: fromCents(cents),
+        }));
+    const productRows: SalesProductRow[] = productLines(products, SALES_SOURCES.ORDERS);
     if (surchargeCents > 0) {
-      productRows.push({ productName: "Surcharges", units: null, sales: fromCents(surchargeCents) });
+      productRows.push({
+        source: SALES_SOURCES.ORDERS,
+        productName: "Surcharges",
+        units: null,
+        sales: fromCents(surchargeCents),
+      });
+    }
+    productRows.push(...productLines(retailProducts, SALES_SOURCES.RETAIL));
+    if (retailDiscountCents > 0) {
+      productRows.push({
+        source: SALES_SOURCES.RETAIL,
+        productName: "Retail Discounts",
+        units: null,
+        sales: fromCents(-retailDiscountCents),
+      });
     }
 
     // Collections
-    const methods = new Map<string, { payments: number; orderCents: number; invoiceCents: number }>();
-    const collect = (method: PaymentMethod | null, cents: number, fromInvoice: boolean) => {
+    type CollectionSource = "order" | "invoice" | "retail";
+    const methods = new Map<string, { payments: number } & Record<CollectionSource, number>>();
+    const collect = (method: PaymentMethod | null, cents: number, source: CollectionSource) => {
       const label = (method && PAYMENT_METHOD_LABELS[method]) || NOT_RECORDED;
-      const row = methods.get(label) ?? { payments: 0, orderCents: 0, invoiceCents: 0 };
+      const row = methods.get(label) ?? { payments: 0, order: 0, invoice: 0, retail: 0 };
       row.payments++;
-      if (fromInvoice) row.invoiceCents += cents;
-      else row.orderCents += cents;
+      row[source] += cents;
       methods.set(label, row);
     };
-    orderPayments.forEach((p) => collect(p.paymentMethod, toCents(p.amount), false));
-    invoicePayments.forEach((p) => collect(p.paymentMethod, toCents(p.paymentAmount), true));
+    orderPayments.forEach((p) => collect(p.paymentMethod, toCents(p.amount), "order"));
+    invoicePayments.forEach((p) => collect(p.paymentMethod, toCents(p.paymentAmount), "invoice"));
+    retailSales.forEach((sale) => collect(sale.paymentMethod, toCents(sale.totalAmount), "retail"));
 
     const methodOrder = [...Object.values(PAYMENT_METHOD_LABELS), NOT_RECORDED];
     const collectionRows = [...methods]
@@ -376,9 +453,10 @@ export class FinanceReportService {
       .map(([method, row]) => ({
         method,
         payments: row.payments,
-        fromOrders: fromCents(row.orderCents),
-        fromInvoices: fromCents(row.invoiceCents),
-        total: fromCents(row.orderCents + row.invoiceCents),
+        fromOrders: fromCents(row.order),
+        fromInvoices: fromCents(row.invoice),
+        fromRetail: fromCents(row.retail),
+        total: fromCents(row.order + row.invoice + row.retail),
       }));
 
     const sumCents = <T>(rows: T[], pick: (row: T) => number) =>
@@ -392,22 +470,32 @@ export class FinanceReportService {
       periodTotal: {
         label: "Total",
         orders: orders.length,
+        retailSales: retailSales.length,
         units: sumCents(periods, (p) => p.units),
         sales: fromCents(sumCents(periods, (p) => p.cents)),
       },
       products: productRows,
       productTotal: {
+        source: null,
         productName: "Total",
-        units: sumCents([...products.values()], (p) => p.units),
-        sales: fromCents(sumCents([...products.values()], (p) => p.cents) + surchargeCents),
+        units:
+          sumCents([...products.values()], (p) => p.units) +
+          sumCents([...retailProducts.values()], (p) => p.units),
+        sales: fromCents(
+          sumCents([...products.values()], (p) => p.cents) +
+            surchargeCents +
+            sumCents([...retailProducts.values()], (p) => p.cents) -
+            retailDiscountCents,
+        ),
       },
       collections: collectionRows,
       collectionTotal: {
         method: "Total",
         payments: sumCents(allMethods, (m) => m.payments),
-        fromOrders: fromCents(sumCents(allMethods, (m) => m.orderCents)),
-        fromInvoices: fromCents(sumCents(allMethods, (m) => m.invoiceCents)),
-        total: fromCents(sumCents(allMethods, (m) => m.orderCents + m.invoiceCents)),
+        fromOrders: fromCents(sumCents(allMethods, (m) => m.order)),
+        fromInvoices: fromCents(sumCents(allMethods, (m) => m.invoice)),
+        fromRetail: fromCents(sumCents(allMethods, (m) => m.retail)),
+        total: fromCents(sumCents(allMethods, (m) => m.order + m.invoice + m.retail)),
       },
     };
   }
@@ -547,9 +635,10 @@ export class FinanceReportService {
   }
 
   /**
-   * Voided orders and invoices, and reversed payments, in the range, newest
-   * first, with who did each and why. Orders cancelled before voiding was
-   * recorded have no void date, so they don't appear.
+   * Voided orders, invoices, and retail sales, and reversed payments, in the
+   * range, newest first, with who did each and why. Orders cancelled before
+   * voiding was recorded have no void date, so they don't appear. A retail
+   * sale's payment is on the sale, so voiding one reverses no separate payment.
    */
   static async getVoidsAndReversals(range: DateRange): Promise<VoidsReport> {
     const inRange = { [Op.gte]: range.start, [Op.lt]: range.end };
@@ -571,7 +660,7 @@ export class FinanceReportService {
       byRole: user?.role ?? null,
     });
 
-    const [orders, invoices, orderPayments, invoicePayments] = await Promise.all([
+    const [orders, invoices, orderPayments, invoicePayments, retailSales] = await Promise.all([
       Order.findAll({
         attributes: ["orderId", "totalAmount", "voidedAt", "voidReason"],
         where: { voidedAt: inRange },
@@ -607,6 +696,11 @@ export class FinanceReportService {
           },
           byInclude("reversedByUser"),
         ],
+      }),
+      RetailSale.findAll({
+        attributes: ["saleId", "totalAmount", "voidedAt", "voidReason"],
+        where: { voidedAt: inRange },
+        include: [customerInclude, byInclude("voidedByUser")],
       }),
     ]);
 
@@ -649,6 +743,15 @@ export class FinanceReportService {
         ...by(payment.reversedByUser),
         reason: payment.reversalReason,
       })),
+      ...retailSales.map((sale) => ({
+        at: sale.voidedAt,
+        type: VOID_TYPES.RETAIL_SALE_VOIDED,
+        reference: `Retail sale #${sale.saleId}`,
+        customerName: customerName(sale),
+        amount: sale.totalAmount,
+        ...by(sale.voidedByUser),
+        reason: sale.voidReason,
+      })),
     ]
       // Each query asks for a date in the range, so none of these is missing one.
       .filter((row): row is typeof row & { at: Date } => row.at !== null)
@@ -675,6 +778,7 @@ export class FinanceReportService {
           ordersVoidedAmount: 0,
           invoicesVoided: 0,
           paymentsReversed: 0,
+          retailSalesVoided: 0,
           cents: 0,
         };
         users.set(row.byUserId, user);
@@ -684,6 +788,8 @@ export class FinanceReportService {
         user.cents += toCents(row.amount);
       } else if (row.type === VOID_TYPES.INVOICE_VOIDED) {
         user.invoicesVoided += 1;
+      } else if (row.type === VOID_TYPES.RETAIL_SALE_VOIDED) {
+        user.retailSalesVoided += 1;
       } else {
         user.paymentsReversed += 1;
       }
@@ -709,6 +815,7 @@ export class FinanceReportService {
         ordersVoidedAmount: fromCents(count((row) => toCents(row.ordersVoidedAmount))),
         invoicesVoided: count((row) => row.invoicesVoided),
         paymentsReversed: count((row) => row.paymentsReversed),
+        retailSalesVoided: count((row) => row.retailSalesVoided),
       },
     };
   }

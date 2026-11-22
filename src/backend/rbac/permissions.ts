@@ -28,7 +28,13 @@ export type PermissionAction =
   | "LOG_EQUIPMENT"
   | "UPDATE_DELIVERY_STATUS"
   | "VIEW_REPORTS"
-  | "EXPORT_REPORTS";
+  | "EXPORT_REPORTS"
+  /** Open the Retail page: brand-new items sold over the counter. */
+  | "VIEW_RETAIL"
+  /** Record a retail sale, including a discount on the bill. */
+  | "SELL_RETAIL"
+  /** Void a retail sale, which returns its units to stock. */
+  | "VOID_RETAIL_SALE";
 
 const ROLE_PERMISSIONS: Record<UserRole, PermissionAction[]> = {
   [UserRole.ADMIN]: [
@@ -58,6 +64,9 @@ const ROLE_PERMISSIONS: Record<UserRole, PermissionAction[]> = {
     "UPDATE_DELIVERY_STATUS",
     "VIEW_REPORTS",
     "EXPORT_REPORTS",
+    "VIEW_RETAIL",
+    "SELL_RETAIL",
+    "VOID_RETAIL_SALE",
   ],
   [UserRole.MANAGER]: [
     "VIEW_DASHBOARD",
@@ -83,6 +92,9 @@ const ROLE_PERMISSIONS: Record<UserRole, PermissionAction[]> = {
     "LOG_EQUIPMENT",
     "UPDATE_DELIVERY_STATUS",
     "VIEW_REPORTS",
+    "VIEW_RETAIL",
+    "SELL_RETAIL",
+    "VOID_RETAIL_SALE",
   ],
   [UserRole.CASHIER]: [
     "VIEW_DASHBOARD",
@@ -100,6 +112,8 @@ const ROLE_PERMISSIONS: Record<UserRole, PermissionAction[]> = {
     "LOG_EQUIPMENT",
     "UPDATE_DELIVERY_STATUS",
     "VIEW_REPORTS",
+    "VIEW_RETAIL",
+    "SELL_RETAIL",
   ],
   [UserRole.DELIVERY]: ["VIEW_ORDERS", "UPDATE_DELIVERY_STATUS"],
 };

@@ -12,6 +12,7 @@ import {
   InventoryAdjustmentType,
   OrderStatus,
   PaymentStatus,
+  RetailStockEntryType,
   UserRole,
 } from "@/lib/definitions";
 
@@ -28,6 +29,7 @@ import {
   EquipmentService,
   OrderService,
   ProductService,
+  RetailProductService,
 } from "../services";
 import { InventoryService } from "../services/inventory.service";
 import { markDbInitialized } from "./database";
@@ -278,7 +280,7 @@ export async function seedDatabase(options?: {
   await seedForTest(options);
 
   console.log(
-    "Database seeded successfully with 3 products, 10 customers, and 50 orders!",
+    "Database seeded successfully with 3 products, 2 retail products, 10 customers, and 50 orders!",
   );
   markDbInitialized();
 }
@@ -407,7 +409,42 @@ async function seedForTest(options?: { refDate?: Date }) {
   for (const ord of seedData.orders) {
     await OrderService.create(ord, 1);
   }
+
+  // Retail products with some stock, but no sales, so sales totals stay as
+  // the orders above make them.
+  for (const product of RETAIL_SEED_PRODUCTS) {
+    const created = await RetailProductService.create({
+      name: product.name,
+      basePrice: product.basePrice,
+      lowStockThreshold: product.lowStockThreshold,
+    });
+    await RetailProductService.adjustStock(
+      {
+        productId: created!.productId,
+        type: RetailStockEntryType.RESTOCK,
+        quantity: product.stock,
+        notes: "Initial stock",
+      },
+      1,
+    );
+  }
 }
+
+/** Brand-new items for sale. Real prices are set on the Retail page. */
+export const RETAIL_SEED_PRODUCTS = [
+  {
+    name: "Brand-new 5-Gallon Container (Round)",
+    basePrice: 250,
+    lowStockThreshold: 5,
+    stock: 20,
+  },
+  {
+    name: "Brand-new 5-Gallon Container (Slim)",
+    basePrice: 220,
+    lowStockThreshold: 5,
+    stock: 20,
+  },
+];
 // Execution block when invoked directly via CLI (e.g. `npx tsx src/backend/db/seed.ts`)
 if (require.main === module) {
   seedDatabase()

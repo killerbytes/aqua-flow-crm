@@ -18,5 +18,9 @@ export type Order = Plain<Models.Order>;
 export type OrderDetail = Plain<Models.OrderDetail>;
 export type OrderPayment = Plain<Models.OrderPayment>;
 export type ProductInventory = Plain<Models.ProductInventory>;
+export type RetailProduct = Plain<Models.RetailProduct>;
+export type RetailSale = Plain<Models.RetailSale>;
+export type RetailSaleItem = Plain<Models.RetailSaleItem>;
+export type RetailStockEntry = Plain<Models.RetailStockEntry>;
 /** A user as the app passes it around: never with the password hash. */
 export type User = Omit<Plain<Models.User>, "passwordHash">;
