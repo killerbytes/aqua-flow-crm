@@ -15,21 +15,15 @@ import {
   ReversePaymentSchema,
   VoidOrderFormData,
   VoidOrderSchema,
+  WalkInSaleFormData,
+  WalkInSaleSchema,
 } from "../schemas/zodSchemas";
-import { CustomerService } from "../services/customer.service";
 import { OrderQueryParams, OrderService } from "../services/order.service";
 
 export const getOrdersAction = createProtectedAction({
   permission: "VIEW_ORDERS",
   handler: async (_ctx, input: OrderQueryParams) => {
     return await OrderService.getAll(input);
-  },
-});
-
-export const getWalkInCustomerAction = createProtectedAction({
-  permission: "CREATE_ORDER",
-  handler: async () => {
-    return await CustomerService.getOrCreateWalkIn();
   },
 });
 
@@ -40,6 +34,17 @@ export const createOrderAction = createProtectedAction({
     const result = await OrderService.createForStaff(input, ctx.user.userId);
     revalidatePath("/orders");
     revalidatePath(`/customers/${input.customerId}`);
+    return result;
+  },
+});
+
+export const recordWalkInSaleAction = createProtectedAction({
+  permission: "CREATE_ORDER",
+  schema: WalkInSaleSchema,
+  handler: async (ctx, input: WalkInSaleFormData) => {
+    const result = await OrderService.recordWalkInSale(input, ctx.user.userId);
+    revalidatePath("/orders");
+    if (result) revalidatePath(`/customers/${result.customerId}`);
     return result;
   },
 });

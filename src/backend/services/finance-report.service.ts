@@ -108,11 +108,17 @@ export interface SalesPeriodRow {
 export const SALES_SOURCES = { ORDERS: "Orders", RETAIL: "Retail" } as const;
 export type SalesSource = (typeof SALES_SOURCES)[keyof typeof SALES_SOURCES];
 
+/** The Sales report line for walk-in counter sales, which aren't itemized. */
+export const WALK_IN_SALES_LINE = "Walk-in Sales (not itemized)";
+
 export interface SalesProductRow {
   /** Null on the totals row. */
   source: SalesSource | null;
   productName: string;
-  /** Null for the surcharges and discounts lines, which have no units. */
+  /**
+   * Null for the walk-in, surcharges, and discounts lines, which have no
+   * units.
+   */
   units: number | null;
   /** Negative on the retail discounts line. */
   sales: number;
@@ -350,9 +356,15 @@ export class FinanceReportService {
     const products = new Map<number, ProductTally>();
     const retailProducts = new Map<number, ProductTally>();
     let surchargeCents = 0;
+    let walkInCents = 0;
     let retailDiscountCents = 0;
 
     for (const order of orders) {
+      // Walk-in counter sales are one cash total with no items, so they get
+      // their own line for the products to still add up to the sales.
+      if (order.orderDetails.length === 0) {
+        walkInCents += toCents(order.totalAmount) - toCents(order.surcharge);
+      }
       const period = byKey.get(periodKey(order.deliveredAt!, group));
       const units = order.orderDetails.reduce((sum, line) => sum + line.quantity, 0);
       if (period) {
@@ -415,6 +427,14 @@ export class FinanceReportService {
           sales: fromCents(cents),
         }));
     const productRows: SalesProductRow[] = productLines(products, SALES_SOURCES.ORDERS);
+    if (walkInCents > 0) {
+      productRows.push({
+        source: SALES_SOURCES.ORDERS,
+        productName: WALK_IN_SALES_LINE,
+        units: null,
+        sales: fromCents(walkInCents),
+      });
+    }
     if (surchargeCents > 0) {
       productRows.push({
         source: SALES_SOURCES.ORDERS,
@@ -483,6 +503,7 @@ export class FinanceReportService {
           sumCents([...retailProducts.values()], (p) => p.units),
         sales: fromCents(
           sumCents([...products.values()], (p) => p.cents) +
+            walkInCents +
             surchargeCents +
             sumCents([...retailProducts.values()], (p) => p.cents) -
             retailDiscountCents,

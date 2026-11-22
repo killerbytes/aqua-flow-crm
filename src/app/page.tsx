@@ -313,7 +313,7 @@ export default async function DashboardPage() {
           value={toDeliver}
           note={plural(toDeliver, "order") + " waiting"}
           icon={<Truck className="size-4" />}
-          href={`/orders?status=${OrderStatus.PENDING}`}
+          href={`/orders?status=${OrderStatus.PENDING}&range=all`}
         >
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="rounded-md bg-muted px-2 py-1.5">

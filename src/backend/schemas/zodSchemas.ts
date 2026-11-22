@@ -91,6 +91,18 @@ export const OrderSchema = z.object({
     .optional(),
 });
 
+/**
+ * Walk-in counter sales as the cashier records them: one cash total, not
+ * itemized. Several can go on the same day. The date follows the same
+ * backdating rules as an order's.
+ */
+export const WalkInSaleSchema = z.object({
+  amount: z
+    .number("Enter the total sales")
+    .positive("Enter the total sales"),
+  createdAt: z.union([z.date(), z.string()]).optional(),
+});
+
 /** What staff can change on a pending order: its items, surcharge, and date. */
 export const OrderUpdateSchema = OrderSchema.pick({
   items: true,
@@ -258,6 +270,7 @@ export type SpecialPricingFormData = z.infer<typeof SpecialPricingSchema>;
 export type PaymentFormData = z.infer<typeof PaymentSchema>;
 export type OrderFormData = z.infer<typeof OrderSchema>;
 export type OrderUpdateFormData = z.infer<typeof OrderUpdateSchema>;
+export type WalkInSaleFormData = z.infer<typeof WalkInSaleSchema>;
 export type OrderItemsFormData =z.infer<typeof OrderItemsSchema>;
 export type InvoiceFormData = z.infer<typeof InvoiceSchema>;
 export type InvoicePaymentFormData = z.infer<typeof InvoicePaymentSchema>;

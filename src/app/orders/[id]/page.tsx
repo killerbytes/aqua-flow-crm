@@ -164,6 +164,9 @@ export default async function OrderDetailsPage({
   const payments = order.orderPayments ?? [];
   const deliveredBy = order.deliveredByUser?.name;
 
+  // Walk-in counter sales are one total with no items.
+  const isUnitemized = order.orderDetails.length === 0;
+
   // Line totals, in centavos.
   const grossCents = order.orderDetails.reduce(
     (sum, d) => sum + toCents(d.unitPrice) * d.quantity,
@@ -286,19 +289,30 @@ export default async function OrderDetailsPage({
                 <Package className="size-4 text-primary" /> Items
               </CardTitle>
               <CardDescription>
-                {order.orderDetails.length} product
-                {order.orderDetails.length === 1 ? "" : "s"} on this order
+                {isUnitemized
+                  ? "Walk-in counter sales, recorded as one total"
+                  : `${order.orderDetails.length} product${
+                      order.orderDetails.length === 1 ? "" : "s"
+                    } on this order`}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <OrderDetailList orderDetails={order.orderDetails} />
+              {isUnitemized ? (
+                <p className="text-sm text-muted-foreground">
+                  These sales weren&apos;t itemized.
+                </p>
+              ) : (
+                <OrderDetailList orderDetails={order.orderDetails} />
+              )}
               <dl className="ml-auto max-w-xs space-y-1.5 text-sm">
-                <div className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground">Subtotal</dt>
-                  <dd className="tabular-nums">
-                    {formatCurrency(fromCents(grossCents))}
-                  </dd>
-                </div>
+                {!isUnitemized && (
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">Subtotal</dt>
+                    <dd className="tabular-nums">
+                      {formatCurrency(fromCents(grossCents))}
+                    </dd>
+                  </div>
+                )}
                 {discountCents > 0 && (
                   <div className="flex justify-between gap-4">
                     <dt className="text-muted-foreground">Discounts</dt>

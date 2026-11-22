@@ -3,6 +3,7 @@ import {
   MAX_ORDER_BACKDATE_DAYS,
   OrderStatus,
   PAGINATION,
+  PaymentMethod,
   PaymentStatus,
 } from "@/lib/definitions";
 import { toPagination } from "@/lib/pagination";
@@ -42,6 +43,7 @@ import {
   ReversePaymentSchema,
   VoidOrderFormData,
   VoidOrderSchema,
+  WalkInSaleSchema,
 } from "../schemas/zodSchemas";
 import { CustomerService, WALK_IN_CUSTOMER_NAME } from "./customer.service";
 import { ProductService } from "./product.service";
@@ -253,6 +255,52 @@ export class OrderService {
       },
       createdByUserId,
     );
+  }
+
+  /**
+   * Records walk-in counter sales as one cash total on the walk-in account:
+   * an order with no items, already delivered and paid, dated by the cashier
+   * like any order. The amount is the one order total staff enter themselves,
+   * as the counter doesn't itemize. Several can go on the same day, and a
+   * wrong one is voided like any order.
+   */
+  static async recordWalkInSale(input: unknown, createdByUserId: number) {
+    const data = WalkInSaleSchema.parse(input);
+    const totalCents = toCents(data.amount);
+    if (totalCents <= 0) throw new Error("Enter the total sales");
+    const createdAt = staffOrderDate(data.createdAt, new Date()) ?? new Date();
+    const { customerId } = await CustomerService.getOrCreateWalkIn();
+
+    const orderId = await sequelize.transaction(async (t) => {
+      const order = await Order.create(
+        {
+          customerId,
+          totalAmount: fromCents(totalCents),
+          surcharge: 0,
+          status: OrderStatus.DELIVERED,
+          paymentStatus: PaymentStatus.PAID,
+          paymentMethod: PaymentMethod.CASH,
+          createdBy: createdByUserId,
+          createdAt,
+          deliveredAt: createdAt,
+          deliveredBy: createdByUserId,
+        },
+        { transaction: t },
+      );
+      await OrderPayment.create(
+        {
+          orderId: order.orderId,
+          amount: order.totalAmount,
+          paymentMethod: PaymentMethod.CASH,
+          paidAt: createdAt,
+          loggedBy: createdByUserId,
+        },
+        { transaction: t },
+      );
+      return order.orderId;
+    });
+
+    return await this.get(orderId);
   }
 
   static async create(input: OrderFormData, createdByUserId: number) {

@@ -26,20 +26,29 @@ const PAYMENT_LABELS: Record<string, string> = {
   [PaymentStatus.UNPAID]: "Unpaid",
 };
 
-export default function OrderListFilter() {
+/**
+ * `startDate` and `endDate` are the range the server applied, as millisecond
+ * timestamps: today when the URL names none, or empty for all time.
+ */
+export default function OrderListFilter({
+  startDate: startParam,
+  endDate: endParam,
+}: {
+  startDate: string;
+  endDate: string;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  // With no dates in the URL the server applies no date filter, so the picker
-  // says "All time" rather than suggesting a range that isn't applied.
-  const startParam = searchParams.get("startDate");
-  const endParam = searchParams.get("endDate");
   const startDate = startParam ? new Date(Number(startParam)) : undefined;
   const endDate = endParam ? new Date(Number(endParam)) : undefined;
-  const hasDates = Boolean(startDate || endDate);
   const status = searchParams.get("status") ?? "ALL";
   const paymentStatus = searchParams.get("paymentStatus") ?? "ALL";
 
-  const hasFilters = hasDates || status !== "ALL" || paymentStatus !== "ALL";
+  // Today is the default, so only a range set in the URL counts as a filter.
+  const hasFilters =
+    ["startDate", "endDate", "range"].some((key) => searchParams.has(key)) ||
+    status !== "ALL" ||
+    paymentStatus !== "ALL";
 
   /** Applies changes to the current filters, starting again from page 1. */
   const push = (changes: Record<string, string | null>) => {
@@ -60,11 +69,12 @@ export default function OrderListFilter() {
           // A range open at one end only shows its known end on both sides.
           date={{ from: startDate ?? endDate, to: endDate ?? startDate }}
           placeholder="All time"
-          onClear={() => push({ startDate: null, endDate: null })}
+          onClear={() => push({ startDate: null, endDate: null, range: "all" })}
           onDateSelect={({ from, to }) =>
             push({
               startDate: String(from.getTime()),
               endDate: String(to.getTime()),
+              range: null,
             })
           }
         />
@@ -121,6 +131,7 @@ export default function OrderListFilter() {
                 paymentStatus: null,
                 startDate: null,
                 endDate: null,
+                range: null,
               })
             }
           >

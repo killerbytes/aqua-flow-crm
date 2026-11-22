@@ -165,10 +165,10 @@ const ACTIONS: Record<string, Case> = {
     run: () => orderActions.getOrdersAction({}),
     reaches: OrderService.getAll,
   },
-  getWalkInCustomerAction: {
+  recordWalkInSaleAction: {
     roles: OFFICE,
-    run: () => orderActions.getWalkInCustomerAction(),
-    reaches: CustomerService.getOrCreateWalkIn,
+    run: () => orderActions.recordWalkInSaleAction({ amount: 1250 }),
+    reaches: OrderService.recordWalkInSale,
   },
   createOrderAction: {
     roles: OFFICE,

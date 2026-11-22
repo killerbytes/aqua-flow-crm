@@ -1,19 +1,17 @@
 "use client";
 
-import type { OrderSchema } from "@/backend/schemas/zodSchemas";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { businessDateKey, startOfBusinessDay } from "@/lib/business-time";
 import { MAX_ORDER_BACKDATE_DAYS } from "@/lib/definitions";
 import { Calendar } from "lucide-react";
-import type { UseFormReturn } from "react-hook-form";
-import type { z } from "zod";
+import type { UseFormRegisterReturn } from "react-hook-form";
 
-type OrderForm = UseFormReturn<
-  z.input<typeof OrderSchema>,
-  unknown,
-  z.output<typeof OrderSchema>
->;
+/** Any form with a `createdAt` date: the order form or the walk-in sales form. */
+interface DatedForm {
+  register: (name: "createdAt") => UseFormRegisterReturn<"createdAt">;
+  formState: { errors: { createdAt?: { message?: string } } };
+}
 
 /**
  * Today's Philippine date as YYYY-MM-DD, what the order date starts at. Taken
@@ -43,7 +41,7 @@ export function OrderDateField({
   label = "Order Date",
   current,
 }: {
-  form: OrderForm;
+  form: DatedForm;
   label?: string;
   /** The date already on an order being edited, as YYYY-MM-DD. */
   current?: string;

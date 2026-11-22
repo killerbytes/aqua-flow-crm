@@ -44,7 +44,7 @@ OrderPayment.init(
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     orderId: { type: DataTypes.INTEGER, allowNull: false, field: "order_id" },
     amount: moneyColumn("amount", { allowNull: false }),
-    // Walk-in sales are recorded paid without a method.
+    // Walk-in sales recorded before they were cash-only have no method.
     paymentMethod: {
       type: DataTypes.STRING,
       allowNull: true,

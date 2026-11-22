@@ -16,6 +16,7 @@ import {
   PaymentStatus,
   UserRole,
 } from "@/lib/definitions";
+import { endOfBusinessDay, startOfBusinessDay } from "@/lib/business-time";
 import { parsePageParams } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
 import {
@@ -39,6 +40,8 @@ interface OrdersPageProps {
     limit?: string;
     startDate?: string;
     endDate?: string;
+    /** `all` turns off the default of showing today. */
+    range?: string;
     status?: string;
     customerId?: number;
     paymentStatus?: PaymentStatus;
@@ -67,8 +70,17 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const params = await searchParams;
 
   const { page, limit } = parsePageParams(params);
-  const startDate = params?.startDate || "";
-  const endDate = params?.endDate || "";
+  // With no dates in the URL the list shows today, unless `range=all` asks
+  // for every date.
+  const allTime = params?.range === "all";
+  const hasDateParams = Boolean(params?.startDate || params?.endDate);
+  const now = new Date();
+  const startDate =
+    params?.startDate ||
+    (allTime || hasDateParams ? "" : String(startOfBusinessDay(now).getTime()));
+  const endDate =
+    params?.endDate ||
+    (allTime || hasDateParams ? "" : String(endOfBusinessDay(now).getTime()));
   const sort = params?.sort || "createdAt";
   const order = params?.order || "DESC";
   let orders: OrderListPage;
@@ -246,7 +258,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
 
       <Card>
         <CardContent className="space-y-4">
-          <OrderListFilter />
+          <OrderListFilter startDate={startDate} endDate={endDate} />
           <OrderList orders={orders} />
         </CardContent>
       </Card>
