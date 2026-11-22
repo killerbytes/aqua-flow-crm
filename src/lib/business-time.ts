@@ -43,6 +43,18 @@ export const parseBusinessDateKey = (key: unknown): Date | null => {
 };
 
 /**
+ * The Philippine calendar date `key` (YYYY-MM-DD) at the Philippine time of
+ * day of `now`, or null if the text isn't a real date. A date entered by hand
+ * then keeps a real-looking time, not midnight.
+ */
+export const businessDateAtTimeOf = (key: unknown, now: Date): Date | null => {
+  const start = parseBusinessDateKey(key);
+  if (!start) return null;
+  const timeOfDay = now.getTime() - startOfBusinessDay(now).getTime();
+  return new Date(start.getTime() + timeOfDay);
+};
+
+/**
  * Whole Philippine calendar days from `from` to `to`. An order placed late
  * yesterday is one day old this morning, even though fewer than 24 hours passed.
  */

@@ -7,5 +7,6 @@ export * from "./report.service";
 export * from "./finance-report.service";
 export * from "./inventory.service";
 export * from "./invoice.service";
+export * from "./retail.service";
 export * from "./errorHandler";
 

@@ -1,6 +1,7 @@
 "use client";
 
 import type { CustomerEquipmentBalance } from "@/types/models";
+import { businessDateKey } from "@/lib/business-time";
 import { errorMessage } from "@/lib/errors";
 import { createOrderAction, updateOrderAction } from "@/backend/actions";
 import { OrderFormData, OrderSchema } from "@/backend/schemas/zodSchemas";
@@ -17,6 +18,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { OrderCustomerLookupButton } from "./OrderCustomerLookupButton";
+import { OrderDateField, todayOrderDate } from "./OrderDateField";
 import {
   OrderItemsField,
   orderTotal,
@@ -58,11 +60,13 @@ const OrderFormModalContent = () => {
             unitPrice: Number(d.product?.unitPrice ?? d.unitPrice),
           })),
           surcharge: Number(editingOrder.surcharge) || 0,
+          createdAt: businessDateKey(new Date(editingOrder.createdAt)),
         }
       : {
           customerId: orderCustomer?.customerId ?? 0,
           status: OrderStatus.PENDING,
           paymentStatus: PaymentStatus.UNPAID,
+          createdAt: todayOrderDate(),
           items: [UNSET_ORDER_ITEM],
           surcharge: DEFAULT_ORDER_SURCHARGE,
         },
@@ -89,6 +93,7 @@ const OrderFormModalContent = () => {
           const res = await updateOrderAction(editingOrder.orderId, {
             items: data.items,
             surcharge: data.surcharge,
+            createdAt: data.createdAt,
           });
           if (!res.success) {
             throw new Error(res.error);
@@ -176,6 +181,14 @@ const OrderFormModalContent = () => {
             ))}
           </div>
         )}
+        <OrderDateField
+          form={form}
+          current={
+            editingOrder
+              ? businessDateKey(new Date(editingOrder.createdAt))
+              : undefined
+          }
+        />
       </FieldGroup>
 
       <OrderItemsField
@@ -237,7 +250,7 @@ export function OrderFormModal() {
       }
       description={
         editingOrder
-          ? "Change the items or surcharge of this pending order"
+          ? "Change the items, surcharge, or date of this pending order"
           : "Place a new water refill order"
       }
       isOpen={isOrderModalOpen}

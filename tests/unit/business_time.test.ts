@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  businessDateAtTimeOf,
   businessDateKey,
   endOfBusinessDay,
   startOfBusinessDay,
@@ -32,5 +33,17 @@ describe("Unit - Business time (Asia/Manila)", () => {
 
   it("should give the Manila calendar date", () => {
     expect(businessDateKey(AFTER_MIDNIGHT_MANILA)).toBe("2026-11-09");
+  });
+
+  it("should put an entered date at the current Manila time of day", () => {
+    // 01:30 Manila on Nov 9, so Nov 3 at 01:30 Manila (Nov 2, 17:30 UTC).
+    expect(
+      businessDateAtTimeOf("2026-11-03", AFTER_MIDNIGHT_MANILA)?.toISOString(),
+    ).toBe("2026-11-02T17:30:00.000Z");
+  });
+
+  it("should refuse text that isn't a calendar date", () => {
+    expect(businessDateAtTimeOf("2026-02-30", AFTER_MIDNIGHT_MANILA)).toBeNull();
+    expect(businessDateAtTimeOf("yesterday", AFTER_MIDNIGHT_MANILA)).toBeNull();
   });
 });

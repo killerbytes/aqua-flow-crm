@@ -6,6 +6,7 @@ import {
   OrderStatus,
   PaymentMethod,
   PaymentStatus,
+  RetailStockEntryType,
   UserRole,
 } from "@/lib/definitions";
 import { z } from "zod";
@@ -90,10 +91,11 @@ export const OrderSchema = z.object({
     .optional(),
 });
 
-/** What staff can change on a pending order: its items and its surcharge. */
+/** What staff can change on a pending order: its items, surcharge, and date. */
 export const OrderUpdateSchema = OrderSchema.pick({
   items: true,
   surcharge: true,
+  createdAt: true,
 });
 
 export const PaymentSchema = OrderSchema.omit({
@@ -176,6 +178,66 @@ export const ReversePaymentSchema =z.object({
   reason: z.string().trim().min(3, "Please give a reason"),
 });
 
+export const RetailProductSchema = z.object({
+  name: z.string().trim().min(2, "Product name required"),
+  basePrice: z.coerce
+    .number<number>("Price must be a number")
+    .min(0, "Price can't be negative"),
+  lowStockThreshold: z
+    .number()
+    .int("Use a whole number")
+    .min(0, "Can't be negative")
+    .nullable()
+    .optional(),
+});
+
+/**
+ * A retail sale as staff record it. Prices always come from the database, so
+ * there is no price field; the discount is the one amount staff set. Without
+ * a customer the sale goes on the walk-in account.
+ */
+export const RetailSaleSchema = z.object({
+  customerId: z.number().int().positive().optional(),
+  items: z
+    .array(
+      z.object({
+        productId: z.number().int().positive("Product is required"),
+        quantity: z
+          .number("Quantity must be a number")
+          .int("Use a whole number")
+          .positive("Quantity must be at least 1"),
+      }),
+    )
+    .min(1, "Add at least one item"),
+  discount: z
+    .number("Discount must be a number")
+    .min(0, "Discount can't be negative")
+    .optional(),
+  paymentMethod: z.nativeEnum(PaymentMethod),
+  paymentNotes: z.string().optional(),
+});
+
+export const RetailStockAdjustmentSchema = z
+  .object({
+    productId: z.number().int().positive("Product is required"),
+    type: z.enum([RetailStockEntryType.RESTOCK, RetailStockEntryType.WRITE_OFF]),
+    quantity: z
+      .number("Quantity must be a number")
+      .int("Quantity must be a whole number")
+      .positive("Quantity must be greater than 0"),
+    notes: z.string().optional(),
+  })
+  .refine(
+    (data) =>
+      data.type !== RetailStockEntryType.WRITE_OFF ||
+      (data.notes ?? "").trim().length >= 3,
+    { message: "Please give a reason for the write-off", path: ["notes"] },
+  );
+
+export const VoidRetailSaleSchema = z.object({
+  reason: z.string().trim().min(3, "Please give a reason"),
+});
+
 export const InvoicePaymentSchema = z.object({
   invoiceId: z.number().int().positive("Invoice is required"),
   paymentAmount: z.number().positive("Payment amount is required"),
@@ -202,3 +264,9 @@ export type InvoicePaymentFormData = z.infer<typeof InvoicePaymentSchema>;
 export type VoidInvoiceFormData = z.infer<typeof VoidInvoiceSchema>;
 export type VoidOrderFormData = z.infer<typeof VoidOrderSchema>;
 export type ReversePaymentFormData =z.infer<typeof ReversePaymentSchema>;
+export type RetailProductFormData = z.infer<typeof RetailProductSchema>;
+export type RetailSaleFormData = z.infer<typeof RetailSaleSchema>;
+export type RetailStockAdjustmentFormData = z.infer<
+  typeof RetailStockAdjustmentSchema
+>;
+export type VoidRetailSaleFormData = z.infer<typeof VoidRetailSaleSchema>;

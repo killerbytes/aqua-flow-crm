@@ -1,3 +1,6 @@
+/** How many Philippine days back staff can date an order. Later dates are refused. */
+export const MAX_ORDER_BACKDATE_DAYS = 30;
+
 export const PAGINATION = {
   PAGE: 1,
   PAGE_SIZE: 25,
@@ -156,6 +159,36 @@ export const INVENTORY_ADJUSTMENT_OPTIONS = [
   { value: InventoryAdjustmentType.DECLARED_LOST, label: "Declared Lost" },
 ];
 
+// Retail Stock (brand-new items sold over the counter)
+/**
+ * Why a retail product's stock changed. Restocks and returns from voided
+ * sales add to it; sales and write-offs take from it.
+ */
+export const RetailStockEntryType = {
+  RESTOCK: "RESTOCK",
+  SALE: "SALE",
+  SALE_VOID: "SALE_VOID",
+  WRITE_OFF: "WRITE_OFF",
+} as const;
+export type RetailStockEntryType =
+  (typeof RetailStockEntryType)[keyof typeof RetailStockEntryType];
+
+export const RETAIL_STOCK_ENTRY_LABELS: Record<RetailStockEntryType, string> = {
+  [RetailStockEntryType.RESTOCK]: "Restock",
+  [RetailStockEntryType.SALE]: "Sold",
+  [RetailStockEntryType.SALE_VOID]: "Returned (sale voided)",
+  [RetailStockEntryType.WRITE_OFF]: "Written off",
+};
+
+/** The stock changes staff make by hand. Sales and voids make the others. */
+export const RETAIL_STOCK_ADJUSTMENT_OPTIONS = [
+  { value: RetailStockEntryType.RESTOCK, label: "Restock (add stock)" },
+  {
+    value: RetailStockEntryType.WRITE_OFF,
+    label: "Write off (damaged or lost)",
+  },
+] as const;
+
 // Order Status & Payment Status
 export const OrderStatus = {
   PENDING: "PENDING",
@@ -200,6 +233,12 @@ export const PaymentMethod = {
   ONLINE: "ONLINE",
 } as const;
 export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod];
+
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  [PaymentMethod.CASH]: "Cash",
+  [PaymentMethod.GCASH]: "GCash",
+  [PaymentMethod.ONLINE]: "Online",
+};
 
 export const CustomerStatus = {
   ACTIVE: "ACTIVE",

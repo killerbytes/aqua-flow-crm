@@ -16,6 +16,7 @@ import {
   PaymentStatus,
 } from "../../src/lib/definitions";
 import { setupTestDatabase } from "../helpers/db.setup";
+import { businessDateKey, startOfBusinessDay } from "../../src/lib/business-time";
 
 const CUSTOMER_ID = 7;
 const PRODUCT_ID = 1;
@@ -245,20 +246,84 @@ describe("Integration - Billing Integrity", () => {
   });
 
   describe("Orders created by staff", () => {
+    const daysAgo = (days: number) =>
+      businessDateKey(startOfBusinessDay(new Date(), -days));
     const request = {
       customerId: 6,
       status: OrderStatus.DELIVERED,
       paymentStatus: PaymentStatus.PAID,
-      createdAt: "2020-01-01",
+      createdAt: daysAgo(5),
       items: [{ productId: PRODUCT_ID, quantity: 1 }],
     };
 
-    it("should start regular orders as new and unpaid", async () => {
+    it("should start regular orders as new and unpaid, on the date entered", async () => {
       const order = await OrderService.createForStaff(request as any, 1);
 
       expect(order!.status).toBe(OrderStatus.PENDING);
       expect(order!.paymentStatus).toBe(PaymentStatus.UNPAID);
-      expect(new Date(order!.createdAt).getFullYear()).toBeGreaterThan(2020);
+      expect(businessDateKey(new Date(order!.createdAt))).toBe(daysAgo(5));
+    });
+
+    it("should keep the current time of day on an entered date", async () => {
+      const now = new Date();
+      const yesterday = businessDateKey(new Date(now.getTime() - 86400000));
+      const order = await OrderService.createForStaff(
+        { ...request, createdAt: yesterday } as any,
+        1,
+      );
+
+      const createdAt = new Date(order!.createdAt);
+      expect(businessDateKey(createdAt)).toBe(yesterday);
+      // The same time of day, one day earlier, give or take the test's run time.
+      expect(Math.abs(now.getTime() - 86400000 - createdAt.getTime())).toBeLessThan(60000);
+    });
+
+    it("should use now when no date is entered", async () => {
+      const { createdAt: _omitted, ...undated } = request;
+      const before = Date.now();
+      const order = await OrderService.createForStaff(undated as any, 1);
+
+      expect(new Date(order!.createdAt).getTime()).toBeGreaterThanOrEqual(before - 1000);
+    });
+
+    it("should refuse an order date after today", async () => {
+      const tomorrow = businessDateKey(new Date(Date.now() + 86400000));
+      const before = await Order.count();
+
+      await expect(
+        OrderService.createForStaff({ ...request, createdAt: tomorrow } as any, 1),
+      ).rejects.toThrow("Order date can't be in the future");
+      await expect(
+        OrderService.createForStaff(
+          { ...request, customerId: (await CustomerService.getOrCreateWalkIn()).customerId, createdAt: tomorrow } as any,
+          1,
+        ),
+      ).rejects.toThrow("Order date can't be in the future");
+      expect(await Order.count()).toBe(before);
+    });
+
+    it("should allow an order date 30 days back, but not 31", async () => {
+      const order = await OrderService.createForStaff(
+        { ...request, createdAt: daysAgo(30) } as any,
+        1,
+      );
+      expect(businessDateKey(new Date(order!.createdAt))).toBe(daysAgo(30));
+
+      await expect(
+        OrderService.createForStaff({ ...request, createdAt: daysAgo(31) } as any, 1),
+      ).rejects.toThrow("Order date can't be more than 30 days ago");
+      await expect(
+        OrderService.createForStaff(
+          { ...request, customerId: (await CustomerService.getOrCreateWalkIn()).customerId, createdAt: daysAgo(31) } as any,
+          1,
+        ),
+      ).rejects.toThrow("Order date can't be more than 30 days ago");
+    });
+
+    it("should refuse an order date that isn't a real date", async () => {
+      await expect(
+        OrderService.createForStaff({ ...request, createdAt: "2026-02-30" } as any, 1),
+      ).rejects.toThrow("Order date is not a valid date");
     });
 
     it("should let walk-in sales set status, payment, and date", async () => {
@@ -270,7 +335,7 @@ describe("Integration - Billing Integrity", () => {
 
       expect(order!.status).toBe(OrderStatus.DELIVERED);
       expect(order!.paymentStatus).toBe(PaymentStatus.PAID);
-      expect(new Date(order!.createdAt).getFullYear()).toBe(2020);
+      expect(businessDateKey(new Date(order!.createdAt))).toBe(daysAgo(5));
     });
   });
 

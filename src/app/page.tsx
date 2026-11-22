@@ -13,6 +13,7 @@ import {
   Droplet,
   Package,
   Receipt,
+  ShoppingBag,
   Truck,
   TrendingUp,
   UserCheck,
@@ -182,11 +183,13 @@ export default async function DashboardPage() {
     heldLongest,
   } = await DashboardService.getSummary();
   const lowStock = stock.products.filter((p) => p.isLow);
+  const lowRetailStock = stock.retail.filter((p) => p.isLow);
   const driftedProducts = stock.products.filter((p) => !p.matchesLedger);
   const toDeliver = deliveries.pending + deliveries.outForDelivery;
   const cashMethods = Object.entries(cash.byMethod);
   const trendTotal = trend.reduce((sum, d) => sum + d.sales, 0);
   const trendOrders = trend.reduce((sum, d) => sum + d.orderCount, 0);
+  const trendRetail = trend.reduce((sum, d) => sum + d.retailCount, 0);
   const hasOverdue = receivables.overdueInvoices.count > 0;
 
   const todayLabel = new Date().toLocaleDateString("en-PH", {
@@ -212,7 +215,9 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      {(lowStock.length > 0 || driftedProducts.length > 0) && (
+      {(lowStock.length > 0 ||
+        lowRetailStock.length > 0 ||
+        driftedProducts.length > 0) && (
         <div className="grid gap-3 md:grid-cols-2">
           {lowStock.length > 0 && (
             <Link
@@ -226,6 +231,23 @@ export default async function DashboardPage() {
                   .map(
                     (p) =>
                       `${p.name} (${p.inStation} left, warning at ${p.lowStockThreshold})`,
+                  )
+                  .join(", ")}
+              </span>
+            </Link>
+          )}
+          {lowRetailStock.length > 0 && (
+            <Link
+              href="/retail"
+              className="flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm transition-colors hover:bg-amber-500/15"
+            >
+              <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" />
+              <span>
+                <strong className="font-semibold">Low retail stock: </strong>
+                {lowRetailStock
+                  .map(
+                    (p) =>
+                      `${p.name} (${p.onHand} left, warning at ${p.lowStockThreshold})`,
                   )
                   .join(", ")}
               </span>
@@ -254,7 +276,11 @@ export default async function DashboardPage() {
           delay={0.05}
           title="Today's Sales"
           value={peso(today.sales)}
-          note={`${plural(today.orderCount, "order")} delivered today`}
+          note={
+            today.retailCount > 0
+              ? `${plural(today.orderCount, "order")} delivered, ${plural(today.retailCount, "retail sale")} today`
+              : `${plural(today.orderCount, "order")} delivered today`
+          }
           icon={<TrendingUp className="size-4" />}
         />
         <StatCard
@@ -334,8 +360,8 @@ export default async function DashboardPage() {
         <Panel
           delay={0.25}
           className="lg:col-span-2"
-          title="Delivered Sales"
-          description={`Last ${trend.length} days`}
+          title="Sales"
+          description={`Delivered orders and retail sales, last ${trend.length} days`}
           icon={<TrendingUp className="size-4" />}
         >
           <div className="mb-4 flex flex-wrap gap-x-8 gap-y-2">
@@ -355,6 +381,12 @@ export default async function DashboardPage() {
               <div className="text-xs text-muted-foreground">Orders</div>
               <div className="text-xl font-bold tabular-nums">
                 {trendOrders}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Retail sales</div>
+              <div className="text-xl font-bold tabular-nums">
+                {trendRetail}
               </div>
             </div>
           </div>
@@ -476,6 +508,51 @@ export default async function DashboardPage() {
             <p className="mt-3 text-xs text-muted-foreground">
               Includes {plural(stock.temporaryLoans, "temporary loan")}.
             </p>
+          )}
+        </Panel>
+
+        <Panel
+          delay={0.55}
+          className="lg:col-span-2 xl:col-span-1"
+          title="Retail Stock"
+          description="Brand-new items for sale"
+          icon={<ShoppingBag className="size-4" />}
+          action={{ href: "/retail", label: "Retail" }}
+        >
+          {stock.retail.length === 0 ? (
+            <EmptyState>No retail products yet.</EmptyState>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-xs text-muted-foreground">
+                  <th className="pb-2 font-medium">Product</th>
+                  <th className="pb-2 text-right font-medium">In Stock</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {stock.retail.map((product) => (
+                  <tr key={product.productId}>
+                    <td className="py-2.5">
+                      <span className="font-medium">{product.name}</span>
+                      {product.isLow && (
+                        <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-700 dark:text-amber-400">
+                          <AlertTriangle className="size-3" />
+                          Low
+                        </span>
+                      )}
+                    </td>
+                    <td
+                      className={`py-2.5 text-right tabular-nums ${product.isLow
+                        ? "font-semibold text-amber-700 dark:text-amber-400"
+                        : ""
+                        }`}
+                    >
+                      {product.onHand}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </Panel>
       </div>

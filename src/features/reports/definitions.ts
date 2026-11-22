@@ -15,6 +15,11 @@ import type {
   InactiveCustomerWithEquipmentRow,
   TemporaryEquipmentRow,
 } from "@/backend/services/report.service";
+import type {
+  RetailStockLogRow,
+  RetailStockReport,
+  RetailStockRow,
+} from "@/backend/services/retail.service";
 import { businessDateKey, BUSINESS_TIMEZONE } from "@/lib/business-time";
 import { USER_ROLE_OPTIONS } from "@/lib/definitions";
 import { toCsv, type CsvValue } from "@/lib/csv";
@@ -200,7 +205,7 @@ export const salesReport: ReportMeta = {
   slug: "sales",
   title: "Sales",
   description:
-    "Delivered sales by period and by product, dated by delivery, and the money received in the same days.",
+    "Delivered orders, dated by delivery, and retail sales, dated by sale, by period and by product, and the money received in the same days. Voided retail sales don't count.",
 };
 
 export const salesByPeriodTable: ReportTableDefinition<SalesPeriodRow> = {
@@ -208,20 +213,22 @@ export const salesByPeriodTable: ReportTableDefinition<SalesPeriodRow> = {
   columns: [
     { header: "Period", value: (row) => row.label },
     { header: "Orders", value: (row) => row.orders, align: "right" },
+    { header: "Retail Sales", value: (row) => row.retailSales, align: "right" },
     { header: "Units", value: (row) => row.units, align: "right" },
     money("Sales", (row) => row.sales),
   ],
-  emptyMessage: "No deliveries in this range.",
+  emptyMessage: "No sales in this range.",
 };
 
 export const salesByProductTable: ReportTableDefinition<SalesProductRow> = {
   heading: "Sales by Product",
   columns: [
+    { header: "Source", value: (row) => row.source },
     { header: "Product", value: (row) => row.productName },
     { header: "Units", value: (row) => row.units, align: "right" },
     money("Sales", (row) => row.sales),
   ],
-  emptyMessage: "No deliveries in this range.",
+  emptyMessage: "No sales in this range.",
 };
 
 export const collectionsTable: ReportTableDefinition<CollectionRow> = {
@@ -231,6 +238,7 @@ export const collectionsTable: ReportTableDefinition<CollectionRow> = {
     { header: "Payments", value: (row) => row.payments, align: "right" },
     money("From Orders", (row) => row.fromOrders),
     money("From Invoices", (row) => row.fromInvoices),
+    money("From Retail", (row) => row.fromRetail),
     money("Total", (row) => row.total),
   ],
   emptyMessage: "No payments received in this range.",
@@ -268,7 +276,7 @@ export const voidsReport: ReportMeta = {
   slug: "voids",
   title: "Voids & Reversals",
   description:
-    "Voided orders and invoices, and reversed payments, with who did each and why, and a count for each person. Dated by when the void or reversal happened.",
+    "Voided orders, invoices, and retail sales, and reversed payments, with who did each and why, and a count for each person. Dated by when the void or reversal happened.",
 };
 
 export const voidsTable: ReportTableDefinition<VoidRow> = {
@@ -311,6 +319,7 @@ export const voidsByUserTable: ReportTableDefinition<VoidUserRow> = {
     money("Orders Voided Amount", (row) => row.ordersVoidedAmount),
     { header: "Invoices Voided", value: (row) => row.invoicesVoided, align: "right" },
     { header: "Payments Reversed", value: (row) => row.paymentsReversed, align: "right" },
+    { header: "Retail Sales Voided", value: (row) => row.retailSalesVoided, align: "right" },
   ],
   emptyMessage: "Nothing was voided or reversed in this range.",
 };
@@ -428,6 +437,73 @@ export const equipmentLedgerSections = (
   },
 });
 
+// ---------------------------------------------------------------------------
+// Retail stock report
+// ---------------------------------------------------------------------------
+
+export const retailStockReport: ReportMeta = {
+  slug: "retail-stock",
+  title: "Retail Stock",
+  description:
+    "Brand-new items for sale: stock at the start and end of the range, and what was restocked, sold, returned by voided sales, and written off in between. On Hand Now is checked against the stock log.",
+};
+
+export const retailStockMovementTable: ReportTableDefinition<RetailStockRow> = {
+  heading: "Stock Movement",
+  columns: [
+    { header: "Product", value: (row) => row.productName },
+    { header: "Opening", value: (row) => row.opening, align: "right" },
+    { header: "Restocked", value: (row) => row.restocked, align: "right" },
+    { header: "Sold", value: (row) => row.sold, align: "right" },
+    { header: "Returned", value: (row) => row.returned, align: "right" },
+    { header: "Written Off", value: (row) => row.writtenOff, align: "right" },
+    { header: "Closing", value: (row) => row.closing, align: "right" },
+    { header: "On Hand Now", value: (row) => row.onHandNow, align: "right" },
+    {
+      header: "Stock Log",
+      value: (row) => (row.matchesEntries ? "Matches" : "Drifted"),
+    },
+  ],
+  emptyMessage: "No retail products yet.",
+};
+
+const signed = (change: number) => (change > 0 ? `+${change}` : String(change));
+
+export const retailStockLogTable: ReportTableDefinition<RetailStockLogRow> = {
+  heading: "Stock Log",
+  columns: [
+    {
+      header: "When",
+      value: (row) => formatReportDateTime(row.at),
+      csv: (row) => csvDateTime(row.at),
+    },
+    { header: "Product", value: (row) => row.productName },
+    { header: "Type", value: (row) => row.type },
+    {
+      header: "Change",
+      value: (row) => signed(row.change),
+      csv: (row) => row.change,
+      align: "right",
+    },
+    { header: "Reference", value: (row) => row.reference },
+    { header: "By", value: (row) => row.by },
+    { header: "Notes", value: (row) => row.notes },
+  ],
+  emptyMessage: "No stock movements in this range.",
+};
+
+/** The Retail Stock report's tables, by the `table` param its CSV route takes. */
+export const RETAIL_STOCK_CSV_TABLES = {
+  movement: { table: retailStockMovementTable, name: "retail-stock-movement" },
+  log: { table: retailStockLogTable, name: "retail-stock-log" },
+} as const;
+export type RetailStockCsvTable = keyof typeof RETAIL_STOCK_CSV_TABLES;
+
+export const retailStockSections = (report: RetailStockReport): ReportSection[] => [
+  { table: retailStockMovementTable, rows: report.rows, total: report.total },
+  { table: retailStockLogTable, rows: report.log },
+];
+
 /** The Sales report's tables, in the order they show. */
 export const salesSections = (report: SalesReport): ReportSection[] => [
   { table: salesByPeriodTable, rows: report.periods, total: report.periodTotal },
@@ -458,6 +534,7 @@ export const REPORTS = [
   receivablesReport,
   voidsReport,
   equipmentLedgerReport,
+  retailStockReport,
 ].map(({ slug, title, description }) => ({
   slug,
   title,

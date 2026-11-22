@@ -45,7 +45,7 @@ export default async function SalesReportPage({
           <GroupFilter group={group} />
         </>
       }
-      summary={`${report.periodTotal.orders} delivered orders, ${formatPeso(report.periodTotal.sales)} in sales, ${formatPeso(report.collectionTotal.total)} collected`}
+      summary={`${report.periodTotal.orders} delivered orders, ${report.periodTotal.retailSales} retail sales, ${formatPeso(report.periodTotal.sales)} in sales, ${formatPeso(report.collectionTotal.total)} collected`}
       downloads={Object.entries(SALES_CSV_TABLES).map(([table, { table: def }]) => ({
         label: `${def.heading} CSV`,
         href: `/reports/sales/csv?${query}&table=${table}`,

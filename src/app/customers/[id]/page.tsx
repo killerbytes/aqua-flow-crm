@@ -20,12 +20,14 @@ import {
 import Link from "next/link";
 
 import { initDatabase } from "@/backend/db/database";
+import { checkPermission } from "@/backend/rbac/permissions";
 import {
   CustomerService,
   EquipmentService,
   InvoiceService,
   OrderService,
   ProductService,
+  RetailSaleService,
 } from "@/backend/services";
 import { CommonService } from "@/backend/services/commonService";
 import { RoleGuard } from "@/components/auth/RoleGuard";
@@ -55,6 +57,7 @@ import { OrderFormModal } from "@/features/orders/components/OrderFormModal";
 import { OrderFormModalButton } from "@/features/orders/components/OrderFormModalButton";
 import OrderList from "@/features/orders/components/OrderList";
 import EquipmentLogs from "@/features/products/components/EquipmentLogs";
+import RetailSaleList from "@/features/retail/components/RetailSaleList";
 import { CUSTOMER_STATUS_BADGE_COLOR, UserRole } from "@/lib/definitions";
 import { parsePageParams } from "@/lib/pagination";
 import { formatCurrency } from "@/lib/utils";
@@ -84,7 +87,7 @@ export default async function CustomerPage({
   }>;
 }) {
   await initDatabase();
-  await requirePagePermission("VIEW_CUSTOMERS");
+  const user = await requirePagePermission("VIEW_CUSTOMERS");
   const { id } = await params;
   const search = await searchParams;
   const { sort, order } = search;
@@ -127,6 +130,11 @@ export default async function CustomerPage({
     query: {
       customerId: Number(id),
     },
+  });
+  const retailSales = await RetailSaleService.getAll({
+    limit,
+    page,
+    query: { customerId: Number(id) },
   });
   const barangays = CommonService.getBarangays();
 
@@ -413,6 +421,7 @@ export default async function CustomerPage({
           <TabsTrigger value="history">Order History</TabsTrigger>
           <TabsTrigger value="logs">Equipment Logs</TabsTrigger>
           <TabsTrigger value="invoices">Invoices</TabsTrigger>
+          <TabsTrigger value="retail">Retail Purchases</TabsTrigger>
         </TabsList>
         <TabsContent value="history">
           <Card>
@@ -448,6 +457,23 @@ export default async function CustomerPage({
             </CardHeader>
             <CardContent>
               <InvoiceList invoices={invoices} hideCustomer />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="retail">
+          <Card>
+            <CardHeader>
+              <CardTitle>Retail Purchases</CardTitle>
+              <CardDescription>
+                Brand-new items this customer bought over the counter
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <RetailSaleList
+                sales={retailSales}
+                canVoid={checkPermission(user.role, "VOID_RETAIL_SALE")}
+                hideCustomer
+              />
             </CardContent>
           </Card>
         </TabsContent>

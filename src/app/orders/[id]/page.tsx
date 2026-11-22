@@ -44,6 +44,9 @@ import { fromCents, toCents } from "@/lib/money";
 import { cn, formatCurrency, formatDateTime } from "@/lib/utils";
 import { redirect } from "next/navigation";
 
+/** The same date style as the orders list. */
+const DATE_TIME_FORMAT = "MMM d, yyyy h:mm a";
+
 const STEPS = [
   { status: OrderStatus.PENDING, label: "Pending", icon: Clock },
   { status: OrderStatus.OUT_FOR_DELIVERY, label: "Out for delivery", icon: Truck },
@@ -210,7 +213,7 @@ export default async function OrderDetailsPage({
                 )}
               </div>
               <div className="text-sm text-muted-foreground">
-                Placed {formatDateTime(order.createdAt)} for{" "}
+                Placed {formatDateTime(order.createdAt, DATE_TIME_FORMAT)} for{" "}
                 <Link
                   className="text-primary hover:underline"
                   href={`/customers/${order.customer?.customerId}`}
@@ -384,7 +387,7 @@ export default async function OrderDetailsPage({
             </CardHeader>
             <CardContent className="divide-y">
               <InfoRow icon={<CalendarDays className="size-4" />} label="Order date">
-                {formatDateTime(order.createdAt)}
+                {formatDateTime(order.createdAt, DATE_TIME_FORMAT)}
               </InfoRow>
               <InfoRow icon={<User className="size-4" />} label="Taken by">
                 {order.user?.name || (
@@ -393,7 +396,7 @@ export default async function OrderDetailsPage({
               </InfoRow>
               {order.deliveredAt && (
                 <InfoRow icon={<Truck className="size-4" />} label="Delivered">
-                  {formatDateTime(order.deliveredAt)}
+                  {formatDateTime(order.deliveredAt, DATE_TIME_FORMAT)}
                 </InfoRow>
               )}
               {order.deliveredAt && (
@@ -408,7 +411,7 @@ export default async function OrderDetailsPage({
               )}
               {order.voidedAt && (
                 <InfoRow icon={<Ban className="size-4" />} label="Voided">
-                  {formatDateTime(order.voidedAt)}
+                  {formatDateTime(order.voidedAt, DATE_TIME_FORMAT)}
                 </InfoRow>
               )}
               {order.voidedAt && (
