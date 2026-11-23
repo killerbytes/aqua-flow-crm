@@ -38,6 +38,20 @@ export interface ReportColumn<Row> {
   align?: "left" | "right";
   /** Screen only: where the cell links to. */
   href?: (row: Row) => string | undefined;
+  /**
+   * Lets the report be sorted by this column. `key` is its name in the `sort`
+   * search param, and `by` is what it sorts on, the shown value by default.
+   * Blanks (null or "") always sort last.
+   */
+  sort?: { key: string; by?: (row: Row) => string | number | null };
+}
+
+export type SortOrder = "ASC" | "DESC";
+
+/** The column a report is sorted by, from its `sort` and `order` search params. */
+export interface ReportSort {
+  key: string;
+  order: SortOrder;
 }
 
 /** One table of a report. */
@@ -66,6 +80,12 @@ export interface ReportSection<Row = any> {
   table: ReportTableDefinition<Row>;
   rows: Row[];
   total?: Row;
+  /**
+   * Screen only: makes the headers of the columns with a `sort` clickable,
+   * and `sort` marks the one the rows are sorted by now.
+   */
+  sortable?: boolean;
+  sort?: ReportSort | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -112,28 +132,35 @@ const customerHref = (row: { customerId: number | null }) =>
 // Customer and equipment reports
 // ---------------------------------------------------------------------------
 
+const time = (date: Date | null) => date?.getTime() ?? null;
+
 const inactiveColumns: ReportColumn<InactiveCustomerRow>[] = [
   {
     header: "Customer",
     value: (row) => row.customerName,
     href: customerHref,
+    sort: { key: "customer" },
   },
-  { header: "Phone", value: (row) => row.phone },
-  { header: "Address", value: (row) => row.address },
+  { header: "Phone", value: (row) => row.phone, sort: { key: "phone" } },
+  { header: "Address", value: (row) => row.address, sort: { key: "address" } },
+  { header: "Barangay", value: (row) => row.barangay, sort: { key: "barangay" } },
   {
     header: "Last Order",
     value: (row) => formatReportDate(row.lastOrderAt) ?? "Never ordered",
     csv: (row) => csvDate(row.lastOrderAt) ?? "Never ordered",
+    sort: { key: "lastOrder", by: (row) => time(row.lastOrderAt) },
   },
   {
     header: "Days Since",
     value: (row) => row.daysSinceLastOrder,
     align: "right",
+    sort: { key: "daysSince" },
   },
   {
     header: "Customer Since",
     value: (row) => formatReportDate(row.customerSince),
     csv: (row) => csvDate(row.customerSince),
+    sort: { key: "customerSince", by: (row) => time(row.customerSince) },
   },
 ];
 
@@ -158,7 +185,9 @@ export const inactiveWithEquipmentReport: ReportDefinition<InactiveCustomerWithE
     description:
       "Inactive customers who still hold regular containers or equipment, so they can be followed up or the equipment collected.",
     columns: [
-      ...(inactiveColumns.slice(0, 5) as ReportColumn<InactiveCustomerWithEquipmentRow>[]),
+      ...(inactiveColumns.filter(
+        (column) => column.header !== "Customer Since",
+      ) as ReportColumn<InactiveCustomerWithEquipmentRow>[]),
       {
         header: "Equipment Held",
         value: equipmentText,
@@ -166,8 +195,14 @@ export const inactiveWithEquipmentReport: ReportDefinition<InactiveCustomerWithE
           row.equipment
             .map((item) => `${item.productName} x ${item.quantity}`)
             .join("; "),
+        sort: { key: "equipment" },
       },
-      { header: "Total Units", value: (row) => row.totalHeld, align: "right" },
+      {
+        header: "Total Units",
+        value: (row) => row.totalHeld,
+        align: "right",
+        sort: { key: "totalUnits" },
+      },
     ],
     emptyMessage: "No inactive customer is holding equipment.",
   };
@@ -555,3 +590,126 @@ export const reportCsv = <Row>(
       ),
     ),
   );
+
+// ---------------------------------------------------------------------------
+// Sorting and filtering
+// ---------------------------------------------------------------------------
+
+/** A search param's first value, when it has one. */
+const firstParam = (value: unknown) =>
+  typeof value === "string"
+    ? value
+    : Array.isArray(value) && typeof value[0] === "string"
+      ? value[0]
+      : undefined;
+
+const sortColumn = <Row>(table: ReportTableDefinition<Row>, key: string) =>
+  table.columns.find((column) => column.sort?.key === key);
+
+/**
+ * The `sort` and `order` search params, when `sort` names one of the table's
+ * sortable columns. Anything else leaves the report in its own order.
+ */
+export const parseReportSort = <Row>(
+  table: ReportTableDefinition<Row>,
+  sort: unknown,
+  order: unknown,
+): ReportSort | null => {
+  const key = firstParam(sort);
+  if (!key || !sortColumn(table, key)) return null;
+  return {
+    key,
+    order: firstParam(order)?.toUpperCase() === "DESC" ? "DESC" : "ASC",
+  };
+};
+
+const isBlank = (value: string | number | null) => value === null || value === "";
+
+/**
+ * The rows sorted as `sort` asks, blanks last either way. Ties keep the order
+ * the rows came in, so the report's own order breaks them.
+ */
+export const sortReportRows = <Row>(
+  table: ReportTableDefinition<Row>,
+  rows: Row[],
+  sort: ReportSort | null,
+): Row[] => {
+  const column = sort && sortColumn(table, sort.key);
+  if (!sort || !column?.sort) return rows;
+
+  const by = column.sort.by ?? column.value;
+  const direction = sort.order === "DESC" ? -1 : 1;
+
+  return rows
+    .map((row) => ({ row, key: by(row) }))
+    .sort((a, b) => {
+      if (isBlank(a.key) || isBlank(b.key)) {
+        return Number(isBlank(a.key)) - Number(isBlank(b.key));
+      }
+      const diff =
+        typeof a.key === "number" && typeof b.key === "number"
+          ? a.key - b.key
+          : String(a.key).localeCompare(String(b.key), undefined, {
+              numeric: true,
+              sensitivity: "base",
+            });
+      return diff * direction;
+    })
+    .map(({ row }) => row);
+};
+
+/** "Sorted by Days Since, descending", for a printout's heading. */
+export const describeSort = <Row>(
+  table: ReportTableDefinition<Row>,
+  sort: ReportSort | null,
+) => {
+  const column = sort && sortColumn(table, sort.key);
+  if (!sort || !column) return null;
+  return `Sorted by ${column.header}, ${sort.order === "ASC" ? "ascending" : "descending"}`;
+};
+
+/** The `barangay` search param, which repeats once for each barangay picked. */
+export const parseBarangays = (value: unknown): string[] => {
+  const values: unknown[] = Array.isArray(value) ? value : [value];
+  return [
+    ...new Set(
+      values.filter(
+        (code): code is string => typeof code === "string" && code !== "",
+      ),
+    ),
+  ];
+};
+
+/** The rows in any of the barangays picked, or every row when none is. */
+export const filterByBarangays = <Row extends { barangayId: string | null }>(
+  rows: Row[],
+  codes: string[],
+) =>
+  codes.length === 0
+    ? rows
+    : rows.filter((row) => row.barangayId !== null && codes.includes(row.barangayId));
+
+export interface BarangayOption {
+  code: string;
+  name: string;
+  /** How many rows of the unfiltered report are in it. */
+  count: number;
+}
+
+/** The barangays the rows are in, by name, with how many rows each has. */
+export const barangayOptions = (
+  rows: { barangayId: string | null; barangay: string | null }[],
+): BarangayOption[] => {
+  const options = new Map<string, BarangayOption>();
+  for (const row of rows) {
+    if (!row.barangayId) continue;
+    const option = options.get(row.barangayId) ?? {
+      code: row.barangayId,
+      name: row.barangay ?? row.barangayId,
+      count: 0,
+    };
+    option.count += 1;
+    options.set(row.barangayId, option);
+  }
+  return [...options.values()].sort((a, b) => a.name.localeCompare(b.name));
+};

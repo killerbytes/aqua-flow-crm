@@ -121,6 +121,16 @@ describe("Integration - Report Service", () => {
       expect(rows.has("Recent")).toBe(false);
     });
 
+    it("should give each customer's barangay, by code and by name", async () => {
+      const rows = byName(
+        await ReportService.getInactiveCustomers({ minDays: 30, now: NOW }),
+      );
+      expect(rows.get("Idle")).toMatchObject({
+        barangayId: "034903002",
+        barangay: "Aduas Centro (Aduas)",
+      });
+    });
+
     it("should not count a cancelled order as ordering", async () => {
       const rows = byName(
         await ReportService.getInactiveCustomers({ minDays: 30, now: NOW }),

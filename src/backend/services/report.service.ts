@@ -12,6 +12,7 @@ import {
   Order,
   ProductInventory,
 } from "../models";
+import { CommonService } from "./commonService";
 import { WALK_IN_CUSTOMER_NAME } from "./customer.service";
 
 /** How long without an order before a customer shows as inactive, by default. */
@@ -22,6 +23,9 @@ export interface InactiveCustomerRow {
   customerName: string;
   phone: string | null;
   address: string | null;
+  /** The barangay's code and name, null when the customer has none on file. */
+  barangayId: string | null;
+  barangay: string | null;
   customerSince: Date;
   /** Null when the customer has never ordered. */
   lastOrderAt: Date | null;
@@ -105,7 +109,14 @@ export class ReportService {
   }: InactiveCustomersParams = {}): Promise<InactiveCustomerRow[]> {
     const [customers, lastOrders] = await Promise.all([
       Customer.findAll({
-        attributes: ["customerId", "name", "phone", "address", "createdAt"],
+        attributes: [
+          "customerId",
+          "name",
+          "phone",
+          "address",
+          "barangayId",
+          "createdAt",
+        ],
         where: {
           status: CustomerStatus.ACTIVE,
           name: { [Op.ne]: WALK_IN_CUSTOMER_NAME },
@@ -128,6 +139,10 @@ export class ReportService {
         customerName: customer.name,
         phone: customer.phone || null,
         address: customer.address || null,
+        barangayId: customer.barangayId || null,
+        barangay: customer.barangayId
+          ? (CommonService.getBarangayNameByCode(customer.barangayId) ?? null)
+          : null,
         customerSince: customer.createdAt,
         lastOrderAt,
         daysSinceLastOrder,

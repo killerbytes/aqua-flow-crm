@@ -10,15 +10,18 @@ import {
 import { cx } from "class-variance-authority";
 import Link from "next/link";
 import type { ReportSection } from "./definitions";
+import SortableHeader from "./SortableHeader";
 
 /**
  * A report table, every row of it, on screen. Reports aren't paged, so what's
- * on screen is what prints and what downloads.
+ * on screen is what prints and what downloads, in the same order.
  */
 export default function ReportTable<Row>({
   table,
   rows,
   total,
+  sortable = false,
+  sort = null,
 }: ReportSection<Row>) {
   const cellClass = (align?: "left" | "right") =>
     cx("whitespace-normal", align === "right" && "text-right font-mono");
@@ -32,8 +35,25 @@ export default function ReportTable<Row>({
               <TableHead
                 key={column.header}
                 className={cx(column.align === "right" && "text-right")}
+                aria-sort={
+                  sortable && column.sort && sort?.key === column.sort.key
+                    ? sort.order === "ASC"
+                      ? "ascending"
+                      : "descending"
+                    : undefined
+                }
               >
-                {column.header}
+                {sortable && column.sort ? (
+                  <SortableHeader
+                    sortKey={column.sort.key}
+                    sort={sort}
+                    align={column.align}
+                  >
+                    {column.header}
+                  </SortableHeader>
+                ) : (
+                  column.header
+                )}
               </TableHead>
             ))}
           </TableRow>

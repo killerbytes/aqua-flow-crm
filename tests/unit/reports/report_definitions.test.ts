@@ -47,6 +47,8 @@ const inactive: InactiveCustomerRow = {
   customerName: "Cruz, Juan",
   phone: "09171234567",
   address: "12 Mabini St",
+  barangayId: "034903003",
+  barangay: "Bagong Sikat",
   customerSince: new Date("2026-01-15T02:00:00Z"),
   lastOrderAt: AFTER_MIDNIGHT_MANILA,
   daysSinceLastOrder: 12,
@@ -128,7 +130,7 @@ describe("Unit - Report Definitions", () => {
         "Customer Since": "Jan 15, 2026",
       });
       expect(csvLines(inactiveCustomersReport, [inactive])[1]).toBe(
-        '"Cruz, Juan",09171234567,12 Mabini St,2026-11-09,12,2026-01-15',
+        '"Cruz, Juan",09171234567,12 Mabini St,Bagong Sikat,2026-11-09,12,2026-01-15',
       );
     });
 
