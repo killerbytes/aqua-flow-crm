@@ -55,6 +55,19 @@ export interface TemporaryEquipmentRow {
   daysHeld: number | null;
 }
 
+/** One product a customer holds as regular equipment. */
+export interface CustomerEquipmentRow {
+  customerId: number;
+  customerName: string;
+  phone: string | null;
+  /** The barangay's code and name, null when the customer has none on file. */
+  barangayId: string | null;
+  barangay: string | null;
+  productId: number;
+  productName: string;
+  quantity: number;
+}
+
 export interface InactiveCustomersParams {
   minDays?: number;
   now?: Date;
@@ -307,6 +320,52 @@ export class ReportService {
     return rows.sort(
       (a, b) =>
         (b.daysHeld ?? -1) - (a.daysHeld ?? -1) ||
+        a.customerName.localeCompare(b.customerName) ||
+        a.productName.localeCompare(b.productName),
+    );
+  }
+
+  /**
+   * Every customer holding regular equipment, one row per product, by
+   * customer then product. Temporary equipment has its own report.
+   */
+  static async getCustomersWithEquipment(): Promise<CustomerEquipmentRow[]> {
+    const balances = await CustomerEquipmentBalance.findAll({
+      where: { quantityOwed: { [Op.gt]: 0 } },
+      include: [
+        {
+          model: Customer,
+          as: "customer",
+          attributes: ["customerId", "name", "phone", "barangayId"],
+          paranoid: false,
+        },
+        {
+          model: ProductInventory,
+          as: "product",
+          attributes: ["productId", "name"],
+          paranoid: false,
+        },
+      ],
+    });
+
+    const rows = balances.map((balance): CustomerEquipmentRow => {
+      const barangayId = balance.customer?.barangayId || null;
+      return {
+        customerId: balance.customerId,
+        customerName: balance.customer?.name ?? "Unknown customer",
+        phone: balance.customer?.phone || null,
+        barangayId,
+        barangay: barangayId
+          ? (CommonService.getBarangayNameByCode(barangayId) ?? null)
+          : null,
+        productId: balance.productId,
+        productName: balance.product?.name ?? "Unknown product",
+        quantity: balance.quantityOwed,
+      };
+    });
+
+    return rows.sort(
+      (a, b) =>
         a.customerName.localeCompare(b.customerName) ||
         a.productName.localeCompare(b.productName),
     );

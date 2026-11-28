@@ -35,6 +35,8 @@ const ROUTES: Record<string, () => Promise<unknown>> = {
     import("../../src/app/reports/inactive-customers/csv/route"),
   "inactive-with-equipment": () =>
     import("../../src/app/reports/inactive-with-equipment/csv/route"),
+  "customers-with-equipment": () =>
+    import("../../src/app/reports/customers-with-equipment/csv/route"),
   "temporary-equipment": () =>
     import("../../src/app/reports/temporary-equipment/csv/route"),
   sales: () => import("../../src/app/reports/sales/csv/route"),
@@ -259,6 +261,9 @@ describe("Integration - Report CSV Downloads", () => {
     it("should name the remaining files after today, in Philippine time", async () => {
       expect((await download("receivables")).filename).toBe(
         `money-owed-${today}.csv`,
+      );
+      expect((await download("customers-with-equipment")).filename).toBe(
+        `customers-with-equipment-${today}.csv`,
       );
       expect((await download("temporary-equipment")).filename).toBe(
         `temporary-equipment-${today}.csv`,

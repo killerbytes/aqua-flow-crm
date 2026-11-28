@@ -10,11 +10,33 @@ import {
   type ReportTableDefinition,
 } from "./definitions";
 
+/**
+ * The barangays in the report, and any picked that no longer has a row in it,
+ * so its chip still shows and can be removed.
+ */
+export function barangayFilterOptions(
+  allRows: { barangayId: string | null; barangay: string | null }[],
+  barangays: string[],
+) {
+  const options = barangayOptions(allRows);
+  for (const code of barangays) {
+    if (options.some((option) => option.code === code)) continue;
+    options.push({
+      code,
+      name: CommonService.getBarangayNameByCode(code) ?? code,
+      count: 0,
+    });
+  }
+  return options.sort((a, b) => a.name.localeCompare(b.name));
+}
+
 /** The search params the inactive customer reports take besides `days`. */
 export interface InactiveReportParams {
   sort?: unknown;
   order?: unknown;
   barangay?: unknown;
+  /** Only Inactive with Equipment uses it; carried along in `query`. */
+  product?: unknown;
 }
 
 /**
@@ -32,24 +54,14 @@ export function inactiveReportView<Row extends InactiveCustomerRow>(
   const barangays = parseBarangays(params.barangay);
   const rows = sortReportRows(table, filterByBarangays(allRows, barangays), sort);
 
-  // The barangays in the report, and any picked that no longer has a row in
-  // it, so its chip still shows and can be removed.
-  const options = barangayOptions(allRows);
-  for (const code of barangays) {
-    if (options.some((option) => option.code === code)) continue;
-    options.push({
-      code,
-      name: CommonService.getBarangayNameByCode(code) ?? code,
-      count: 0,
-    });
-  }
-  options.sort((a, b) => a.name.localeCompare(b.name));
+  const options = barangayFilterOptions(allRows, barangays);
 
   const query = new URLSearchParams({ days: String(days) });
   if (sort) {
     query.set("sort", sort.key);
     query.set("order", sort.order);
   }
+  for (const code of parseBarangays(params.product)) query.append("product", code);
   for (const code of barangays) query.append("barangay", code);
 
   const names = barangays.map(

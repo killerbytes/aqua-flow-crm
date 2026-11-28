@@ -37,6 +37,8 @@ const PAGES: Record<string, PermissionAction> = {
   "reports/inactive-customers/print/page.tsx": "VIEW_REPORTS",
   "reports/inactive-with-equipment/page.tsx": "VIEW_REPORTS",
   "reports/inactive-with-equipment/print/page.tsx": "VIEW_REPORTS",
+  "reports/customers-with-equipment/page.tsx": "VIEW_REPORTS",
+  "reports/customers-with-equipment/print/page.tsx": "VIEW_REPORTS",
   "reports/temporary-equipment/page.tsx": "VIEW_REPORTS",
   "reports/temporary-equipment/print/page.tsx": "VIEW_REPORTS",
   "reports/sales/page.tsx": "VIEW_REPORTS",
@@ -59,6 +61,7 @@ const PUBLIC_PAGES = ["login/page.tsx"];
 const ROUTES: Record<string, PermissionAction> = {
   "reports/inactive-customers/csv/route.ts": "EXPORT_REPORTS",
   "reports/inactive-with-equipment/csv/route.ts": "EXPORT_REPORTS",
+  "reports/customers-with-equipment/csv/route.ts": "EXPORT_REPORTS",
   "reports/temporary-equipment/csv/route.ts": "EXPORT_REPORTS",
   "reports/sales/csv/route.ts": "EXPORT_REPORTS",
   "reports/receivables/csv/route.ts": "EXPORT_REPORTS",

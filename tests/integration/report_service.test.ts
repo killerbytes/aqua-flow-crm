@@ -231,6 +231,29 @@ describe("Integration - Report Service", () => {
     });
   });
 
+  describe("Customers with equipment", () => {
+    const held = async (name: string) =>
+      (await ReportService.getCustomersWithEquipment()).filter(
+        (row) => row.customerName === `RPT ${name}`,
+      );
+
+    it("should list regular units one row per product", async () => {
+      const rows = await held("IdleWithEquipment");
+      expect(rows.map((r) => [r.productId, r.quantity]).sort()).toEqual([
+        [1, 2],
+        [2, 1],
+      ]);
+      expect(rows[0].barangayId).toBe("034903002");
+    });
+
+    it("should leave out customers with nothing out and temporary equipment", async () => {
+      const rows = await ReportService.getCustomersWithEquipment();
+      expect(rows.every((row) => row.quantity > 0)).toBe(true);
+      expect(await held("Idle")).toEqual([]);
+      expect(await held("IdleTempOnly")).toEqual([]);
+    });
+  });
+
   describe("Temporary equipment", () => {
     it("should date the oldest unit still out, first in first out", async () => {
       const rows = byName(await ReportService.getTemporaryEquipment({ now: NOW }));

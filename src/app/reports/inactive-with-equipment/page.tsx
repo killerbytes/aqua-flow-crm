@@ -5,6 +5,7 @@ import { parseMinDays, ReportService } from "@/backend/services";
 import BarangayFilter from "@/features/reports/BarangayFilter";
 import DaysFilter from "@/features/reports/DaysFilter";
 import { inactiveWithEquipmentReport } from "@/features/reports/definitions";
+import { inactiveEquipmentFilter } from "@/features/reports/equipment";
 import {
   inactiveReportView,
   type InactiveReportParams,
@@ -23,9 +24,13 @@ export default async function InactiveWithEquipmentPage({
 
   const params = await searchParams;
   const days = parseMinDays(params.days);
+  const equipment = inactiveEquipmentFilter(
+    await ReportService.getInactiveCustomersWithEquipment({ minDays: days }),
+    params.product,
+  );
   const view = inactiveReportView(
     inactiveWithEquipmentReport,
-    await ReportService.getInactiveCustomersWithEquipment({ minDays: days }),
+    equipment.rows,
     days,
     params,
   );
@@ -48,6 +53,14 @@ export default async function InactiveWithEquipmentPage({
       filters={
         <>
           <DaysFilter days={days} />
+          <BarangayFilter
+            param="product"
+            label="Equipment"
+            placeholder="All equipment"
+            emptyText="No equipment found."
+            options={equipment.productOptions}
+            selected={equipment.products}
+          />
           <BarangayFilter options={view.barangayOptions} selected={view.barangays} />
         </>
       }

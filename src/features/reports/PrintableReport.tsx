@@ -36,7 +36,7 @@ function PrintTable({ table, rows, total }: ReportSection) {
           </tr>
         ) : (
           rows.map((row, index) => (
-            <tr key={index} className="break-inside-avoid border-b border-slate-200">
+            <tr key={index} className="border-b border-slate-200">
               {table.columns.map((column) => (
                 <td
                   key={column.header}
@@ -51,7 +51,7 @@ function PrintTable({ table, rows, total }: ReportSection) {
       </tbody>
       {total && rows.length > 0 && (
         <tfoot>
-          <tr className="border-t-2 border-slate-300 font-semibold">
+          <tr className="border-t-2 border-slate-300 font-semibold break-inside-avoid">
             {table.columns.map((column) => (
               <td key={column.header} className={`px-2 py-2 ${align(column.align)}`}>
                 {column.value(total) ?? ""}
@@ -112,16 +112,17 @@ export default function PrintableReport({
             alt={process.env.NEXT_PUBLIC_APP_NAME || ""}
             width={140}
             height={86}
+            priority
           />
         </header>
 
         {sections.map((section, index) => (
           <section
             key={section.table.heading ?? index}
-            className="space-y-2 break-inside-avoid-page"
+            className="space-y-2"
           >
             {showHeadings && section.table.heading && (
-              <h2 className="text-base font-semibold">{section.table.heading}</h2>
+              <h2 className="text-base font-semibold break-after-avoid">{section.table.heading}</h2>
             )}
             <PrintTable {...section} />
           </section>

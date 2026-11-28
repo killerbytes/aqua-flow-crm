@@ -5,6 +5,7 @@ import {
   inactiveWithEquipmentReport,
   reportCsv,
 } from "@/features/reports/definitions";
+import { inactiveEquipmentFilter } from "@/features/reports/equipment";
 import { inactiveReportView } from "@/features/reports/inactive";
 import { businessDateKey } from "@/lib/business-time";
 import { csvResponse } from "@/lib/csv";
@@ -20,7 +21,10 @@ export async function GET(request: NextRequest) {
   const days = parseMinDays(params.get("days"));
   const { rows } = inactiveReportView(
     inactiveWithEquipmentReport,
-    await ReportService.getInactiveCustomersWithEquipment({ minDays: days }),
+    inactiveEquipmentFilter(
+      await ReportService.getInactiveCustomersWithEquipment({ minDays: days }),
+      params.getAll("product"),
+    ).rows,
     days,
     {
       sort: params.get("sort"),

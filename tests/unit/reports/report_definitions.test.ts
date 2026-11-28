@@ -22,6 +22,7 @@ import {
   REPORTS,
   SALES_CSV_TABLES,
   salesByPeriodTable,
+  customersWithEquipmentReport,
   temporaryEquipmentReport,
   VOIDS_CSV_TABLES,
   voidsByUserTable,
@@ -161,6 +162,24 @@ describe("Unit - Report Definitions", () => {
       expect(csvLines(temporaryEquipmentReport, [loan])[1]).toBe(
         "Juan Cruz,,Slim,2,Unknown,",
       );
+    });
+
+    it("should write one product per row for customers with equipment", () => {
+      const held = {
+        customerId: 7,
+        customerName: "Juan Cruz",
+        phone: null,
+        barangayId: null,
+        barangay: null,
+        productId: 1,
+        productName: "Slim",
+        quantity: 3,
+      };
+
+      expect(csvLines(customersWithEquipmentReport, [held])).toEqual([
+        "Customer,Phone,Barangay,Product,Quantity",
+        "Juan Cruz,,,Slim,3",
+      ]);
     });
 
     it("should give the time of a void in Philippine time", () => {

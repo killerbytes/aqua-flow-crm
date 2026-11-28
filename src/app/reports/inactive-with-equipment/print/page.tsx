@@ -2,6 +2,7 @@ import { requirePagePermission } from "@/backend/auth/context";
 import { initDatabase } from "@/backend/db/database";
 import { parseMinDays, ReportService } from "@/backend/services";
 import { inactiveWithEquipmentReport } from "@/features/reports/definitions";
+import { inactiveEquipmentFilter } from "@/features/reports/equipment";
 import {
   inactiveReportView,
   type InactiveReportParams,
@@ -20,9 +21,13 @@ export default async function InactiveWithEquipmentPrintPage({
 
   const params = await searchParams;
   const days = parseMinDays(params.days);
+  const equipment = inactiveEquipmentFilter(
+    await ReportService.getInactiveCustomersWithEquipment({ minDays: days }),
+    params.product,
+  );
   const view = inactiveReportView(
     inactiveWithEquipmentReport,
-    await ReportService.getInactiveCustomersWithEquipment({ minDays: days }),
+    equipment.rows,
     days,
     params,
   );
@@ -36,6 +41,7 @@ export default async function InactiveWithEquipmentPrintPage({
       backQuery={view.query}
       filters={[
         `No order in ${days}+ days, plus customers who have never ordered`,
+        ...equipment.filterLines,
         ...view.filterLines,
         `${units} ${units === 1 ? "unit" : "units"} of regular equipment held`,
       ]}

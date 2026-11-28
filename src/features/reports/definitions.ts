@@ -11,6 +11,7 @@ import type {
 } from "@/backend/services/finance-report.service";
 import type { EquipmentService } from "@/backend/services/equipment.service";
 import type {
+  CustomerEquipmentRow,
   InactiveCustomerRow,
   InactiveCustomerWithEquipmentRow,
   TemporaryEquipmentRow,
@@ -205,6 +206,32 @@ export const inactiveWithEquipmentReport: ReportDefinition<InactiveCustomerWithE
       },
     ],
     emptyMessage: "No inactive customer is holding equipment.",
+  };
+
+export const customersWithEquipmentReport: ReportDefinition<CustomerEquipmentRow> =
+  {
+    slug: "customers-with-equipment",
+    title: "Customers with Equipment",
+    description:
+      "Customers holding regular containers or equipment, one row per product. Temporary equipment has its own report.",
+    columns: [
+      {
+        header: "Customer",
+        value: (row) => row.customerName,
+        href: customerHref,
+        sort: { key: "customer" },
+      },
+      { header: "Phone", value: (row) => row.phone, sort: { key: "phone" } },
+      { header: "Barangay", value: (row) => row.barangay, sort: { key: "barangay" } },
+      { header: "Product", value: (row) => row.productName, sort: { key: "product" } },
+      {
+        header: "Quantity",
+        value: (row) => row.quantity,
+        align: "right",
+        sort: { key: "quantity" },
+      },
+    ],
+    emptyMessage: "No customer is holding regular equipment.",
   };
 
 export const temporaryEquipmentReport: ReportDefinition<TemporaryEquipmentRow> =
@@ -564,6 +591,7 @@ export const rangeQuery = (
 export const REPORTS = [
   inactiveCustomersReport,
   inactiveWithEquipmentReport,
+  customersWithEquipmentReport,
   temporaryEquipmentReport,
   salesReport,
   receivablesReport,
