@@ -27,7 +27,11 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import { OrderCustomerLookupButton } from "@/features/orders/components/OrderCustomerLookupButton";
-import { PAYMENT_METHOD_LABELS, PaymentMethod } from "@/lib/definitions";
+import {
+  CustomerStatus,
+  PAYMENT_METHOD_LABELS,
+  PaymentMethod,
+} from "@/lib/definitions";
 import { fromCents, formatPeso, toCents } from "@/lib/money";
 import { useUIStore } from "@/store/uiStore";
 import type { RetailProduct } from "@/types/models";
@@ -263,6 +267,7 @@ const RetailSaleModalContent = () => {
   const discount = useWatch({ control, name: "discount" });
   const customerId = useWatch({ control, name: "customerId" });
   const customer = lookupCustomers.find((c) => c.customerId === customerId);
+  const isInactiveCustomer = customer?.status === CustomerStatus.INACTIVE;
   const bill = billOf(items, products, discount);
 
   const onSubmit = (data: RetailSaleFormData) => {
@@ -314,6 +319,11 @@ const RetailSaleModalContent = () => {
             </Button>
           )}
         </div>
+        {isInactiveCustomer && (
+          <FieldError>
+            Customer is inactive. Set them active or sell as walk-in.
+          </FieldError>
+        )}
       </Field>
 
       <SaleItemsField form={form} products={products} />
@@ -419,7 +429,7 @@ const RetailSaleModalContent = () => {
         </Button>
         <Button
           type="submit"
-          disabled={isPending || bill.tooMuchDiscount}
+          disabled={isPending || bill.tooMuchDiscount || isInactiveCustomer}
           className="bg-emerald-600 hover:bg-emerald-500"
         >
           {isPending ? "Recording..." : "Record Sale"}

@@ -64,6 +64,7 @@ export function CustomerName({ customer }: { customer?: Customer }) {
     >
       {customer?.name || "[Deleted]"}
       {hasSpecialPricing && <Tag className="w-4 h-4 text-orange-500" />}
+      {customer?.status === CustomerStatus.INACTIVE && <Badge variant="secondary">Inactive</Badge>}
     </div>
   );
 }

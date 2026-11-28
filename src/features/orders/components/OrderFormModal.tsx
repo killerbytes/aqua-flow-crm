@@ -7,9 +7,14 @@ import { createOrderAction, updateOrderAction } from "@/backend/actions";
 import { OrderFormData, OrderSchema } from "@/backend/schemas/zodSchemas";
 import Modal from "@/components/Modal";
 import { Button } from "@/components/ui/button";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
-import { OrderStatus, PaymentStatus } from "@/lib/definitions";
+import { CustomerStatus, OrderStatus, PaymentStatus } from "@/lib/definitions";
 import { formatCurrency } from "@/lib/utils";
 import { useUIStore } from "@/store/uiStore";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -82,6 +87,9 @@ const OrderFormModalContent = () => {
   const customer =
     lookupCustomers.find((c) => c.customerId === customerId) ??
     (orderCustomer?.customerId === customerId ? orderCustomer : undefined);
+  // Only new orders are blocked; a pending order can still be edited.
+  const isInactiveCustomer =
+    !editingOrder && customer?.status === CustomerStatus.INACTIVE;
   const balancesOut = (customer?.equipmentBalances ?? []).filter(
     hasContainersOut,
   );
@@ -153,6 +161,11 @@ const OrderFormModalContent = () => {
               </FieldLabel>
             </OrderCustomerLookupButton>
           )}
+          {isInactiveCustomer && (
+            <FieldError>
+              Customer is inactive. Set them active to create an order.
+            </FieldError>
+          )}
         </Field>
 
         {balancesOut.length > 0 && (
@@ -219,7 +232,7 @@ const OrderFormModalContent = () => {
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={isPending}>
+        <Button type="submit" disabled={isPending || isInactiveCustomer}>
           {editingOrder
             ? isPending
               ? "Saving..."

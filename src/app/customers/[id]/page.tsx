@@ -31,7 +31,6 @@ import {
 } from "@/backend/services";
 import { CommonService } from "@/backend/services/commonService";
 import { RoleGuard } from "@/components/auth/RoleGuard";
-import { ColorBadge } from "@/components/presentation";
 import PageHeader from "@/components/shared/PageHeader";
 import TabWrapper from "@/components/TabWrapper";
 import {
@@ -58,10 +57,11 @@ import { OrderFormModalButton } from "@/features/orders/components/OrderFormModa
 import OrderList from "@/features/orders/components/OrderList";
 import EquipmentLogs from "@/features/products/components/EquipmentLogs";
 import RetailSaleList from "@/features/retail/components/RetailSaleList";
-import { CUSTOMER_STATUS_BADGE_COLOR, UserRole } from "@/lib/definitions";
+import { CustomerStatus, UserRole } from "@/lib/definitions";
 import { parsePageParams } from "@/lib/pagination";
 import { formatCurrency } from "@/lib/utils";
 import { redirect } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
 
 export const dynamic = "force-dynamic";
 
@@ -102,6 +102,7 @@ export default async function CustomerPage({
     customer = null;
   }
   if (!customer || !customer.customerId) redirect("/customers");
+  const isInactive = customer.status === CustomerStatus.INACTIVE;
 
   const products = await ProductService.getAll();
   const logsPromise = EquipmentService.getAll({
@@ -217,9 +218,7 @@ export default async function CustomerPage({
                 <h2 className="truncate text-2xl font-bold tracking-tight">
                   {customer.name}
                 </h2>
-                <ColorBadge colorMap={CUSTOMER_STATUS_BADGE_COLOR}>
-                  {customer.status}
-                </ColorBadge>
+                {isInactive && <Badge variant="secondary">Inactive</Badge>}
                 <CustomerFormModalButton customer={customer} variant="ghost">
                   <Edit className="size-4" />
                   Edit
@@ -259,17 +258,22 @@ export default async function CustomerPage({
             allowedRoles={[UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER]}
           >
             <div className="flex flex-wrap gap-2 lg:max-w-md lg:justify-end">
-              <OrderFormModalButton customer={customer}>
+              <OrderFormModalButton customer={customer} disabled={isInactive}>
                 <ShoppingBag className="size-4" />
                 Create Order
               </OrderFormModalButton>
-              <InvoiceFormModalButton customer={customer} variant="outline">
+              <InvoiceFormModalButton
+                customer={customer}
+                variant="outline"
+                disabled={isInactive}
+              >
                 <DollarSign className="size-4" />
                 Create Invoice
               </InvoiceFormModalButton>
               <LogEquipmentModalButton
                 customerId={customer.customerId}
                 variant="outline"
+                disabled={isInactive}
               >
                 <ArrowRightLeft className="size-4" />
                 Log Equipment

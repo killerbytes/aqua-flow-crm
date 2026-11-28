@@ -1,5 +1,6 @@
 import { toPlain } from "../models/plain";
 import {
+  CustomerStatus,
   MAX_ORDER_BACKDATE_DAYS,
   OrderStatus,
   PAGINATION,
@@ -330,6 +331,11 @@ export class OrderService {
       });
       if (!lockedCustomer) {
         throw new Error(`Customer with ID ${customerId} not found`);
+      }
+      if (lockedCustomer.status === CustomerStatus.INACTIVE) {
+        throw new Error(
+          "Can't create an order for an inactive customer. Set them active first.",
+        );
       }
 
       const order = await Order.create(

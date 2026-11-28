@@ -7,7 +7,6 @@ import { ColorBadge, CustomerName, MonoText } from "@/components/presentation";
 import OrderActions from "@/features/orders/components/OrderActions";
 import { PaymentModal } from "@/features/orders/components/PaymentModal";
 import {
-  CustomerStatus,
   ORDER_STATUS_BADGE_COLOR,
   PAYMENT_METHOD_BADGE_COLOR,
   PAYMENT_STATUS_BADGE_COLOR,
@@ -16,7 +15,6 @@ import {
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { Paginated } from "@/types";
 import { createColumnHelper } from "@tanstack/react-table";
-import { cx } from "class-variance-authority";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -57,12 +55,7 @@ export default function OrderList({ orders }: OrderListProps) {
                 <Link
                   onClick={(e) => e.stopPropagation()}
                   href={`/customers/${customerId}`}
-                  className={cx(
-                    "font-medium text-primary hover:underline",
-                    order.customer?.status === CustomerStatus.INACTIVE
-                      ? "opacity-60"
-                      : "opacity-100",
-                  )}
+                  className="font-medium text-primary hover:underline"
                 >
                   <CustomerName customer={order.customer} />
                 </Link>

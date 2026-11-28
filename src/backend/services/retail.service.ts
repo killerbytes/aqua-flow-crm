@@ -1,5 +1,6 @@
 import { toPlain } from "../models/plain";
 import {
+  CustomerStatus,
   PAGINATION,
   RETAIL_STOCK_ENTRY_LABELS,
   RetailStockEntryType,
@@ -408,6 +409,11 @@ export class RetailSaleService {
       const customer = await Customer.findByPk(customerId, { transaction: t });
       if (!customer) {
         throw new Error(`Customer with ID ${customerId} not found`);
+      }
+      if (customer.status === CustomerStatus.INACTIVE) {
+        throw new Error(
+          "Can't sell to an inactive customer. Set them active first.",
+        );
       }
 
       // Each product is locked before its stock is checked, in product order,

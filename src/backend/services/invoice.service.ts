@@ -1,5 +1,6 @@
 import { toPlain } from "../models/plain";
 import {
+  CustomerStatus,
   InvoiceStatus,
   OrderStatus,
   PAGINATION,
@@ -142,6 +143,18 @@ export class InvoiceService {
   static async create(data: InvoiceFormData, userId: number) {
     return await sequelize.transaction(async (t) => {
       const orderIds = [...new Set(data.items)];
+
+      const customer = await Customer.findByPk(data.customerId, {
+        transaction: t,
+      });
+      if (!customer) {
+        throw new Error(`Customer with ID ${data.customerId} not found`);
+      }
+      if (customer.status === CustomerStatus.INACTIVE) {
+        throw new Error(
+          "Can't create an invoice for an inactive customer. Set them active first.",
+        );
+      }
 
       // Locked so an order can't be paid or cancelled while being invoiced.
       const orders = await Order.findAll({

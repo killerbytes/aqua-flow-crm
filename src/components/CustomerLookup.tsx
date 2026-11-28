@@ -15,6 +15,9 @@ import {
   CommandItem,
   CommandList,
 } from "./ui/command";
+import { Badge } from "./ui/badge";
+import { cx } from "class-variance-authority";
+import { CustomerStatus } from "@/lib/definitions";
 
 function CustomerLookupContent({
   onClose,
@@ -93,13 +96,21 @@ function CustomerLookupContent({
                     onSelect={handleSelect}
                     value={c.customerId.toString()}
                   >
-                    <div className="flex flex-col w-full">
+                    <div
+                      className={cx(
+                        "flex flex-col w-full",
+                        c.status === CustomerStatus.INACTIVE && "opacity-50",
+                      )}
+                    >
                       <div className="flex items-center justify-between">
                         <span className="font-semibold">{c.name}</span>
                         <span className="text-xs">{c.phone}</span>
                       </div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-muted-foreground flex items-center justify-between">
                         {c.address}
+                        {c.status === CustomerStatus.INACTIVE && (
+                          <Badge variant="secondary">Inactive</Badge>
+                        )}
                       </div>
                     </div>
                   </CommandItem>
